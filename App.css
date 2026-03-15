@@ -1,0 +1,188 @@
+import React, { useState } from "react";
+import { loadStripe } from "@stripe/stripe-js";
+import axios from "axios";
+
+const stripePromise = loadStripe("YOUR_STRIPE_PUBLISHABLE_KEY");
+
+const products = {
+  shampoos: [
+    { name: "Rose Shampoo", priceId: "price_1ShampA" },
+    { name: "Coconut Shampoo", priceId: "price_1ShampB" },
+    { name: "Shea Shampoo", priceId: "price_1ShampC" },
+    { name: "Mint Shampoo", priceId: "price_1ShampD" }
+  ],
+  conditioners: [
+    { name: "Silk Conditioner", priceId: "price_1CondA" },
+    { name: "Honey Conditioner", priceId: "price_1CondB" },
+    { name: "Avocado Conditioner", priceId: "price_1CondC" },
+    { name: "Argan Conditioner", priceId: "price_1CondD" }
+  ],
+  oils: [
+    { name: "Growth Oil", priceId: "price_1OilA" },
+    { name: "Scalp Oil", priceId: "price_1OilB" },
+    { name: "Shine Oil", priceId: "price_1OilC" },
+    { name: "Moisture Oil", priceId: "price_1OilD" }
+  ]
+};
+
+function App() {
+  const [selection, setSelection] = useState({
+    shampoos: [],
+    conditioners: [],
+    oils: []
+  });
+
+  const handleSelect = (category, item) => {
+    setSelection(prev => {
+      const current = prev[category];
+      if (current.includes(item)) {
+        return { ...prev, [category]: current.filter(i => i !== item) };
+      } else if (current.length < 2) {
+        return { ...prev, [category]: [...current, item] };
+      }
+      return prev;
+    });
+  };
+
+  const handleSubscribe = async () => {
+    const stripe = await stripePromise;
+    try {
+      const { data } = await axios.post(
+        "http://localhost:4242/create-checkout-session",
+        selection
+      );
+      await stripe.redirectToCheckout({ sessionId: data.id });
+    } catch (err) {
+      console.error(err);
+      alert("Failed to start subscription");
+    }
+  };
+
+  return (
+    <div style={styles.page}>
+      <h1 style={styles.title}>Build Your Hair Care Box</h1>
+      <p style={styles.subtitle}>Pick 2 of each to create your perfect routine</p>
+
+      {["shampoos", "conditioners", "oils"].map(category => (
+        <div key={category} style={styles.section}>
+          <h2 style={styles.sectionTitle}>Pick 2 {category}</h2>
+
+          <div style={styles.grid}>
+            {products[category].map(item => (
+              <div
+                key={item.name}
+                onClick={() => handleSelect(category, item)}
+                style={{
+                  ...styles.card,
+                  border: selection[category].includes(item)
+                    ? "2px solid #d63384"
+                    : "1px solid #ddd"
+                }}
+              >
+                <img
+                  src={`https://via.placeholder.com/120x120?text=${item.name}`}
+                  alt={item.name}
+                  style={styles.image}
+                />
+                <div style={styles.productName}>{item.name}</div>
+              </div>
+            ))}
+          </div>
+
+          <p style={styles.selected}>
+            Selected:{" "}
+            {selection[category].map(i => i.name).join(", ") || "None"}
+          </p>
+        </div>
+      ))}
+
+      <div style={styles.summary}>
+        <h3>Your Box Includes:</h3>
+        <ul>
+          {Object.keys(selection).map(cat =>
+            selection[cat].map(item => (
+              <li key={item.name}>{item.name}</li>
+            ))
+          )}
+        </ul>
+
+        <button onClick={handleSubscribe} style={styles.button}>
+          Subscribe & Checkout
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const styles = {
+  page: {
+    maxWidth: "900px",
+    margin: "0 auto",
+    padding: "40px 20px",
+    fontFamily: "'Poppins', sans-serif",
+    background: "#fff5f8",
+    minHeight: "100vh"
+  },
+  title: {
+    textAlign: "center",
+    color: "#d63384",
+    fontSize: "36px",
+    marginBottom: "10px"
+  },
+  subtitle: {
+    textAlign: "center",
+    color: "#6c757d",
+    marginBottom: "40px"
+  },
+  section: {
+    marginBottom: "50px"
+  },
+  sectionTitle: {
+    color: "#d63384",
+    marginBottom: "20px"
+  },
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, 1fr)",   // ✅ TWO ROWS
+    gap: "20px"
+  },
+  card: {
+    background: "#ffffff",
+    borderRadius: "16px",
+    padding: "20px",
+    textAlign: "center",
+    cursor: "pointer",
+    boxShadow: "0 6px 15px rgba(0,0,0,0.05)",
+    transition: "all 0.2s ease"
+  },
+  image: {
+    borderRadius: "12px",
+    marginBottom: "10px"
+  },
+  productName: {
+    fontWeight: "600",
+    color: "#333"
+  },
+  selected: {
+    marginTop: "10px",
+    color: "#555"
+  },
+  summary: {
+    background: "#ffe3ec",
+    padding: "30px",
+    borderRadius: "20px",
+    textAlign: "center"
+  },
+  button: {
+    marginTop: "20px",
+    background: "#d63384",
+    color: "#fff",
+    border: "none",
+    padding: "15px 40px",
+    borderRadius: "30px",
+    fontSize: "16px",
+    cursor: "pointer"
+  }
+};
+
+export default App;

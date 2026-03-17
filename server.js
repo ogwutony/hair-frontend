@@ -94,7 +94,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     await user.save();
     const resetLink = 'https://www.majorityhairsolutions.com/reset-password?token=' + token;
     const mailOptions = {
-      from: '"Majority Hair Solutions" <' + process.env.EMAIL_USER + '>',
+      from: 'Majority Hair Solutions <onboarding@resend.dev>',
       to: email,
       subject: 'Reset Your Password - Majority Hair Solutions',
       html: '<p>You requested a password reset.</p><p>Click the link below to reset your password. This link expires in 1 hour.</p><p><a href="' + resetLink + '">Reset My Password</a></p><p>If you did not request this, please ignore this email.</p>'

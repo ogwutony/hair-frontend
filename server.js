@@ -37,10 +37,15 @@ const Order = mongoose.model('Order', new mongoose.Schema({
 
 // --- EMAIL TRANSPORTER ---
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
+  },
+  tls: {
+    rejectUnauthorized: false
   }
 });
 
@@ -88,12 +93,14 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     user.resetTokenExpiry = Date.now() + 3600000;
     await user.save();
     const resetLink = 'https://www.majorityhairsolutions.com/reset-password?token=' + token;
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    const mailOptions = {
+      from: '"Majority Hair Solutions" <' + process.env.EMAIL_USER + '>',
       to: email,
       subject: 'Reset Your Password - Majority Hair Solutions',
-      html: '<p>You requested a password reset.</p><p>Click the link below to reset your password. This link expires in 1 hour.</p><a href="' + resetLink + '">' + resetLink + '</a><p>If you did not request this, please ignore this email.</p>'
-    });
+      html: '<p>You requested a password reset.</p><p>Click the link below to reset your password. This link expires in 1 hour.</p><p><a href="' + resetLink + '">Reset My Password</a></p><p>If you did not request this, please ignore this email.</p>'
+    };
+    await transporter.sendMail(mailOptions);
+    console.log('Password reset email sent to:', email);
     res.status(200).json({ message: "If that email exists, a reset link has been sent." });
   } catch (err) {
     console.error("Forgot password error:", err.message);

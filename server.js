@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const crypto = require('crypto');
 const https = require('https');
-const path = require('path');
 require('dotenv').config();
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -72,6 +71,8 @@ function sendEmail(to, subject, html) {
 }
 
 // --- API ROUTES ---
+app.get('/', (req, res) => res.send('The Majority Backend is Live!'));
+
 app.post('/api/signup', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -153,12 +154,6 @@ app.post('/api/create-payment-intent', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
-
-// --- SERVE REACT FRONTEND ---
-app.use(express.static(path.join(__dirname, 'build')));
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
 const PORT = process.env.PORT || 5000;

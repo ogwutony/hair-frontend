@@ -3,10 +3,9 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const https = require('https');
 require('dotenv').config();
 
-// Initializing Stripe with the Secret Key from your Render Environment variables
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const app = express();
 
@@ -35,26 +34,46 @@ const Order = mongoose.model('Order', new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 }));
 
-// --- EMAIL TRANSPORTER ---
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
+// --- EMAIL via Resend API (HTTPS - no SMTP port issues) ---
+function sendEmail(to, subject, html) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify({
+      from: 'Majority Hair Solutions <onboarding@resend.dev>',
+      to: [to],
+      subject: subject,
+      html: html
+    });
+    const options = {
+      hostname: 'api.resend.com',
+      path: '/emails',
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + process.env.RESEND_API_KEY,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      }
+    };
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(JSON.parse(data));
+        } else {
+          reject(new Error('Resend error ' + res.statusCode + ': ' + data));
+        }
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
 
 // --- ROUTES ---
 
-// Health Check
 app.get('/', (req, res) => res.send('The Majority Backend is Live!'));
 
-// SIGNUP ROUTE: Creates a new user and hashes the password
 app.post('/api/signup', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -66,7 +85,6 @@ app.post('/api/signup', async (req, res) => {
   }
 });
 
-// LOGIN ROUTE: Verifies credentials
 app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -80,7 +98,6 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// FORGOT PASSWORD ROUTE: Sends a reset link to the user's email
 app.post('/api/auth/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
@@ -93,13 +110,14 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     user.resetTokenExpiry = Date.now() + 3600000;
     await user.save();
     const resetLink = 'https://www.majorityhairsolutions.com/reset-password?token=' + token;
-    const mailOptions = {
-      from: 'Majority Hair Solutions <onboarding@resend.dev>',
-      to: email,
-      subject: 'Reset Your Password - Majority Hair Solutions',
-      html: '<p>You requested a password reset.</p><p>Click the link below to reset your password. This link expires in 1 hour.</p><p><a href="' + resetLink + '">Reset My Password</a></p><p>If you did not request this, please ignore this email.</p>'
-    };
-    await transporter.sendMail(mailOptions);
+    await sendEmail(
+      email,
+      'Reset Your Password - Majority Hair Solutions',
+      '<p>You requested a password reset.</p>' +
+      '<p>Click the link below to reset your password. This link expires in 1 hour.</p>' +
+      '<p><a href="' + resetLink + '">Reset My Password</a></p>' +
+      '<p>If you did not request this, please ignore this email.</p>'
+    );
     console.log('Password reset email sent to:', email);
     res.status(200).json({ message: "If that email exists, a reset link has been sent." });
   } catch (err) {
@@ -108,7 +126,6 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   }
 });
 
-// RESET PASSWORD ROUTE: Updates the password using the reset token
 app.post('/api/auth/reset-password', async (req, res) => {
   try {
     const { token, password } = req.body;
@@ -129,7 +146,6 @@ app.post('/api/auth/reset-password', async (req, res) => {
   }
 });
 
-// STRIPE ROUTE: Creates the payment intent
 app.post('/api/create-payment-intent', async (req, res) => {
   try {
     const { amount } = req.body;
@@ -144,6 +160,5 @@ app.post('/api/create-payment-intent', async (req, res) => {
   }
 });
 
-// --- SERVER INITIALIZATION ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log('Backend running on port ' + PORT + '...'));

@@ -2,6 +2,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 // Initializing Stripe with the Secret Key from your Render Environment variables
@@ -13,13 +15,15 @@ app.use(cors());
 
 // --- DATABASE CONNECTION ---
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log("✅ SUCCESS: Connected to MongoDB Atlas"))
-  .catch(err => console.error("❌ ERROR:", err.message));
+  .then(() => console.log("SUCCESS: Connected to MongoDB Atlas"))
+  .catch(err => console.error("ERROR:", err.message));
 
 // --- SCHEMAS ---
 const User = mongoose.model('User', new mongoose.Schema({
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: true }
+  password: { type: String, required: true },
+  resetToken: String,
+  resetTokenExpiry: Date
 }));
 
 const Order = mongoose.model('Order', new mongoose.Schema({
@@ -30,6 +34,15 @@ const Order = mongoose.model('Order', new mongoose.Schema({
   stripePaymentIntentId: String,
   createdAt: { type: Date, default: Date.now }
 }));
+
+// --- EMAIL TRANSPORTER ---
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
 
 // --- ROUTES ---
 
@@ -62,6 +75,53 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+// FORGOT PASSWORD ROUTE: Sends a reset link to the user's email
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(200).json({ message: "If that email exists, a reset link has been sent." });
+    }
+    const token = crypto.randomBytes(32).toString('hex');
+    user.resetToken = token;
+    user.resetTokenExpiry = Date.now() + 3600000;
+    await user.save();
+    const resetLink = 'https://www.majorityhairsolutions.com/reset-password?token=' + token;
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Reset Your Password - Majority Hair Solutions',
+      html: '<p>You requested a password reset.</p><p>Click the link below to reset your password. This link expires in 1 hour.</p><a href="' + resetLink + '">' + resetLink + '</a><p>If you did not request this, please ignore this email.</p>'
+    });
+    res.status(200).json({ message: "If that email exists, a reset link has been sent." });
+  } catch (err) {
+    console.error("Forgot password error:", err.message);
+    res.status(500).json({ error: "Server error. Please try again." });
+  }
+});
+
+// RESET PASSWORD ROUTE: Updates the password using the reset token
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    const user = await User.findOne({
+      resetToken: token,
+      resetTokenExpiry: { $gt: Date.now() }
+    });
+    if (!user) {
+      return res.status(400).json({ error: "Invalid or expired reset token." });
+    }
+    user.password = await bcrypt.hash(password, 10);
+    user.resetToken = undefined;
+    user.resetTokenExpiry = undefined;
+    await user.save();
+    res.status(200).json({ message: "Password reset successfully." });
+  } catch (err) {
+    res.status(500).json({ error: "Server error. Please try again." });
+  }
+});
+
 // STRIPE ROUTE: Creates the payment intent
 app.post('/api/create-payment-intent', async (req, res) => {
   try {
@@ -79,4 +139,4 @@ app.post('/api/create-payment-intent', async (req, res) => {
 
 // --- SERVER INITIALIZATION ---
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Backend running on port ${PORT}...`));
+app.listen(PORT, () => console.log('Backend running on port ' + PORT + '...'));

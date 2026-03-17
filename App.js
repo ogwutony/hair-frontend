@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation, useParams } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
@@ -8,6 +8,42 @@ const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
 // --- 2. BACKEND CONFIGURATION ---
 const BACKEND_URL = "https://hair-backend-2.onrender.com";
+
+// --- GOOGLE OAUTH CONFIG ---
+const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+const GOOGLE_ENABLED = !!GOOGLE_CLIENT_ID;
+
+// Launches Google One-Tap / popup and returns an access token
+const signInWithGoogle = (onSuccess, onError) => {
+  if (!window.google) { onError("Google Sign-In not loaded."); return; }
+  window.google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: "email profile",
+    callback: (res) => {
+      if (res.error) { onError(res.error); return; }
+      onSuccess(res.access_token);
+    },
+  }).requestAccessToken();
+};
+
+// Google "G" icon SVG
+const GoogleIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" style={{ marginRight: '8px' }}>
+    <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 002.38-5.88c0-.57-.05-.66-.15-1.18z"/>
+    <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 01-7.18-2.54H1.83v2.07A8 8 0 008.98 17z"/>
+    <path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 010-3.04V5.41H1.83a8 8 0 000 7.18l2.67-2.07z"/>
+    <path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 001.83 5.4L4.5 7.49a4.77 4.77 0 014.48-3.3z"/>
+  </svg>
+);
+
+// "Or continue with email" divider
+const OrDivider = () => (
+  <div style={{ display: 'flex', alignItems: 'center', margin: '16px 0' }}>
+    <div style={{ flex: 1, height: '1px', backgroundColor: '#eee' }} />
+    <span style={{ margin: '0 12px', fontSize: '12px', color: '#aaa' }}>or</span>
+    <div style={{ flex: 1, height: '1px', backgroundColor: '#eee' }} />
+  </div>
+);
 
 // --- 3. UI HELPERS ---
 const ScrollToTop = () => {
@@ -101,7 +137,7 @@ const CheckoutForm = ({ totalPrice, onPurchaseSuccess }) => {
       confirmParams: {
         return_url: `${window.location.origin}/orders`,
       },
-      redirect: 'if_required' // For demo purposes, we handle the success logic below if no redirect happens
+      redirect: 'if_required'
     });
 
     if (error) {
@@ -123,65 +159,256 @@ const CheckoutForm = ({ totalPrice, onPurchaseSuccess }) => {
   );
 };
 
-// --- AUTH COMPONENTS ---
+// --- LOGIN PAGE ---
 const LoginPage = ({ onLogin }) => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const handleLogin = async () => {
+  const handleSubmit = async () => {
+    if (!email || !password) return setErrorMsg("Please enter your email and password.");
     setIsLoading(true);
+    setErrorMsg("");
     try {
       const response = await fetch(`${BACKEND_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, rememberMe })
       });
       const data = await response.json();
       if (response.ok) {
-        onLogin(email);
+        onLogin(data.email, data.token, rememberMe);
         navigate("/");
-      } else { alert(data.error || "Invalid login"); }
-    } catch (err) { alert("Server is waking up. Try again in 30s."); }
-    finally { setIsLoading(false); }
+      } else {
+        setErrorMsg(data.error || "Invalid email or password.");
+      }
+    } catch (err) {
+      setErrorMsg("Server is waking up — please try again in 30 seconds.");
+    }
+    setIsLoading(false);
+  };
+
+  const handleGoogle = () => {
+    setErrorMsg("");
+    signInWithGoogle(async (accessToken) => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/auth/google`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessToken })
+        });
+        const data = await response.json();
+        if (response.ok) { onLogin(data.email, data.token, true); navigate("/"); }
+        else setErrorMsg(data.error || "Google sign-in failed.");
+      } catch (err) { setErrorMsg("Google sign-in failed. Please try again."); }  // FIX: was bare catch {}
+      setIsLoading(false);
+    }, (err) => setErrorMsg(err));
   };
 
   return (
-    <div style={styles.authContainer}><div style={styles.authCard}>
-      <h2>Sign In</h2>
-      <input type="email" placeholder="Email" style={styles.input} value={email} onChange={(e) => setEmail(e.target.value)} />
-      <input type="password" placeholder="Password" style={styles.input} value={password} onChange={(e) => setPassword(e.target.value)} />
-      <button style={styles.authButton} onClick={handleLogin}>{isLoading ? "..." : "Login"}</button>
-    </div></div>
+    <div style={styles.authContainer}>
+      <div style={styles.authCard}>
+        <h2 style={{ marginBottom: '6px' }}>Sign In</h2>
+        <p style={{ color: '#888', fontSize: '13px', marginTop: 0, marginBottom: '20px' }}>Welcome back to Majority Hair Solutions</p>
+        {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
+        {GOOGLE_ENABLED && (
+          <>
+            <button style={styles.googleButton} onClick={handleGoogle} disabled={isLoading}>
+              <GoogleIcon /> Continue with Google
+            </button>
+            <OrDivider />
+          </>
+        )}
+        <input type="email" placeholder="Email" style={styles.input} value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} />
+        <input type="password" placeholder="Password" style={styles.input} value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '4px 0 14px' }}>
+          <label style={{ fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: '#555' }}>
+            <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} style={{ accentColor: '#222' }} />
+            Remember me
+          </label>
+          <Link to="/forgot-password" style={{ fontSize: '13px', color: '#666', textDecoration: 'none' }}>Forgot password?</Link>
+        </div>
+        <button style={styles.authButton} onClick={handleSubmit} disabled={isLoading}>
+          {isLoading ? "Signing in…" : "Sign In"}
+        </button>
+        <p style={{ textAlign: 'center', fontSize: '13px', marginTop: '20px', color: '#666' }}>
+          Don't have an account?{' '}
+          <Link to="/signup" style={{ color: '#222', fontWeight: '600', textDecoration: 'none' }}>Sign Up</Link>
+        </p>
+      </div>
+    </div>
   );
 };
 
-const SignupPage = () => {
+// --- SIGNUP PAGE ---
+const SignupPage = ({ onLogin }) => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const handleSignup = async () => {
-    if (password !== confirmPassword) return alert("Passwords do not match");
+  const handleSubmit = async () => {
+    if (!email || !password) return setErrorMsg("Please fill in all fields.");
+    if (password !== confirmPassword) return setErrorMsg("Passwords do not match.");
+    if (password.length < 8) return setErrorMsg("Password must be at least 8 characters.");
+    setIsLoading(true);
+    setErrorMsg("");
     try {
       const response = await fetch(`${BACKEND_URL}/api/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
-      if (response.ok) { alert("Success! Log in now."); navigate("/login"); }
-    } catch (err) { alert("Server error."); }
+      const data = await response.json();
+      if (response.ok) { onLogin(data.email, data.token, false); navigate("/"); }
+      else setErrorMsg(data.error || "Signup failed. Please try again.");
+    } catch (err) { setErrorMsg("Server is waking up — please try again in 30 seconds."); }  // FIX: was bare catch {}
+    setIsLoading(false);
+  };
+
+  const handleGoogle = () => {
+    setErrorMsg("");
+    signInWithGoogle(async (accessToken) => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/auth/google`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessToken })
+        });
+        const data = await response.json();
+        if (response.ok) { onLogin(data.email, data.token, true); navigate("/"); }
+        else setErrorMsg(data.error || "Google sign-up failed.");
+      } catch (err) { setErrorMsg("Google sign-up failed. Please try again."); }  // FIX: was bare catch {}
+      setIsLoading(false);
+    }, (err) => setErrorMsg(err));
+  };
+
+  return (
+    <div style={styles.authContainer}>
+      <div style={styles.authCard}>
+        <h2 style={{ marginBottom: '6px' }}>Create Account</h2>
+        <p style={{ color: '#888', fontSize: '13px', marginTop: 0, marginBottom: '20px' }}>Join Majority Hair Solutions</p>
+        {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
+        {GOOGLE_ENABLED && (
+          <>
+            <button style={styles.googleButton} onClick={handleGoogle} disabled={isLoading}>
+              <GoogleIcon /> Sign up with Google
+            </button>
+            <OrDivider />
+          </>
+        )}
+        <input type="email" placeholder="Email" style={styles.input} value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input type="password" placeholder="Password (min. 8 characters)" style={styles.input} value={password} onChange={(e) => setPassword(e.target.value)} />
+        <input type="password" placeholder="Confirm Password" style={styles.input} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} />
+        <button style={styles.authButton} onClick={handleSubmit} disabled={isLoading}>
+          {isLoading ? "Creating account…" : "Create Account"}
+        </button>
+        <p style={{ textAlign: 'center', fontSize: '13px', marginTop: '20px', color: '#666' }}>
+          Already have an account?{' '}
+          <Link to="/login" style={{ color: '#222', fontWeight: '600', textDecoration: 'none' }}>Sign In</Link>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// --- FORGOT PASSWORD PAGE ---
+const ForgotPasswordPage = () => {
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleSubmit = async () => {
+    if (!email) return setErrorMsg("Please enter your email address.");
+    setIsLoading(true);
+    setErrorMsg("");
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      if (response.ok) { setSent(true); }
+      else setErrorMsg("Something went wrong. Please try again.");
+    } catch (err) { setErrorMsg("Server is waking up — please try again in 30 seconds."); }  // FIX: was bare catch {}
+    setIsLoading(false);
+  };
+
+  return (
+    <div style={styles.authContainer}>
+      <div style={styles.authCard}>
+        <h2 style={{ marginBottom: '6px' }}>Forgot Password?</h2>
+        {sent ? (
+          <p style={{ color: '#222', fontWeight: '600', fontSize: '14px', marginTop: '16px' }}>Check your email for a reset link!</p>
+        ) : (
+          <>
+            <p style={{ fontSize: '13px', color: '#666', marginTop: 0, marginBottom: '16px' }}>Enter your email and we'll send you a reset link.</p>
+            {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
+            <input type="email" placeholder="Email" style={styles.input} value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} />
+            <button style={styles.authButton} onClick={handleSubmit}>{isLoading ? "Sending..." : "Send Reset Link"}</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// --- RESET PASSWORD PAGE ---
+const ResetPasswordPage = () => {
+  const { token } = useParams();
+  const navigate = useNavigate();
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const handleReset = async () => {
+    if (password !== confirmPassword) return setMessage("Passwords do not match.");
+    if (password.length < 8) return setMessage("Password must be at least 8 characters.");
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/reset-password/${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setIsSuccess(true);
+        setMessage("Password reset! You can now log in.");
+        setTimeout(() => navigate("/login"), 3000);
+      } else {
+        setMessage(data.error || "Reset link may have expired. Please request a new one.");
+      }
+    } catch (err) {
+      setMessage("Server error. Try again in a moment.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div style={styles.authContainer}><div style={styles.authCard}>
-      <h2>Sign Up</h2>
-      <input type="email" placeholder="Email" style={styles.input} onChange={(e) => setEmail(e.target.value)} />
-      <input type="password" placeholder="Password" style={styles.input} onChange={(e) => setPassword(e.target.value)} />
-      <input type="password" placeholder="Confirm" style={styles.input} onChange={(e) => setConfirmPassword(e.target.value)} />
-      <button style={styles.authButton} onClick={handleSignup}>Create Account</button>
+      <h2>Reset Password</h2>
+      {message ? (
+        <p style={{ color: isSuccess ? '#2a7a2a' : '#c0392b', fontWeight: '600', fontSize: '14px' }}>{message}</p>
+      ) : null}
+      {!isSuccess && (
+        <>
+          <input type="password" placeholder="New Password" style={styles.input} value={password} onChange={(e) => setPassword(e.target.value)} />
+          <input type="password" placeholder="Confirm New Password" style={styles.input} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+          <button style={styles.authButton} onClick={handleReset}>{isLoading ? "Resetting..." : "Reset Password"}</button>
+        </>
+      )}
     </div></div>
   );
 };
@@ -208,7 +435,7 @@ function LandingPage({ saveSetToProfile }) {
       const response = await fetch(`${BACKEND_URL}/api/create-payment-intent`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: Math.round(amt * 100) }), 
+        body: JSON.stringify({ amount: Math.round(amt * 100) }),
       });
       const data = await response.json();
       if (data.clientSecret) setClientSecret(data.clientSecret);
@@ -327,31 +554,58 @@ const LegislaturePage = ({ items }) => (
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState("");
-  const [savedSets, setSavedSets] = useState([]); // User's purchased sets
+  const [authToken, setAuthToken] = useState("");
+  const [savedSets, setSavedSets] = useState([]);
   const [legislatureItems, setLegislatureItems] = useState([
     { id: 1, type: "Partner", company: "EcoHair Labs", product: "Silk Serum", desc: "Organic serum for hair." }
   ]);
 
+  // Load Google Sign-In script
   useEffect(() => {
-    const savedEmail = localStorage.getItem("userEmail");
-    const storedSets = localStorage.getItem("savedSets");
-    if (savedEmail) {
-      setIsLoggedIn(true);
-      setUserEmail(savedEmail);
+    if (GOOGLE_ENABLED) {
+      const script = document.createElement('script');
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      document.head.appendChild(script);
+      return () => { if (document.head.contains(script)) document.head.removeChild(script); };
     }
-    if (storedSets) setSavedSets(JSON.parse(storedSets));
   }, []);
 
-  const handleLoginSuccess = (email) => {
+  // Restore session on load and validate token with backend
+  useEffect(() => {
+    const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+    const email = localStorage.getItem("userEmail") || sessionStorage.getItem("userEmail");
+    const storedSets = localStorage.getItem("savedSets");
+    if (storedSets) { try { setSavedSets(JSON.parse(storedSets)); } catch (e) {} }
+    if (token) {
+      fetch(`${BACKEND_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(data => {
+          if (data.email) { setIsLoggedIn(true); setUserEmail(data.email); setAuthToken(token); }
+          else {
+            localStorage.removeItem("authToken"); localStorage.removeItem("userEmail");
+            sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail");
+          }
+        })
+        .catch(() => { if (email) { setIsLoggedIn(true); setUserEmail(email); setAuthToken(token); } });
+    }
+  }, []);
+
+  const handleLoginSuccess = (email, token, rememberMe) => {
     setIsLoggedIn(true);
     setUserEmail(email);
-    localStorage.setItem("userEmail", email);
+    setAuthToken(token);
+    const storage = rememberMe ? localStorage : sessionStorage;
+    storage.setItem("authToken", token);
+    storage.setItem("userEmail", email);
   };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
     setUserEmail("");
-    localStorage.removeItem("userEmail");
+    setAuthToken("");
+    localStorage.removeItem("authToken"); localStorage.removeItem("userEmail");
+    sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail");
   };
 
   const saveSetToProfile = (items) => {
@@ -393,12 +647,14 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage saveSetToProfile={saveSetToProfile} />} />
           <Route path="/login" element={<LoginPage onLogin={handleLoginSuccess} />} />
-          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/signup" element={<SignupPage onLogin={handleLoginSuccess} />} />
           <Route path="/recommend" element={<RecommendPage addLegislatureItem={addLegislatureItem} />} />
           <Route path="/partner" element={<PartnerPage addLegislatureItem={addLegislatureItem} />} />
           <Route path="/legislature" element={<LegislaturePage items={legislatureItems} />} />
           <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} />} />
           <Route path="/orders" element={<div style={{ padding: '60px', textAlign: 'center' }}><h2>Payment Received!</h2><p>Your custom hair set is being prepared. Check your Profile to see your formula.</p><Link to="/profile">Go to Profile</Link></div>} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
         </Routes>
       </div>
     </Router>
@@ -423,10 +679,12 @@ const styles = {
   itemName: { fontSize: "12px", marginTop: "6px" },
   summaryContainer: { backgroundColor: '#fff', padding: '15px', borderRadius: '20px', border: '1px solid #eee' },
   checkoutBtn: { width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #222', background: '#fff', cursor: 'pointer', marginBottom: '10px', fontWeight: '600' },
-  authContainer: { display: 'flex', justifyContent: 'center', minHeight: '70vh', alignItems: 'center' },
-  authCard: { width: '380px', padding: '30px', border: '1px solid #eee', borderRadius: '24px', textAlign: 'center' },
-  input: { width: '100%', padding: '12px', margin: '8px 0', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box' },
-  authButton: { width: '100%', padding: '12px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
+  authContainer: { display: 'flex', justifyContent: 'center', minHeight: '70vh', alignItems: 'center', padding: '20px' },
+  authCard: { width: '100%', maxWidth: '400px', padding: '36px', border: '1px solid #eee', borderRadius: '24px' },
+  input: { width: '100%', padding: '12px', margin: '6px 0', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box', fontSize: '14px' },
+  authButton: { width: '100%', padding: '12px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' },
+  googleButton: { width: '100%', padding: '11px', backgroundColor: '#fff', color: '#222', border: '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  errorMsg: { background: '#fff3f3', color: '#c00', border: '1px solid #fcc', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', marginBottom: '12px', textAlign: 'left' },
   formSectionTitle: { fontSize: '13px', fontWeight: '800', marginTop: '20px', borderBottom: '1px solid #eee', paddingBottom: '5px', textTransform: 'uppercase' },
   uploadBox: { border: '2px dashed #ddd', borderRadius: '12px', padding: '20px', textAlign: 'center', backgroundColor: '#fafafa' },
   legislatureCard: { backgroundColor: '#fff', border: '1px solid #eee', borderRadius: '24px', padding: '30px', marginBottom: '20px' },

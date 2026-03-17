@@ -4,7 +4,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
 // --- 1. STRIPE INITIALIZATION ---
-const stripePromise = loadStripe("pk_live_xmALuYHH9tmQVPDqRcgcPb2b00Jv7yg0cj");
+const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
 // --- 2. BACKEND CONFIGURATION ---
 const BACKEND_URL = "https://hair-backend-2.onrender.com";
@@ -258,8 +258,8 @@ function LandingPage({ saveSetToProfile }) {
             <div style={{ borderTop: '2px solid #222', paddingTop: '15px' }}>
               {!clientSecret ? (
                 <>
-                  <button style={styles.checkoutBtn} onClick={() => initializePayment(19.99)}>Checkout One-Time ($19.99)</button>
-                  <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => initializePayment(15.99)}>Subscribe ($15.99/mo)</button>
+                  <button style={styles.checkoutBtn} onClick={() => initializePayment(30)}>Checkout One-Time ($30.00)</button>
+                  <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => initializePayment(25)}>Subscribe ($25.00/mo)</button>
                 </>
               ) : (
                 <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>

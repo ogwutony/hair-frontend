@@ -204,7 +204,8 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
     await user.save();
 
-    const resetUrl = `https://www.majorityhairsolutions.com/reset-password/${rawToken}`;
+    const frontendUrl = process.env.FRONTEND_URL || 'https://majorityhairsolutions.com';
+    const resetUrl = `${frontendUrl}/reset-password/${rawToken}`;
 
     await sendEmail(
       user.email,

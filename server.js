@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const crypto = require('crypto');
 const https = require('https');
+const path = require('path');
 require('dotenv').config();
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -70,10 +71,7 @@ function sendEmail(to, subject, html) {
   });
 }
 
-// --- ROUTES ---
-
-app.get('/', (req, res) => res.send('The Majority Backend is Live!'));
-
+// --- API ROUTES ---
 app.post('/api/signup', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -128,15 +126,12 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 
 app.post('/api/auth/reset-password', async (req, res) => {
   try {
-    const { token, password } = req.body;
-    const user = await User.findOne({
-      resetToken: token,
-      resetTokenExpiry: { $gt: Date.now() }
-    });
+    const { token, newPassword } = req.body;
+    const user = await User.findOne({ resetToken: token, resetTokenExpiry: { $gt: Date.now() } });
     if (!user) {
       return res.status(400).json({ error: "Invalid or expired reset token." });
     }
-    user.password = await bcrypt.hash(password, 10);
+    user.password = await bcrypt.hash(newPassword, 10);
     user.resetToken = undefined;
     user.resetTokenExpiry = undefined;
     await user.save();
@@ -158,6 +153,12 @@ app.post('/api/create-payment-intent', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// --- SERVE REACT FRONTEND ---
+app.use(express.static(path.join(__dirname, 'build')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
 const PORT = process.env.PORT || 5000;

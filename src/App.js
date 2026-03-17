@@ -17,11 +17,7 @@ const ScrollToTop = () => {
 };
 
 // --- 4. STRIPE UI CONFIGURATION ---
-const appearance = {
-  theme: 'flat',
-  variables: { colorPrimaryText: '#262626' }
-};
-
+const appearance = { theme: 'flat', variables: { colorPrimaryText: '#262626' } };
 const paymentElementOptions = {
   layout: { type: 'accordion', defaultCollapsed: false, radios: 'always', spacedAccordionItems: false },
   business: { name: "Majority Hair Solutions" }
@@ -55,7 +51,6 @@ const ProfilePage = ({ userEmail, savedSets }) => (
       <h1 style={{ fontSize: '32px', marginBottom: '10px' }}>Welcome back,</h1>
       <p style={{ color: '#666' }}>{userEmail}</p>
     </div>
-
     <section>
       <h3>Your Saved Formulas</h3>
       {savedSets.length === 0 ? (
@@ -67,8 +62,8 @@ const ProfilePage = ({ userEmail, savedSets }) => (
         savedSets.map((set, index) => (
           <div key={index} style={styles.legislatureCard}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-               <h4 style={{ margin: 0 }}>Formula #{savedSets.length - index}</h4>
-               <span style={{ fontSize: '12px', color: '#888' }}>{set.date}</span>
+              <h4 style={{ margin: 0 }}>Formula #{savedSets.length - index}</h4>
+              <span style={{ fontSize: '12px', color: '#888' }}>{set.date}</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginTop: '20px' }}>
               {set.items.map((item, i) => (
@@ -90,28 +85,18 @@ const CheckoutForm = ({ totalPrice, onPurchaseSuccess }) => {
   const elements = useElements();
   const [errorMessage, setErrorMessage] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!stripe || !elements) return;
     setIsProcessing(true);
-
     const { error } = await stripe.confirmPayment({
       elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/orders`,
-      },
-      redirect: 'if_required' // For demo purposes, we handle the success logic below if no redirect happens
+      confirmParams: { return_url: `${window.location.origin}/orders` },
+      redirect: 'if_required'
     });
-
-    if (error) {
-      setErrorMessage(error.message);
-      setIsProcessing(false);
-    } else {
-      onPurchaseSuccess();
-    }
+    if (error) { setErrorMessage(error.message); setIsProcessing(false); }
+    else { onPurchaseSuccess(); }
   };
-
   return (
     <form onSubmit={handleSubmit}>
       <PaymentElement options={paymentElementOptions} />
@@ -123,13 +108,165 @@ const CheckoutForm = ({ totalPrice, onPurchaseSuccess }) => {
   );
 };
 
+// --- FORGOT PASSWORD PAGE ---
+const ForgotPasswordPage = () => {
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setSubmitted(true);
+      } else {
+        setError(data.error || "Something went wrong. Please try again.");
+      }
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div style={styles.authContainer}>
+        <div style={{ ...styles.authCard, textAlign: 'center' }}>
+          <h2>Forgot Password?</h2>
+          <div style={{ fontSize: '48px', margin: '20px 0' }}>📬</div>
+          <p style={{ color: '#555', lineHeight: '1.6' }}>
+            If that email is registered, we've sent a reset link.<br />
+            Check your inbox (and spam folder).
+          </p>
+          <p style={{ color: '#888', fontSize: '13px', marginTop: '10px' }}>
+            The email may have landed in your <strong>spam or junk folder</strong> — please check there if you don't see it in your inbox.
+          </p>
+          <Link to="/login">
+            <button style={{ ...styles.authButton, marginTop: '20px' }}>Back to Sign In</button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.authContainer}>
+      <div style={styles.authCard}>
+        <h2>Forgot Password?</h2>
+        <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
+          Enter your email and we'll send you a link to reset your password.
+        </p>
+        <input
+          type="email"
+          placeholder="Enter your email"
+          style={styles.input}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        {error && <p style={{ color: 'red', fontSize: '13px', marginTop: '8px' }}>{error}</p>}
+        <button style={styles.authButton} onClick={handleSubmit} disabled={isLoading}>
+          {isLoading ? "Sending..." : "Send Reset Link"}
+        </button>
+        <Link to="/login" style={{ display: 'block', marginTop: '15px', fontSize: '13px', color: '#666', textDecoration: 'none' }}>
+          ← Back to Sign In
+        </Link>
+      </div>
+    </div>
+  );
+};
+
+// --- RESET PASSWORD PAGE ---
+const ResetPasswordPage = () => {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const token = new URLSearchParams(window.location.search).get('token');
+
+  const handleSubmit = async () => {
+    if (password !== confirm) { setError("Passwords do not match."); return; }
+    if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
+    setIsLoading(true);
+    setError("");
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, newPassword: password })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setSubmitted(true);
+        setTimeout(() => navigate('/login'), 3000);
+      } else {
+        setError(data.error || "Something went wrong. Please try again.");
+      }
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div style={styles.authContainer}>
+        <div style={{ ...styles.authCard, textAlign: 'center' }}>
+          <h2>Password Reset!</h2>
+          <div style={{ fontSize: '48px', margin: '20px 0' }}>✅</div>
+          <p style={{ color: '#555' }}>Your password has been updated successfully.</p>
+          <p style={{ color: '#888', fontSize: '13px' }}>Redirecting to sign in...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.authContainer}>
+      <div style={styles.authCard}>
+        <h2>Reset Password</h2>
+        <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Enter your new password below.</p>
+        <input
+          type="password"
+          placeholder="New password"
+          style={styles.input}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <input
+          type="password"
+          placeholder="Confirm new password"
+          style={styles.input}
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+        />
+        {error && <p style={{ color: 'red', fontSize: '13px', marginTop: '8px' }}>{error}</p>}
+        <button style={styles.authButton} onClick={handleSubmit} disabled={isLoading}>
+          {isLoading ? "Resetting..." : "Reset Password"}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // --- AUTH COMPONENTS ---
 const LoginPage = ({ onLogin }) => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
   const handleLogin = async () => {
     setIsLoading(true);
     try {
@@ -139,20 +276,20 @@ const LoginPage = ({ onLogin }) => {
         body: JSON.stringify({ email, password })
       });
       const data = await response.json();
-      if (response.ok) {
-        onLogin(email);
-        navigate("/");
-      } else { alert(data.error || "Invalid login"); }
+      if (response.ok) { onLogin(email); navigate("/"); }
+      else { alert(data.error || "Invalid login"); }
     } catch (err) { alert("Server is waking up. Try again in 30s."); }
     finally { setIsLoading(false); }
   };
-
   return (
     <div style={styles.authContainer}><div style={styles.authCard}>
       <h2>Sign In</h2>
       <input type="email" placeholder="Email" style={styles.input} value={email} onChange={(e) => setEmail(e.target.value)} />
       <input type="password" placeholder="Password" style={styles.input} value={password} onChange={(e) => setPassword(e.target.value)} />
       <button style={styles.authButton} onClick={handleLogin}>{isLoading ? "..." : "Login"}</button>
+      <Link to="/forgot-password" style={{ display: 'block', marginTop: '12px', fontSize: '13px', color: '#666', textDecoration: 'none', textAlign: 'center' }}>
+        Forgot password?
+      </Link>
     </div></div>
   );
 };
@@ -162,7 +299,6 @@ const SignupPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
   const handleSignup = async () => {
     if (password !== confirmPassword) return alert("Passwords do not match");
     try {
@@ -174,7 +310,6 @@ const SignupPage = () => {
       if (response.ok) { alert("Success! Log in now."); navigate("/login"); }
     } catch (err) { alert("Server error."); }
   };
-
   return (
     <div style={styles.authContainer}><div style={styles.authCard}>
       <h2>Sign Up</h2>
@@ -193,33 +328,25 @@ function LandingPage({ saveSetToProfile }) {
   const [focusedItem, setFocusedItem] = useState(null);
   const [clientSecret, setClientSecret] = useState("");
   const [price, setPrice] = useState(0);
-
   const handleSelect = (slot, item) => {
     setFocusedItem(item);
     setSelection(prev => ({ ...prev, [slot]: prev[slot]?.name === item.name ? null : item }));
   };
-
   const selectedItems = Object.values(selection).filter(Boolean);
   const isSetComplete = selectedItems.length === 6;
-
   const initializePayment = async (amt) => {
     setPrice(amt);
     try {
       const response = await fetch(`${BACKEND_URL}/api/create-payment-intent`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: Math.round(amt * 100) }), 
+        body: JSON.stringify({ amount: Math.round(amt * 100) }),
       });
       const data = await response.json();
       if (data.clientSecret) setClientSecret(data.clientSecret);
     } catch (err) { alert("Payment initialization failed."); }
   };
-
-  const onPurchaseSuccess = () => {
-    saveSetToProfile(selectedItems);
-    navigate("/orders");
-  };
-
+  const onPurchaseSuccess = () => { saveSetToProfile(selectedItems); navigate("/orders"); };
   const renderRow = (label, slot, category) => (
     <div style={styles.rowSection}>
       <h3 style={styles.rowLabel}>{label}</h3>
@@ -236,7 +363,6 @@ function LandingPage({ saveSetToProfile }) {
       </div>
     </div>
   );
-
   return (
     <div style={styles.layout}>
       <div style={styles.left}>
@@ -327,42 +453,25 @@ const LegislaturePage = ({ items }) => (
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState("");
-  const [savedSets, setSavedSets] = useState([]); // User's purchased sets
+  const [savedSets, setSavedSets] = useState([]);
   const [legislatureItems, setLegislatureItems] = useState([
     { id: 1, type: "Partner", company: "EcoHair Labs", product: "Silk Serum", desc: "Organic serum for hair." }
   ]);
-
   useEffect(() => {
     const savedEmail = localStorage.getItem("userEmail");
     const storedSets = localStorage.getItem("savedSets");
-    if (savedEmail) {
-      setIsLoggedIn(true);
-      setUserEmail(savedEmail);
-    }
+    if (savedEmail) { setIsLoggedIn(true); setUserEmail(savedEmail); }
     if (storedSets) setSavedSets(JSON.parse(storedSets));
   }, []);
-
-  const handleLoginSuccess = (email) => {
-    setIsLoggedIn(true);
-    setUserEmail(email);
-    localStorage.setItem("userEmail", email);
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUserEmail("");
-    localStorage.removeItem("userEmail");
-  };
-
+  const handleLoginSuccess = (email) => { setIsLoggedIn(true); setUserEmail(email); localStorage.setItem("userEmail", email); };
+  const handleLogout = () => { setIsLoggedIn(false); setUserEmail(""); localStorage.removeItem("userEmail"); };
   const saveSetToProfile = (items) => {
     const newSet = { items, date: new Date().toLocaleDateString() };
     const updatedSets = [newSet, ...savedSets];
     setSavedSets(updatedSets);
     localStorage.setItem("savedSets", JSON.stringify(updatedSets));
   };
-
   const addLegislatureItem = (item) => setLegislatureItems([item, ...legislatureItems]);
-
   return (
     <Router>
       <ScrollToTop />
@@ -377,8 +486,8 @@ export default function App() {
                 <Link to="/partner" style={styles.navLink}>Partner</Link>
                 <Link to="/legislature" style={styles.navLink}>Legislature</Link>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: '1px solid #eee', paddingLeft: '15px' }}>
-                   <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
-                   <span style={styles.auth} onClick={handleLogout}>Logout</span>
+                  <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
+                  <span style={styles.auth} onClick={handleLogout}>Logout</span>
                 </div>
               </>
             ) : (
@@ -389,11 +498,12 @@ export default function App() {
             )}
           </nav>
         </header>
-
         <Routes>
           <Route path="/" element={<LandingPage saveSetToProfile={saveSetToProfile} />} />
           <Route path="/login" element={<LoginPage onLogin={handleLoginSuccess} />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/recommend" element={<RecommendPage addLegislatureItem={addLegislatureItem} />} />
           <Route path="/partner" element={<PartnerPage addLegislatureItem={addLegislatureItem} />} />
           <Route path="/legislature" element={<LegislaturePage items={legislatureItems} />} />

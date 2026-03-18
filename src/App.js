@@ -193,7 +193,7 @@ const ResetPasswordPage = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const token = new URLSearchParams(window.location.search).get('token');
+  const { token } = useParams();
 
   const handleSubmit = async () => {
     if (password !== confirm) { setError("Passwords do not match."); return; }

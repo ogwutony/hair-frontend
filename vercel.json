@@ -1,3 +1,8 @@
 {
-    "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "version": 2,
+  "buildCommand": "cd src && npm install && npm run build",
+  "outputDirectory": "src/build",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }

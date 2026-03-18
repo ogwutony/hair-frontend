@@ -12,7 +12,7 @@ const BACKEND_URL = "https://hair-backend-2.onrender.com";
 // --- 3. UI HELPERS ---
 const ScrollToTop = () => {
   const { pathname } = useLocation();
-  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);h
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
   return null;
 };
 

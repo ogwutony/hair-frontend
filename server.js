@@ -30,13 +30,65 @@ if (MONGODB_URI) {
   console.error("❌ Error: MONGODB_URI is missing from environment variables.");
 }
 
+// --- RANK TIER SYSTEM (10-Million Scale) ---
+const RANK_TIERS = [
+  { title: "General Secretary",           min: 8500001, max: 10000000 },
+  { title: "Premier",                     min: 7000001, max: 8500000  },
+  { title: "Head of State",               min: 5500001, max: 7000000  },
+  { title: "Politburo",                   min: 4000001, max: 5500000  },
+  { title: "Party National",              min: 2500001, max: 4000000  },
+  { title: "Central committee",           min: 1000001, max: 2500000  },
+  { title: "Councils of ministers",       min: 500001,  max: 1000000  },
+  { title: "Supreme soviets",             min: 250000,  max: 500000   },
+  { title: "Republican Party committeemen", min: 160000, max: 249999  },
+  { title: "Regional party head",         min: 80000,   max: 159999   },
+  { title: "City Party Head",             min: 40000,   max: 79999    },
+  { title: "District Party head",         min: 20000,   max: 39999    },
+  { title: "District Soviet",             min: 10000,   max: 19999    },
+  { title: "Executive",                   min: 5000,    max: 9999     },
+  { title: "Department head",             min: 2500,    max: 4999     },
+  { title: "enterprises",                 min: 2000,    max: 2499     },
+  { title: "Executive",                   min: 1500,    max: 1999     },
+  { title: "Department head",             min: 1250,    max: 1499     },
+  { title: "enterprises",                 min: 1000,    max: 1249     },
+  { title: "Partymember",                 min: 800,     max: 999      },
+  { title: "bold carp",                   min: 500,     max: 799      },
+  { title: "crucian carp",                min: 250,     max: 499      },
+  { title: "elephants",                   min: 160,     max: 249      },
+  { title: "Small elephants",             min: 80,      max: 159      },
+  { title: "godok",                       min: 40,      max: 79       },
+  { title: "podgodok",                    min: 20,      max: 39       },
+  { title: "one-and-a-half",              min: 10,      max: 19       },
+  { title: "bolshevik",                   min: 1,       max: 9        },
+];
+
+const POLITBURO_MIN = 4000001; // Politburo rank minimum score
+
+const getRankTitle = (score) => {
+  for (const tier of RANK_TIERS) {
+    if (score >= tier.min) return tier.title;
+  }
+  return "bolshevik";
+};
+
+const getRankRange = (title) => {
+  const tier = RANK_TIERS.find(t => t.title === title);
+  if (!tier) return "1 - 9";
+  return `${tier.min.toLocaleString()} - ${tier.max.toLocaleString()}`;
+};
+
+const isPolitburoOrHigher = (score) => score >= POLITBURO_MIN;
+
 // --- SCHEMAS ---
 const userSchema = new mongoose.Schema({
   email:            { type: String, required: true, unique: true },
   password:         { type: String },
   googleId:         { type: String },
   resetToken:       { type: String },
-  resetTokenExpiry: { type: Date }
+  resetTokenExpiry: { type: Date },
+  rank_score:       { type: Number, default: 1 },   // BigInt-scale (up to 10,000,000)
+  rank_title:       { type: String, default: 'bolshevik' },
+  rank_rewards_sent: { type: [String], default: [] } // Track which ranks already rewarded
 });
 const User = mongoose.model('User', userSchema);
 
@@ -49,6 +101,20 @@ const Order = mongoose.model('Order', new mongoose.Schema({
   createdAt:             { type: Date, default: Date.now }
 }));
 
+// Duma (formerly Legislature) submissions
+const DumaItem = mongoose.model('DumaItem', new mongoose.Schema({
+  type:       { type: String, required: true }, // "Recommendation" | "Partner"
+  company:    String,
+  product:    String,
+  name:       String,
+  reason:     String,
+  desc:       String,
+  submittedBy: String,
+  submitterRank: String,
+  votes:      { yay: { type: Number, default: 0 }, nay: { type: Number, default: 0 } },
+  createdAt:  { type: Date, default: Date.now }
+}));
+
 // --- HELPERS ---
 const JWT_SECRET = process.env.JWT_SECRET || 'majority-hair-default-secret-change-me';
 
@@ -56,6 +122,23 @@ const generateToken = (userId, rememberMe = false) => {
   return jwt.sign({ userId }, JWT_SECRET, {
     expiresIn: rememberMe ? '30d' : '24h'
   });
+};
+
+const authMiddleware = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  try {
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    if (!user) return res.status(401).json({ error: 'User not found' });
+    req.user = user;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
 };
 
 const sendEmail = async (to, subject, html) => {
@@ -78,10 +161,70 @@ const sendEmail = async (to, subject, html) => {
   });
 };
 
+// Send rank-up reward email (once per rank)
+const sendRankUpEmail = async (user, newRankTitle) => {
+  if (user.rank_rewards_sent.includes(newRankTitle)) return; // Prevent double-dip
+
+  const range = getRankRange(newRankTitle);
+  const shopUrl = process.env.FRONTEND_URL || 'https://majorityhairsolutions.com';
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px;">
+      <h1 style="color: #222;">Congratulations on your promotion to <strong>${newRankTitle}</strong>! 🎊</h1>
+      <p>You've reached a new level of influence at Majority Hair Solutions!</p>
+      <p>Your dedication has officially earned you the rank of <strong>${newRankTitle}</strong>. 
+         You are now part of the elite group within the <strong>${range}</strong> point bracket.</p>
+      <p>As a reward for your contribution to the total solution, please enjoy <strong>25% OFF</strong> your next one-time order.</p>
+      <p style="font-size: 18px;"><strong>Your Unique Reward Code: <span style="color: #c00;">MAJORITY25</span></strong></p>
+      <a href="${shopUrl}" style="display:inline-block; background:#222; color:#fff; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:bold; margin-top:10px;">Redeem My 25% Discount</a>
+      <p style="margin-top:30px; color:#666;">Keep climbing — the path to <strong>General Secretary</strong> is waiting for you.</p>
+    </div>
+  `;
+
+  await sendEmail(user.email, `Congratulations on your promotion to ${newRankTitle}! 🎊`, html);
+
+  // Mark this rank as rewarded so it only triggers once
+  await User.findByIdAndUpdate(user._id, {
+    $addToSet: { rank_rewards_sent: newRankTitle }
+  });
+};
+
+// Update a user's rank score and check for rank-up
+const updateRankScore = async (userId, pointsToAdd) => {
+  const user = await User.findById(userId);
+  if (!user) return;
+
+  const oldTitle = user.rank_title;
+  const newScore = Math.min((user.rank_score || 1) + pointsToAdd, 10000000);
+  const newTitle = getRankTitle(newScore);
+
+  await User.findByIdAndUpdate(userId, {
+    rank_score: newScore,
+    rank_title: newTitle
+  });
+
+  // Send rank-up reward email if rank changed
+  if (newTitle !== oldTitle) {
+    const updatedUser = await User.findById(userId);
+    await sendRankUpEmail(updatedUser, newTitle);
+  }
+};
+
 // --- ROUTES ---
 
 // Health check
 app.get('/', (req, res) => res.send('The Majority Backend is Live!'));
+
+// Auth: verify token and return user info including rank
+app.get('/api/auth/me', authMiddleware, async (req, res) => {
+  const user = req.user;
+  res.json({
+    email: user.email,
+    rank_score: user.rank_score,
+    rank_title: user.rank_title || getRankTitle(user.rank_score || 1),
+    isPolitburoOrHigher: isPolitburoOrHigher(user.rank_score || 1)
+  });
+});
 
 // SIGN UP
 app.post('/api/signup', async (req, res) => {
@@ -93,11 +236,16 @@ app.post('/api/signup', async (req, res) => {
     const existing = await User.findOne({ email: email.toLowerCase() });
     if (existing) return res.status(400).json({ error: 'Account already exists' });
 
-    const hashed = await bcrypt.hash(password, 12); // Increased security
-    const user = await User.create({ email: email.toLowerCase(), password: hashed });
+    const hashed = await bcrypt.hash(password, 12);
+    const user = await User.create({
+      email: email.toLowerCase(),
+      password: hashed,
+      rank_score: 1,
+      rank_title: 'bolshevik'
+    });
     const token = generateToken(user._id, false);
 
-    res.status(201).json({ message: 'Account created', token, email: user.email });
+    res.status(201).json({ message: 'Account created', token, email: user.email, rank_title: user.rank_title });
   } catch (err) {
     res.status(500).json({ error: 'Signup failed' });
   }
@@ -115,7 +263,13 @@ app.post('/api/login', async (req, res) => {
     if (!match) return res.status(401).json({ error: 'Invalid credentials' });
 
     const token = generateToken(user._id, !!rememberMe);
-    res.json({ success: true, token, email: user.email });
+    res.json({
+      success: true,
+      token,
+      email: user.email,
+      rank_title: user.rank_title || getRankTitle(user.rank_score || 1),
+      rank_score: user.rank_score || 1
+    });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -146,11 +300,11 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   }
 });
 
-// RESET PASSWORD (FIXED PATH PARAM)
+// RESET PASSWORD
 app.post('/api/auth/reset-password/:token', async (req, res) => {
   try {
     const { password } = req.body;
-    const { token } = req.params; // Extract from URL path
+    const { token } = req.params;
 
     if (!password || password.length < 8) return res.status(400).json({ error: 'Password too short' });
 
@@ -178,7 +332,7 @@ app.post('/api/create-payment-intent', async (req, res) => {
   try {
     const { amount } = req.body;
     if (!amount) return res.status(400).json({ error: "Amount required" });
-    
+
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount),
       currency: 'usd',
@@ -187,6 +341,120 @@ app.post('/api/create-payment-intent', async (req, res) => {
     res.json({ clientSecret: paymentIntent.client_secret });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// DUMA SUBMISSIONS (formerly Legislature)
+// Get all Duma items
+app.get('/api/duma', async (req, res) => {
+  try {
+    const items = await DumaItem.find().sort({ createdAt: -1 }).limit(100);
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch Duma items' });
+  }
+});
+
+// Submit recommendation to Duma
+app.post('/api/duma/recommend', authMiddleware, async (req, res) => {
+  try {
+    const { name, company, reason } = req.body;
+    if (!name || !company || !reason) return res.status(400).json({ error: 'All fields required' });
+
+    const rankTitle = req.user.rank_title || getRankTitle(req.user.rank_score || 1);
+    const item = await DumaItem.create({
+      type: 'Recommendation',
+      name,
+      company,
+      reason,
+      submittedBy: req.user.email,
+      submitterRank: rankTitle
+    });
+
+    // Award points for recommending
+    await updateRankScore(req.user._id, 5);
+
+    res.status(201).json({ message: "Your recommendation has been sent to The Majority's Duma for voting", item });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to submit recommendation' });
+  }
+});
+
+// Submit partner application to Duma (Politburo+ only for Premium Partner)
+app.post('/api/duma/partner', authMiddleware, async (req, res) => {
+  try {
+    const { company, product, desc, tier } = req.body;
+    if (!company || !product || !desc) return res.status(400).json({ error: 'All fields required' });
+
+    const rankScore = req.user.rank_score || 1;
+    const rankTitle = req.user.rank_title || getRankTitle(rankScore);
+
+    // Only Politburo+ can apply for Premium Partner
+    if (tier === 'Premium' && !isPolitburoOrHigher(rankScore)) {
+      return res.status(403).json({
+        error: 'Premium Partner status requires Politburo rank or higher. Keep building your influence!'
+      });
+    }
+
+    const item = await DumaItem.create({
+      type: 'Partner',
+      company,
+      product,
+      desc,
+      submittedBy: req.user.email,
+      submitterRank: rankTitle
+    });
+
+    // Award points for partnering
+    await updateRankScore(req.user._id, 10);
+
+    res.status(201).json({ message: "Your partner application has been submitted to The Majority's Duma", item });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to submit partner application' });
+  }
+});
+
+// Vote on a Duma item
+app.post('/api/duma/:id/vote', authMiddleware, async (req, res) => {
+  try {
+    const { vote } = req.body; // "yay" or "nay"
+    if (!['yay', 'nay'].includes(vote)) return res.status(400).json({ error: 'Vote must be yay or nay' });
+
+    const item = await DumaItem.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { [`votes.${vote}`]: 1 } },
+      { new: true }
+    );
+    if (!item) return res.status(404).json({ error: 'Item not found' });
+
+    // Award small points for voting
+    await updateRankScore(req.user._id, 2);
+
+    res.json({ success: true, votes: item.votes });
+  } catch (err) {
+    res.status(500).json({ error: 'Vote failed' });
+  }
+});
+
+// GET user rank info
+app.get('/api/rank', authMiddleware, async (req, res) => {
+  const user = req.user;
+  res.json({
+    rank_score: user.rank_score || 1,
+    rank_title: user.rank_title || getRankTitle(user.rank_score || 1),
+    isPolitburoOrHigher: isPolitburoOrHigher(user.rank_score || 1)
+  });
+});
+
+// Leaderboard
+app.get('/api/leaderboard', async (req, res) => {
+  try {
+    const users = await User.find({}, 'email rank_score rank_title')
+      .sort({ rank_score: -1 })
+      .limit(50);
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch leaderboard' });
   }
 });
 

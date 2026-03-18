@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation, useParams } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
@@ -12,7 +12,7 @@ const BACKEND_URL = "https://hair-backend-2.onrender.com";
 // --- 3. UI HELPERS ---
 const ScrollToTop = () => {
   const { pathname } = useLocation();
-  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);h
   return null;
 };
 
@@ -503,7 +503,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage onLogin={handleLoginSuccess} />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           <Route path="/recommend" element={<RecommendPage addLegislatureItem={addLegislatureItem} />} />
           <Route path="/partner" element={<PartnerPage addLegislatureItem={addLegislatureItem} />} />
           <Route path="/legislature" element={<LegislaturePage items={legislatureItems} />} />

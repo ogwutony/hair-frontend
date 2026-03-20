@@ -756,7 +756,8 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
     unitsOf34Oz: "500",
     desiredOrderQuantity: "",
     pricing5Gallon: "",
-    unitPriceToConsumers: "",
+    standardUnitPrice: "6",
+    promotionalUnitPrice: "4",
     commission25AgreedTo: false,
     tier: "National Associate"
   });
@@ -805,8 +806,12 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
       setErrorMsg("Please provide your desired inventory fulfillment quantity.");
       return;
     }
-    if (!formData.unitPriceToConsumers) {
-      setErrorMsg("Please provide the unit price to consumers for pricing transparency.");
+    if (!formData.standardUnitPrice) {
+      setErrorMsg("Please provide the standard unit price to consumers.");
+      return;
+    }
+    if (!formData.promotionalUnitPrice) {
+      setErrorMsg("Please provide the promotional unit price to consumers.");
       return;
     }
     if (!formData.commission25AgreedTo) {
@@ -836,7 +841,8 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
         formDataObj.append('unitsOf34Oz', formData.unitsOf34Oz);
         formDataObj.append('desiredOrderQuantity', formData.desiredOrderQuantity);
         formDataObj.append('pricing5Gallon', formData.pricing5Gallon);
-        formDataObj.append('unitPriceToConsumers', formData.unitPriceToConsumers);
+        formDataObj.append('standardUnitPrice', formData.standardUnitPrice);
+        formDataObj.append('promotionalUnitPrice', formData.promotionalUnitPrice);
         formDataObj.append('tier', formData.tier);
         if (formData.photoFile) formDataObj.append('photo', formData.photoFile);
         if (formData.videoFile) formDataObj.append('video', formData.videoFile);
@@ -957,16 +963,16 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
         {/* SECTION 5: LOGISTICS & REQUIREMENTS */}
         <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
           <h3 style={styles.formSectionTitle}>5. LOGISTICS & REQUIREMENTS</h3>
-          <label style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px', display: 'block' }}>
-            Minimum Order: 500 units of 3.4 oz bottles *
-          </label>
-          <input type="text" value="500 units (3.4 oz)" disabled style={{ ...styles.input, backgroundColor: '#f5f5f5', color: '#666' }} />
+          <p style={{ fontSize: '12px', color: '#666', marginBottom: '14px', marginTop: 0 }}>
+            Desired fulfillment of 3.4 ounce bottles
+          </p>
           
-          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>
-            Desired Inventory Fulfillment (units) *
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
+            Order Quantity *
           </label>
-          <input required placeholder="Enter desired order quantity (minimum 500 units)" type="number" min="500" style={styles.input}
+          <input required placeholder="Order quantity" type="number" min="500" style={styles.input}
             value={formData.desiredOrderQuantity} onChange={e => setFormData({...formData, desiredOrderQuantity: e.target.value})} />
+          <p style={{ fontSize: '11px', color: '#999', marginTop: '4px', margin: '4px 0 0 0' }}>Minimum fulfillment of 500 units</p>
           
           <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>
             Pricing for 5-gallon units (optional)
@@ -975,18 +981,27 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
             value={formData.pricing5Gallon} onChange={e => setFormData({...formData, pricing5Gallon: e.target.value})} />
         </div>
 
-        {/* SECTION 6: REVENUE AGREEMENT */}
+        {/* SECTION 6: REVENUE AGREEMENT & PRICING */}
         <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
           <h3 style={styles.formSectionTitle}>6. REVENUE AGREEMENT & PRICING</h3>
           
           <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
-            Unit Price to Consumers *
+            Standard Pricing: Recommended Unit Price to Consumers *
           </label>
           <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', marginTop: 0 }}>
-            What will consumers pay for each unit? (This helps calculate your 75% revenue share)
+            Standard unit price (Recommended: $6)
           </p>
-          <input required placeholder="e.g., $25.99" style={styles.input}
-            value={formData.unitPriceToConsumers} onChange={e => setFormData({...formData, unitPriceToConsumers: e.target.value})} />
+          <input required placeholder="e.g., $6.00" style={styles.input}
+            value={formData.standardUnitPrice} onChange={e => setFormData({...formData, standardUnitPrice: e.target.value})} />
+          
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>
+            Promotional Pricing: Unit Price for Promotions *
+          </label>
+          <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', marginTop: 0 }}>
+            Promotional unit price (Recommended: $4)
+          </p>
+          <input required placeholder="e.g., $4.00" style={styles.input}
+            value={formData.promotionalUnitPrice} onChange={e => setFormData({...formData, promotionalUnitPrice: e.target.value})} />
           
           <div style={{ backgroundColor: '#f5f5f5', padding: '16px', borderRadius: '8px', marginTop: '16px', marginBottom: '14px' }}>
             <p style={{ fontSize: '13px', color: '#333', margin: '0 0 10px 0', lineHeight: '1.6' }}>
@@ -995,9 +1010,14 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
             <p style={{ fontSize: '12px', color: '#666', margin: '0 0 8px 0', lineHeight: '1.5' }}>
               This means for every dollar in sales, Majority Hair Solutions receives 75¢ and The Majority platform receives 25¢.
             </p>
-            {formData.unitPriceToConsumers && (
+            {formData.standardUnitPrice && (
               <p style={{ fontSize: '12px', color: '#2980b9', margin: 0, fontWeight: '600', backgroundColor: '#e3f2fd', padding: '8px', borderRadius: '4px' }}>
-                💡 Example: At ${formData.unitPriceToConsumers}, you'd earn ~${(parseFloat(formData.unitPriceToConsumers) * 0.75).toFixed(2)} per unit (75%), with The Majority taking ~${(parseFloat(formData.unitPriceToConsumers) * 0.25).toFixed(2)} (25%)
+                💡 Standard: At ${formData.standardUnitPrice}, you'd earn ~${(parseFloat(formData.standardUnitPrice) * 0.75).toFixed(2)} per unit (75%), with The Majority taking ~${(parseFloat(formData.standardUnitPrice) * 0.25).toFixed(2)} (25%)
+              </p>
+            )}
+            {formData.promotionalUnitPrice && (
+              <p style={{ fontSize: '12px', color: '#27ae60', margin: '8px 0 0 0', fontWeight: '600', backgroundColor: '#e8f8f5', padding: '8px', borderRadius: '4px' }}>
+                💡 Promotional: At ${formData.promotionalUnitPrice}, you'd earn ~${(parseFloat(formData.promotionalUnitPrice) * 0.75).toFixed(2)} per unit (75%), with The Majority taking ~${(parseFloat(formData.promotionalUnitPrice) * 0.25).toFixed(2)} (25%)
               </p>
             )}
           </div>

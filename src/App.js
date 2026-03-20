@@ -702,11 +702,7 @@ const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken
 
         <div style={{ marginBottom: '25px' }}>
           <h3 style={{ fontSize: '14px', fontWeight: '700', marginBottom: '15px', textTransform: 'uppercase', color: '#222' }}>2. Categorization & Sourcing</h3>
-          <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginBottom: '8px' }}>Product Type *</label>
-          <select required style={{ ...styles.input, cursor: 'pointer' }} value={formData.productType} onChange={e => setFormData({...formData, productType: e.target.value})}>
-            <option value="Moisturizer">Moisturizer (leave-ins, creams, hydrating milks)</option>
-            <option value="Regrowth">Regrowth (serums, oils, hair loss treatments)</option>
-          </select>
+          <input required placeholder="Product Type (e.g., 'Moisturizer', 'Regrowth', 'Shampoo', 'Oil') *" style={styles.input} value={formData.productType} onChange={e => setFormData({...formData, productType: e.target.value})} />
           <input required type="url" placeholder="Website Link (direct product page URL, not retailer links like Amazon unless exclusive) *" style={styles.input} value={formData.websiteLink} onChange={e => setFormData({...formData, websiteLink: e.target.value})} />
         </div>
 

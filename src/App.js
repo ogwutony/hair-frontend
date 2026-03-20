@@ -170,7 +170,6 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   const [isSubmittingVideo, setIsSubmittingVideo] = useState(false);
   const [photoMessage, setPhotoMessage] = useState("");
   const [videoMessage, setVideoMessage] = useState("");
-  const [editingFormulaIndex, setEditingFormulaIndex] = useState(null);
 
   const handleEditFormula = (index) => {
     // Navigate to home with edit mode  
@@ -1281,6 +1280,7 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
 };
 
 // --- DUMA PAGE ---
+const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints }) => {
   const [dumaItems, setDumaItems] = useState(items);
   const [userVotes, setUserVotes] = useState({});
   const [showScores, setShowScores] = useState({});
@@ -1331,25 +1331,6 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
       [itemId]: [...(prev[itemId] || []), { author: userEmail, text: commentText[itemId], timestamp: new Date().toLocaleString() }]
     }));
     setCommentText(prev => ({ ...prev, [itemId]: '' }));
-  };
-
-  const maskPhoneNumber = (phone) => {
-    if (!phone) return "***-****";
-    const cleaned = phone.replace(/\D/g, '');
-    return `***-${cleaned.slice(-4)}`;
-  };
-
-  const maskEmail = (email) => {
-    if (!email) return "***@***.***";
-    const [localPart, domain] = email.split('@');
-    if (!domain) return "***@***";
-    return `${localPart.slice(0, 2)}***@${domain.slice(0, 3)}***`;
-  };
-
-  const maskEIN = (ein) => {
-    if (!ein) return "**-*******";
-    const cleaned = ein.replace(/\D/g, '');
-    return `**-${cleaned.slice(-7)}`;
   };
 
   const culturalItems = dumaItems.filter(item => item.section === "Cultural" || item.category === "Culture" || item.type === "Video" || item.type === "Culture");

@@ -608,7 +608,7 @@ const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken
   const [formData, setFormData] = useState({ 
     name: "", 
     company: "", 
-    productType: "Moisturizer",
+    productType: "",
     websiteLink: "",
     whyRecommend: "", 
     photo: null,

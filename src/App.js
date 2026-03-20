@@ -45,6 +45,8 @@ const getRankTitle = (score) => {
   return "bolshevik";
 };
 
+const isPolitburoOrHigher = (score) => score >= 4000001;
+
 const getRankColor = (rankTitle) => {
   const topGold = ["General Secretary", "Premier", "Head of State"];
   const midPurple = ["Politburo", "Party National", "Central committee", "Councils of ministers"];
@@ -737,68 +739,257 @@ const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken
 
 const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }) => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ company: "", product: "", desc: "", tier: "National Associate" });
+  const [formData, setFormData] = useState({
+    name: "",
+    contactEmail: "",
+    phoneNumber: "",
+    ein: "",
+    company: "",
+    countryOfOrigin: "",
+    operatingCountry: "",
+    productType: "",
+    productDescription: "",
+    whyPartner: "",
+    photoFile: null,
+    videoFile: null,
+    unitsOf34Oz: "500",
+    pricing5Gallon: "",
+    commission25AgreedTo: false,
+    tier: "National Associate"
+  });
   const [errorMsg, setErrorMsg] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [buttonState, setButtonState] = useState("Submit Application");
-  const canApplyPremium = (rankScore || 1) >= 4000001;
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [videoPreview, setVideoPreview] = useState(null);
+
+  const userScore = rankScore || 1;
+  const canApplyPremium = isPolitburoOrHigher(userScore);
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData({...formData, photoFile: file});
+      setPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleVideoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData({...formData, videoFile: file});
+      setVideoPreview(URL.createObjectURL(file));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
-    setIsProcessing(true);
-    setButtonState("Submit to Review");
-    if (formData.tier === "Premium Partner" && !canApplyPremium) { setErrorMsg("Premium Partner status requires a score of 4,000,001+. Keep building your influence!"); setIsProcessing(false); setButtonState("Submit Application"); return; }
-    if (!formData.company || !formData.product || !formData.desc) { setErrorMsg("Please fill in all fields."); setIsProcessing(false); setButtonState("Submit Application"); return; }
+
+    // Validation
+    if (!formData.name || !formData.contactEmail || !formData.phoneNumber || !formData.ein) {
+      setErrorMsg("Please fill in all contact information fields.");
+      return;
+    }
+    if (!formData.company || !formData.countryOfOrigin || !formData.operatingCountry) {
+      setErrorMsg("Please fill in all company information fields.");
+      return;
+    }
+    if (!formData.productType || !formData.productDescription || !formData.whyPartner) {
+      setErrorMsg("Please fill in all product details.");
+      return;
+    }
+    if (!formData.commission25AgreedTo) {
+      setErrorMsg("You must agree to the 25% commission agreement.");
+      return;
+    }
+
+    if (formData.tier === "Premium Partner" && !canApplyPremium) {
+      setErrorMsg("Premium Partner status requires Politburo rank or higher. Keep building your influence!");
+      return;
+    }
+
     try {
       if (authToken) {
-        const res = await fetch(`${BACKEND_URL}/api/duma/partner`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }, body: JSON.stringify(formData) });
+        const formDataObj = new FormData();
+        formDataObj.append('name', formData.name);
+        formDataObj.append('contactEmail', formData.contactEmail);
+        formDataObj.append('phoneNumber', formData.phoneNumber);
+        formDataObj.append('ein', formData.ein);
+        formDataObj.append('company', formData.company);
+        formDataObj.append('countryOfOrigin', formData.countryOfOrigin);
+        formDataObj.append('operatingCountry', formData.operatingCountry);
+        formDataObj.append('productType', formData.productType);
+        formDataObj.append('productDescription', formData.productDescription);
+        formDataObj.append('whyPartner', formData.whyPartner);
+        formDataObj.append('unitsOf34Oz', formData.unitsOf34Oz);
+        formDataObj.append('pricing5Gallon', formData.pricing5Gallon);
+        formDataObj.append('tier', formData.tier);
+        if (formData.photoFile) formDataObj.append('photo', formData.photoFile);
+        if (formData.videoFile) formDataObj.append('video', formData.videoFile);
+
+        const res = await fetch(`${BACKEND_URL}/api/duma/partner`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${authToken}` },
+          body: formDataObj
+        });
         const data = await res.json();
-        if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); setIsProcessing(false); setButtonState("Submit Application"); return; }
+        if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); return; }
       }
-      addDumaItem({ ...formData, id: Date.now(), type: "Partner", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'bolshevik', section: "Commerce" });
+      
+      addDumaItem({
+        ...formData,
+        id: Date.now(),
+        type: "Partner",
+        submittedBy: userEmail,
+        submitterRank: rankTitle || 'bolshevik',
+        hasPhoto: !!formData.photoFile,
+        hasVideo: !!formData.videoFile
+      });
       setSubmitted(true);
     } catch (err) {
-      addDumaItem({ ...formData, id: Date.now(), type: "Partner", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'bolshevik', section: "Commerce" });
+      addDumaItem({
+        ...formData,
+        id: Date.now(),
+        type: "Partner",
+        submittedBy: userEmail,
+        submitterRank: rankTitle || 'bolshevik',
+        hasPhoto: !!formData.photoFile,
+        hasVideo: !!formData.videoFile
+      });
       setSubmitted(true);
     }
   };
+
   if (submitted) {
     return (
       <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
         <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
           <div style={{ fontSize: '40px', marginBottom: '16px' }}>🤝</div>
-          <h2>Partner Application Submitted!</h2>
-          <p style={{ color: '#666' }}>Your application has been sent to The Majority's Duma Commerce section for review.</p>
+          <h2>Partnership Application Submitted!</h2>
+          <p style={{ color: '#666' }}>Your partnership application has been sent to The Majority's Duma for review.</p>
           <button style={{ ...styles.authButton, marginTop: '20px', width: 'auto', padding: '12px 24px' }} onClick={() => navigate("/duma")}>View the Duma</button>
         </div>
       </div>
     );
   }
+
   return (
     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
       <h2>Partner with The Majority</h2>
-      <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Submit your partnership application for review by The Majority's Commerce committee.</p>
-      {userEmail && rankTitle && <div style={{ marginBottom: '20px' }}><CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} /></div>}
+      <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
+        Apply to become a partner with Majority Hair Solutions and reach our community through The Majority's marketplace.
+      </p>
+      {userEmail && rankTitle && (
+        <div style={{ marginBottom: '20px' }}>
+          <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} />
+        </div>
+      )}
       {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
+      
       <form style={styles.dumaCard} onSubmit={handleSubmit}>
-        <input required placeholder="Company Name *" style={styles.input} value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
-        <input required placeholder="Product Name *" style={styles.input} value={formData.product} onChange={e => setFormData({...formData, product: e.target.value})} />
-        <textarea required placeholder="Description of Partnership *" style={{ ...styles.input, height: '100px' }} value={formData.desc} onChange={e => setFormData({...formData, desc: e.target.value})} />
-        <div style={{ marginTop: '15px' }}>
-          <label style={styles.formSectionTitle}>Partnership Tier</label>
-          <div style={{ display: 'flex', gap: '15px', marginTop: '10px', flexWrap: 'wrap' }}>
+        
+        {/* SECTION 1: CONTACT INFORMATION */}
+        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>1. CONTACT INFORMATION</h3>
+          <input required placeholder="Full Name *" style={styles.input} 
+            value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+          <input required placeholder="Business Email *" type="email" style={styles.input} 
+            value={formData.contactEmail} onChange={e => setFormData({...formData, contactEmail: e.target.value})} />
+          <input required placeholder="Phone Number *" style={styles.input} 
+            value={formData.phoneNumber} onChange={e => setFormData({...formData, phoneNumber: e.target.value})} />
+          <input required placeholder="EIN (Employer Identification Number) *" style={styles.input} 
+            value={formData.ein} onChange={e => setFormData({...formData, ein: e.target.value})} />
+        </div>
+
+        {/* SECTION 2: COMPANY INFORMATION */}
+        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>2. COMPANY INFORMATION</h3>
+          <input required placeholder="Company Name *" style={styles.input} 
+            value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
+          <input required placeholder="Country of Origin *" style={styles.input} 
+            value={formData.countryOfOrigin} onChange={e => setFormData({...formData, countryOfOrigin: e.target.value})} />
+          <input required placeholder="Operating Country *" style={styles.input} 
+            value={formData.operatingCountry} onChange={e => setFormData({...formData, operatingCountry: e.target.value})} />
+        </div>
+
+        {/* SECTION 3: PRODUCT DETAILS */}
+        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>3. PRODUCT DETAILS</h3>
+          <input required placeholder="Product Type (e.g., Shampoo, Conditioner, Oil) *" style={styles.input} 
+            value={formData.productType} onChange={e => setFormData({...formData, productType: e.target.value})} />
+          <textarea required placeholder="Product Description *" style={{ ...styles.input, height: '80px' }}
+            value={formData.productDescription} onChange={e => setFormData({...formData, productDescription: e.target.value})} />
+          <textarea required placeholder="Why should we partner with you? *" style={{ ...styles.input, height: '100px' }}
+            value={formData.whyPartner} onChange={e => setFormData({...formData, whyPartner: e.target.value})} />
+        </div>
+
+        {/* SECTION 4: MEDIA UPLOADS */}
+        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>4. MEDIA</h3>
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Product Photo</label>
+          <input type="file" accept="image/*" style={styles.input} onChange={handlePhotoChange} />
+          {photoPreview && <img src={photoPreview} style={{ maxWidth: '150px', marginTop: '10px', borderRadius: '8px' }} alt="Preview" />}
+
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>Product Video</label>
+          <input type="file" accept="video/*" style={styles.input} onChange={handleVideoChange} />
+          {videoPreview && <video src={videoPreview} style={{ maxWidth: '150px', marginTop: '10px', borderRadius: '8px' }} controls />}
+        </div>
+
+        {/* SECTION 5: LOGISTICS & REQUIREMENTS */}
+        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>5. LOGISTICS & REQUIREMENTS</h3>
+          <label style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px', display: 'block' }}>
+            Minimum Order: 500 units of 3.4 oz bottles *
+          </label>
+          <input type="text" value="500 units (3.4 oz)" disabled style={{ ...styles.input, backgroundColor: '#f5f5f5', color: '#666' }} />
+          
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>
+            Pricing for 5-gallon units (optional) *
+          </label>
+          <input placeholder="Please provide pricing for bulk 5-gallon units" style={styles.input}
+            value={formData.pricing5Gallon} onChange={e => setFormData({...formData, pricing5Gallon: e.target.value})} />
+        </div>
+
+        {/* SECTION 6: REVENUE AGREEMENT */}
+        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>6. REVENUE AGREEMENT</h3>
+          <div style={{ backgroundColor: '#f5f5f5', padding: '16px', borderRadius: '8px', marginBottom: '14px' }}>
+            <p style={{ fontSize: '13px', color: '#333', margin: '0 0 10px 0', lineHeight: '1.6' }}>
+              <strong>Commission Structure:</strong> The Majority takes a <strong>25%</strong> commission on all partner charges to customers.
+            </p>
+            <p style={{ fontSize: '12px', color: '#666', margin: 0, lineHeight: '1.5' }}>
+              This means for every dollar in sales, Majority Hair Solutions receives 75 cents and The Majority platform receives 25 cents.
+            </p>
+          </div>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer' }}>
+            <input type="checkbox" required checked={formData.commission25AgreedTo} 
+              onChange={e => setFormData({...formData, commission25AgreedTo: e.target.checked})}
+              style={{ marginTop: '4px', accentColor: '#222', cursor: 'pointer' }} />
+            <span>I acknowledge and agree to the 25% commission structure *</span>
+          </label>
+        </div>
+
+        {/* SECTION 7: PARTNER TIER */}
+        <div style={{ marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>7. PARTNER TIER</h3>
+          <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', cursor: 'pointer' }}>
-              <input type="radio" name="tier" value="National Associate" checked={formData.tier === "National Associate"} onChange={e => setFormData({...formData, tier: e.target.value})} />
+              <input type="radio" name="tier" value="National Associate"
+                checked={formData.tier === "National Associate"}
+                onChange={e => setFormData({...formData, tier: e.target.value})} />
               National Associate
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', cursor: canApplyPremium ? 'pointer' : 'not-allowed', opacity: canApplyPremium ? 1 : 0.5 }}>
-              <input type="radio" name="tier" value="Premium Partner" checked={formData.tier === "Premium Partner"} disabled={!canApplyPremium} onChange={e => setFormData({...formData, tier: e.target.value})} />
-              Premium Partner {!canApplyPremium && <span style={{ fontSize: '11px', color: '#aaa' }}>(4M+ points only)</span>}
+              <input type="radio" name="tier" value="Premium Partner"
+                checked={formData.tier === "Premium Partner"}
+                disabled={!canApplyPremium}
+                onChange={e => setFormData({...formData, tier: e.target.value})} />
+              Premium Partner {!canApplyPremium && <span style={{ fontSize: '11px', color: '#aaa' }}>(Politburo+ only)</span>}
             </label>
           </div>
         </div>
-        <button type="submit" style={{ ...styles.authButton, marginTop: '16px' }} disabled={isProcessing}>{isProcessing ? "Processing..." : buttonState}</button>
+
+        <button type="submit" style={{ ...styles.authButton, marginTop: '20px' }}>Submit partnership to the duma</button>
       </form>
     </div>
   );
@@ -818,6 +1009,26 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
     } catch (err) {}
     setVoting(prev => ({ ...prev, [itemId]: false }));
   };
+
+  const maskPhoneNumber = (phone) => {
+    if (!phone) return "***-****";
+    const cleaned = phone.replace(/\D/g, '');
+    return `***-${cleaned.slice(-4)}`;
+  };
+
+  const maskEmail = (email) => {
+    if (!email) return "***@***.***";
+    const [localPart, domain] = email.split('@');
+    if (!domain) return "***@***";
+    return `${localPart.slice(0, 2)}***@${domain.slice(0, 3)}***`;
+  };
+
+  const maskEIN = (ein) => {
+    if (!ein) return "**-*******";
+    const cleaned = ein.replace(/\D/g, '');
+    return `**-${cleaned.slice(-7)}`;
+  };
+
   const culturalItems = dumaItems.filter(item => item.section === "Cultural" || item.type === "Video");
   const commerceItems = dumaItems.filter(item => item.section === "Commerce" || (item.type === "Recommendation" || item.type === "Partner"));
   return (
@@ -845,8 +1056,35 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                   {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
                 </div>
                 {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'bolshevik'} rankScore={null} />}
-                <h3 style={{ marginTop: '8px', marginBottom: '6px' }}>{item.name || item.product} by {item.company}</h3>
-                <p style={{ color: '#666', fontSize: '14px', marginBottom: '14px' }}>{item.reason || item.desc}</p>
+                
+                {item.type === "Partner" ? (
+                  <>
+                    <h3 style={{ marginTop: '12px', marginBottom: '8px' }}>{item.productType} - {item.company}</h3>
+                    <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #2980b9' }}>
+                      <p style={{ fontSize: '12px', color: '#666', margin: '0 0 8px 0' }}>
+                        <strong>Contact:</strong> {maskEmail(item.contactEmail)} | {maskPhoneNumber(item.phoneNumber)} | EIN: {maskEIN(item.ein)}
+                      </p>
+                      <p style={{ fontSize: '12px', color: '#666', margin: '0 0 8px 0' }}>
+                        <strong>Location:</strong> {item.countryOfOrigin} (Operating in {item.operatingCountry})
+                      </p>
+                      <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>
+                        <strong>Commitment:</strong> {item.unitsOf34Oz} units (3.4 oz) | <strong>Tier:</strong> {item.tier}
+                      </p>
+                    </div>
+                    <h4 style={{ marginBottom: '6px', fontSize: '13px', color: '#555' }}>Product Description:</h4>
+                    <p style={{ color: '#666', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>{item.productDescription}</p>
+                    <h4 style={{ marginBottom: '6px', fontSize: '13px', color: '#555' }}>Why Partner With Us:</h4>
+                    <p style={{ color: '#222', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>{item.whyPartner}</p>
+                    {item.hasPhoto && <p style={{ fontSize: '12px', color: '#888', marginBottom: '8px' }}>📷 Product photo included</p>}
+                    {item.hasVideo && <p style={{ fontSize: '12px', color: '#888', marginBottom: '12px' }}>🎬 Product video included</p>}
+                  </>
+                ) : (
+                  <>
+                    <h3 style={{ marginTop: '8px', marginBottom: '6px' }}>{item.name || item.product} by {item.company}</h3>
+                    <p style={{ color: '#666', fontSize: '14px', marginBottom: '14px' }}>{item.reason || item.desc}</p>
+                  </>
+                )}
+                
                 {authToken && (
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <button disabled={voting[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'upvote')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60' }}>👍 Upvote {item.votes?.upvote > 0 && `(${item.votes.upvote})`}</button>
@@ -935,7 +1173,7 @@ export default function App() {
               <>
                 <Link to="/recommend" style={styles.navLink}>Recommend</Link>
                 <Link to="/partner" style={styles.navLink}>Partner</Link>
-                <Link to="/duma" style={styles.navLink}>Duma</Link>
+                <Link to="/duma" style={styles.navLink}>The Duma</Link>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: '1px solid #eee', paddingLeft: '15px' }}>
                   <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
                   {rankTitle && <RankBadge rankTitle={rankTitle} />}

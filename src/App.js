@@ -44,7 +44,7 @@ const productsData = {
   ]
 };
 
-// --- PROFILE PAGE COMPONENT ---
+// --- PROFILE PAGE COMPONENT - Enhanced with Photo & Video Features ---
 const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, onAddPoints }) => {
   const [profilePicture, setProfilePicture] = useState(null);
   const [videoSubmission, setVideoSubmission] = useState("");

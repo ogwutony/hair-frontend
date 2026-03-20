@@ -45,39 +45,140 @@ const productsData = {
 };
 
 // --- PROFILE PAGE COMPONENT ---
-const ProfilePage = ({ userEmail, savedSets }) => (
-  <div style={{ padding: '40px 60px', maxWidth: '900px', margin: '0 auto' }}>
-    <div style={{ marginBottom: '40px' }}>
-      <h1 style={{ fontSize: '32px', marginBottom: '10px' }}>Welcome back,</h1>
-      <p style={{ color: '#666' }}>{userEmail}</p>
-    </div>
-    <section>
-      <h3>Your Saved Formulas</h3>
-      {savedSets.length === 0 ? (
-        <div style={styles.legislatureCard}>
-          <p style={{ color: '#888' }}>You haven't saved any custom sets yet. Head home to build your first one!</p>
-          <Link to="/"><button style={{ ...styles.authButton, width: '200px', marginTop: '10px' }}>Start Building</button></Link>
-        </div>
-      ) : (
-        savedSets.map((set, index) => (
-          <div key={index} style={styles.legislatureCard}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h4 style={{ margin: 0 }}>Formula #{savedSets.length - index}</h4>
-              <span style={{ fontSize: '12px', color: '#888' }}>{set.date}</span>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginTop: '20px' }}>
-              {set.items.map((item, i) => (
-                <div key={i} style={{ fontSize: '12px', padding: '10px', background: '#f9f9f9', borderRadius: '8px' }}>
-                  <strong>{item.name}</strong>
-                </div>
-              ))}
-            </div>
+const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, onAddPoints }) => {
+  const [profilePicture, setProfilePicture] = useState(null);
+  const [videoSubmission, setVideoSubmission] = useState("");
+  const [showVideoForm, setShowVideoForm] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isSubmittingVideo, setIsSubmittingVideo] = useState(false);
+  const [photoMessage, setPhotoMessage] = useState("");
+  const [videoMessage, setVideoMessage] = useState("");
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingPhoto(true);
+    setPhotoMessage("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch(`${BACKEND_URL}/api/profile/upload-photo`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${authToken}` },
+        body: formData,
+      });
+      if (response.ok) {
+        setPhotoMessage("✅ Profile picture uploaded! +5 points awarded");
+        if (onAddPoints) onAddPoints(5);
+      } else {
+        setPhotoMessage("❌ Photo upload failed. Try again.");
+      }
+    } catch (err) {
+      setPhotoMessage("❌ Server error. Try again in 30 seconds.");
+    }
+    setIsUploadingPhoto(false);
+  };
+
+  const handleVideoSubmission = async () => {
+    if (!videoSubmission.trim()) return alert("Please enter your response.");
+    setIsSubmittingVideo(true);
+    setVideoMessage("");
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/cultural/submit-video`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          question: "What makes a person beautiful?",
+          response: videoSubmission,
+          category: "Cultural",
+        }),
+      });
+      if (response.ok) {
+        setVideoMessage("✅ Video submission sent to Cultural Section! +10 points awarded");
+        setVideoSubmission("");
+        setShowVideoForm(false);
+        if (onAddPoints) onAddPoints(10);
+      } else {
+        setVideoMessage("❌ Submission failed. Try again.");
+      }
+    } catch (err) {
+      setVideoMessage("❌ Server error. Try again in 30 seconds.");
+    }
+    setIsSubmittingVideo(false);
+  };
+
+  return (
+    <div style={{ padding: '40px 60px', maxWidth: '900px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '40px' }}>
+        <h1 style={{ fontSize: '32px', marginBottom: '10px' }}>Welcome back,</h1>
+        <p style={{ color: '#666' }}>{userEmail}</p>
+        {rankTitle && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
+            <RankBadge rankTitle={rankTitle} />
+            <span style={{ fontSize: '12px', color: '#aaa' }}>{(rankScore || 1).toLocaleString()} points</span>
           </div>
-        ))
-      )}
-    </section>
-  </div>
-);
+        )}
+      </div>
+
+      <section style={{ marginBottom: '40px' }}>
+        <h3>Build Your Profile</h3>
+        
+        <div style={styles.dumaCard}>
+          <h4 style={{ marginTop: 0 }}>Profile Picture</h4>
+          <p style={{ fontSize: '13px', color: '#666', marginBottom: '15px' }}>Upload a profile photo - earn 5 points!</p>
+          <input type="file" accept="image/*" onChange={handlePhotoUpload} disabled={isUploadingPhoto} style={{ marginBottom: '10px', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', width: '100%', boxSizing: 'border-box' }} />
+          {photoMessage && <p style={{ fontSize: '12px', color: photoMessage.includes('✅') ? '#2a7a2a' : '#c00', marginBottom: 0 }}>{photoMessage}</p>}
+        </div>
+
+        <div style={styles.dumaCard}>
+          <h4 style={{ marginTop: 0 }}>Share Your Perspective</h4>
+          <p style={{ fontSize: '13px', color: '#666', marginBottom: '15px' }}><strong>Question:</strong> "What makes a person beautiful?" - Earn 10 points!</p>
+          {!showVideoForm ? (
+            <button style={styles.authButton} onClick={() => setShowVideoForm(true)}>Submit Your Answer</button>
+          ) : (
+            <div>
+              <textarea placeholder="Share your thoughts..." value={videoSubmission} onChange={(e) => setVideoSubmission(e.target.value)} style={{ ...styles.input, height: '100px', marginBottom: '10px' }} />
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button style={styles.authButton} onClick={handleVideoSubmission} disabled={isSubmittingVideo}>{isSubmittingVideo ? "Submitting..." : "Submit to Cultural Section"}</button>
+                <button style={{ ...styles.authButton, background: '#f5f5f5', color: '#222' }} onClick={() => setShowVideoForm(false)}>Cancel</button>
+              </div>
+            </div>
+          )}
+          {videoMessage && <p style={{ fontSize: '12px', color: videoMessage.includes('✅') ? '#2a7a2a' : '#c00', marginTop: '10px', marginBottom: 0 }}>{videoMessage}</p>}
+        </div>
+      </section>
+
+      <section>
+        <h3>Your Saved Formulas</h3>
+        {savedSets.length === 0 ? (
+          <div style={styles.dumaCard}>
+            <p style={{ color: '#888' }}>You haven't saved any custom sets yet. Head home to build your first one!</p>
+            <Link to="/"><button style={{ ...styles.authButton, width: '200px', marginTop: '10px' }}>Start Building</button></Link>
+          </div>
+        ) : (
+          savedSets.map((set, index) => (
+            <div key={index} style={styles.dumaCard}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h4 style={{ margin: 0 }}>Formula #{savedSets.length - index}</h4>
+                <span style={{ fontSize: '12px', color: '#888' }}>{set.date}</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginTop: '20px' }}>
+                {set.items.map((item, i) => (
+                  <div key={i} style={{ fontSize: '12px', padding: '10px', background: '#f9f9f9', borderRadius: '8px' }}>
+                    <strong>{item.name}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </section>
+    </div>
+  );
+};
 
 // --- STRIPE CHECKOUT COMPONENT ---
 const CheckoutForm = ({ totalPrice, onPurchaseSuccess }) => {
@@ -402,76 +503,254 @@ function LandingPage({ saveSetToProfile }) {
 }
 
 // --- RECOMMEND & PARTNER & LEGISLATURE ---
-const RecommendPage = ({ addLegislatureItem }) => {
+const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }) => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ name: "", company: "", website: "", reason: "" });
-  const handleSubmit = (e) => { e.preventDefault(); addLegislatureItem({ ...formData, id: Date.now(), type: "Recommendation" }); navigate("/legislature"); };
+  const [formData, setFormData] = useState({ name: "", company: "", reason: "" });
+  const [submitted, setSubmitted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg("");
+    if (!formData.name || !formData.company || !formData.reason) { setErrorMsg("Please fill in all fields."); return; }
+    setIsLoading(true);
+    try {
+      if (authToken) {
+        const res = await fetch(`${BACKEND_URL}/api/duma/recommend`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }, body: JSON.stringify(formData) });
+        const data = await res.json();
+        if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); setIsLoading(false); return; }
+      }
+      addDumaItem({ ...formData, id: Date.now(), type: "Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'bolshevik', section: "Commerce" });
+      setSubmitted(true);
+    } catch (err) {
+      addDumaItem({ ...formData, id: Date.now(), type: "Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'bolshevik', section: "Commerce" });
+      setSubmitted(true);
+    }
+    setIsLoading(false);
+  };
+
+  if (submitted) {
+    return (
+      <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
+          <div style={{ fontSize: '40px', marginBottom: '16px' }}>✅</div>
+          <h2 style={{ marginBottom: '10px' }}>Recommendation Submitted!</h2>
+          <p style={{ color: '#666', marginBottom: '20px' }}>Your recommendation has been sent to The Majority's Duma Commerce section for community review.</p>
+          {rankTitle && <RankBadge rankTitle={rankTitle} />}
+          <div style={{ marginTop: '20px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <button style={styles.authButton} onClick={() => navigate("/duma")}>View the Duma</button>
+            <button style={{ ...styles.authButton, background: '#f5f5f5', color: '#222' }} onClick={() => setSubmitted(false)}>Submit Another</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
       <h2>Recommend Products</h2>
-      <form style={styles.legislatureCard} onSubmit={handleSubmit}>
-        <input required placeholder="Product Name *" style={styles.input} onChange={e => setFormData({...formData, name: e.target.value})} />
-        <input required placeholder="Company Name *" style={styles.input} onChange={e => setFormData({...formData, company: e.target.value})} />
-        <textarea required placeholder="Reason *" style={{ ...styles.input, height: '100px' }} onChange={e => setFormData({...formData, reason: e.target.value})} />
-        <button type="submit" style={styles.authButton}>Submit to Legislature</button>
+      <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Recommendations go to <strong>The Majority's Duma Commerce section</strong> for community voting and review.</p>
+      {userEmail && rankTitle && <div style={{ marginBottom: '20px' }}><CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} /></div>}
+      {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
+      <form style={styles.dumaCard} onSubmit={handleSubmit}>
+        <input required placeholder="Product Name *" style={styles.input} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+        <input required placeholder="Company Name *" style={styles.input} value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
+        <textarea required placeholder="Why do you recommend this product? *" style={{ ...styles.input, height: '100px' }} value={formData.reason} onChange={e => setFormData({...formData, reason: e.target.value})} />
+        <button type="submit" style={styles.authButton} disabled={isLoading}>{isLoading ? "Submitting..." : "Submit to the Duma"}</button>
       </form>
     </div>
   );
 };
 
-const PartnerPage = ({ addLegislatureItem }) => {
+const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }) => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ company: "", product: "", desc: "" });
-  const handleSubmit = (e) => { e.preventDefault(); addLegislatureItem({ ...formData, id: Date.now(), type: "Partner" }); navigate("/legislature"); };
+  const [formData, setFormData] = useState({ company: "", product: "", desc: "", tier: "National Associate" });
+  const [errorMsg, setErrorMsg] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [buttonState, setButtonState] = useState("Submit Application");
+  const canApplyPremium = (rankScore || 1) >= 4000001;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setIsProcessing(true);
+    setButtonState("Submit to Review");
+    if (formData.tier === "Premium Partner" && !canApplyPremium) { setErrorMsg("Premium Partner status requires a score of 4,000,001+. Keep building your influence!"); setIsProcessing(false); setButtonState("Submit Application"); return; }
+    if (!formData.company || !formData.product || !formData.desc) { setErrorMsg("Please fill in all fields."); setIsProcessing(false); setButtonState("Submit Application"); return; }
+    try {
+      if (authToken) {
+        const res = await fetch(`${BACKEND_URL}/api/duma/partner`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }, body: JSON.stringify(formData) });
+        const data = await res.json();
+        if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); setIsProcessing(false); setButtonState("Submit Application"); return; }
+      }
+      addDumaItem({ ...formData, id: Date.now(), type: "Partner", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'bolshevik', section: "Commerce" });
+      setSubmitted(true);
+    } catch (err) {
+      addDumaItem({ ...formData, id: Date.now(), type: "Partner", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'bolshevik', section: "Commerce" });
+      setSubmitted(true);
+    }
+  };
+  if (submitted) {
+    return (
+      <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
+          <div style={{ fontSize: '40px', marginBottom: '16px' }}>🤝</div>
+          <h2>Partner Application Submitted!</h2>
+          <p style={{ color: '#666' }}>Your application has been sent to The Majority's Duma Commerce section for review.</p>
+          <button style={{ ...styles.authButton, marginTop: '20px', width: 'auto', padding: '12px 24px' }} onClick={() => navigate("/duma")}>View the Duma</button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
       <h2>Partner with The Majority</h2>
-      <form style={styles.legislatureCard} onSubmit={handleSubmit}>
-        <input required placeholder="Company Name *" style={styles.input} onChange={e => setFormData({...formData, company: e.target.value})} />
-        <input required placeholder="Product Name *" style={styles.input} onChange={e => setFormData({...formData, product: e.target.value})} />
-        <textarea required placeholder="Description *" style={styles.input} onChange={e => setFormData({...formData, desc: e.target.value})} />
-        <button type="submit" style={styles.authButton}>Submit Application</button>
+      <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Submit your partnership application for review by The Majority's Commerce committee.</p>
+      {userEmail && rankTitle && <div style={{ marginBottom: '20px' }}><CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} /></div>}
+      {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
+      <form style={styles.dumaCard} onSubmit={handleSubmit}>
+        <input required placeholder="Company Name *" style={styles.input} value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
+        <input required placeholder="Product Name *" style={styles.input} value={formData.product} onChange={e => setFormData({...formData, product: e.target.value})} />
+        <textarea required placeholder="Description of Partnership *" style={{ ...styles.input, height: '100px' }} value={formData.desc} onChange={e => setFormData({...formData, desc: e.target.value})} />
+        <div style={{ marginTop: '15px' }}>
+          <label style={styles.formSectionTitle}>Partnership Tier</label>
+          <div style={{ display: 'flex', gap: '15px', marginTop: '10px', flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', cursor: 'pointer' }}>
+              <input type="radio" name="tier" value="National Associate" checked={formData.tier === "National Associate"} onChange={e => setFormData({...formData, tier: e.target.value})} />
+              National Associate
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', cursor: canApplyPremium ? 'pointer' : 'not-allowed', opacity: canApplyPremium ? 1 : 0.5 }}>
+              <input type="radio" name="tier" value="Premium Partner" checked={formData.tier === "Premium Partner"} disabled={!canApplyPremium} onChange={e => setFormData({...formData, tier: e.target.value})} />
+              Premium Partner {!canApplyPremium && <span style={{ fontSize: '11px', color: '#aaa' }}>(4M+ points only)</span>}
+            </label>
+          </div>
+        </div>
+        <button type="submit" style={{ ...styles.authButton, marginTop: '16px' }} disabled={isProcessing}>{isProcessing ? "Processing..." : buttonState}</button>
       </form>
     </div>
   );
 };
 
-const LegislaturePage = ({ items }) => (
-  <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
-    <h2>The Majority's Legislature</h2>
-    {items.map(item => (
-      <div key={item.id} style={styles.legislatureCard}>
-        <span style={styles.typeTag}>{item.type}</span>
-        <h3>{item.name || item.product} by {item.company}</h3>
-        <p>{item.reason || item.desc}</p>
+const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints }) => {
+  const [dumaItems, setDumaItems] = useState(items);
+  const [voting, setVoting] = useState({});
+  const [activeSection, setActiveSection] = useState("Commerce");
+  useEffect(() => { fetch(`${BACKEND_URL}/api/duma`).then(r => r.json()).then(data => { if (Array.isArray(data) && data.length > 0) setDumaItems([...data, ...items]); }).catch(() => {}); }, []);
+  const handleVote = async (itemId, voteType) => {
+    if (!authToken) return alert("Please log in to vote.");
+    setVoting(prev => ({ ...prev, [itemId]: true }));
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/duma/${itemId}/vote`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }, body: JSON.stringify({ vote: voteType }) });
+      if (response.ok) { const data = await response.json(); if (voteType === 'upvote' && onAddPoints) onAddPoints(1); setDumaItems(prev => prev.map(item => item.id === itemId || item._id === itemId ? { ...item, votes: data.votes || item.votes } : item)); }
+    } catch (err) {}
+    setVoting(prev => ({ ...prev, [itemId]: false }));
+  };
+  const culturalItems = dumaItems.filter(item => item.section === "Cultural" || item.type === "Video");
+  const commerceItems = dumaItems.filter(item => item.section === "Commerce" || (item.type === "Recommendation" || item.type === "Partner"));
+  return (
+    <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '30px' }}>
+        <div>
+          <h2 style={{ marginBottom: '6px' }}>The Majority's Duma</h2>
+          <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>Community recommendations, partnerships, and cultural contributions — vote to shape The Majority.</p>
+        </div>
+        {userEmail && rankTitle && <div style={{ textAlign: 'right', minWidth: '250px' }}><CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} /></div>}
       </div>
-    ))}
-  </div>
-);
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '30px', borderBottom: '2px solid #eee', paddingBottom: '15px' }}>
+        <button onClick={() => setActiveSection("Commerce")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Commerce" ? '#222' : '#f5f5f5', color: activeSection === "Commerce" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>💼 Commerce ({commerceItems.length})</button>
+        <button onClick={() => setActiveSection("Cultural")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Cultural" ? '#222' : '#f5f5f5', color: activeSection === "Cultural" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>🎨 Cultural ({culturalItems.length})</button>
+      </div>
+      {activeSection === "Commerce" && (
+        <div>
+          {commerceItems.length === 0 ? (
+            <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No submissions yet. Be the first to recommend a product or partnership!</div>
+          ) : (
+            commerceItems.map(item => (
+              <div key={item.id || item._id} style={styles.dumaCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                  <span style={styles.typeTag}>{item.type}</span>
+                  {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
+                </div>
+                {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'bolshevik'} rankScore={null} />}
+                <h3 style={{ marginTop: '8px', marginBottom: '6px' }}>{item.name || item.product} by {item.company}</h3>
+                <p style={{ color: '#666', fontSize: '14px', marginBottom: '14px' }}>{item.reason || item.desc}</p>
+                {authToken && (
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button disabled={voting[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'upvote')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60' }}>👍 Upvote {item.votes?.upvote > 0 && `(${item.votes.upvote})`}</button>
+                    <button disabled={voting[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'downvote')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c' }}>👎 Downvote {item.votes?.downvote > 0 && `(${item.votes.downvote})`}</button>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+      {activeSection === "Cultural" && (
+        <div>
+          {culturalItems.length === 0 ? (
+            <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No cultural submissions yet. Share your perspective on what makes a person beautiful!</div>
+          ) : (
+            culturalItems.map(item => (
+              <div key={item.id || item._id} style={styles.dumaCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                  <span style={styles.typeTag}>📹 Video Submission</span>
+                  {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
+                </div>
+                {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'bolshevik'} rankScore={null} />}
+                <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Question: "What makes a person beautiful?"</h4>
+                <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6', marginBottom: '14px' }}>{item.response || item.reason || item.desc}</p>
+                {authToken && (
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button disabled={voting[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'upvote')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60' }}>❤️ Resonate {item.votes?.upvote > 0 && `(${item.votes.upvote})`}</button>
+                    <button disabled={voting[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'downvote')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6' }}>👁️ View {item.votes?.downvote > 0 && `(${item.votes.downvote})`}</button>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // --- MAIN APP COMPONENT ---
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState("");
+  const [authToken, setAuthToken] = useState("");
+  const [rankTitle, setRankTitle] = useState("bolshevik");
+  const [rankScore, setRankScore] = useState(1);
   const [savedSets, setSavedSets] = useState([]);
-  const [legislatureItems, setLegislatureItems] = useState([
-    { id: 1, type: "Partner", company: "EcoHair Labs", product: "Silk Serum", desc: "Organic serum for hair." }
-  ]);
+  const [dumaItems, setDumaItems] = useState([{ id: 1, type: "Partner", company: "EcoHair Labs", product: "Silk Serum", desc: "Organic serum for hair.", section: "Commerce", submitterRank: "bolshevik" }]);
   useEffect(() => {
-    const savedEmail = localStorage.getItem("userEmail");
+    const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+    const email = localStorage.getItem("userEmail") || sessionStorage.getItem("userEmail");
     const storedSets = localStorage.getItem("savedSets");
-    if (savedEmail) { setIsLoggedIn(true); setUserEmail(savedEmail); }
-    if (storedSets) setSavedSets(JSON.parse(storedSets));
+    if (storedSets) { try { setSavedSets(JSON.parse(storedSets)); } catch (e) {} }
+    if (token) {
+      fetch(`${BACKEND_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(data => {
+        if (data.email) { setIsLoggedIn(true); setUserEmail(data.email); setAuthToken(token); setRankTitle(data.rank_title || 'bolshevik'); setRankScore(data.rank_score || 1); } else { localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); }
+      }).catch(() => { if (email) { setIsLoggedIn(true); setUserEmail(email); setAuthToken(token); const storedRank = localStorage.getItem("rankTitle") || sessionStorage.getItem("rankTitle"); const storedScore = parseInt(localStorage.getItem("rankScore") || sessionStorage.getItem("rankScore") || "1"); if (storedRank) setRankTitle(storedRank); setRankScore(storedScore); } });
+    }
   }, []);
-  const handleLoginSuccess = (email) => { setIsLoggedIn(true); setUserEmail(email); localStorage.setItem("userEmail", email); };
-  const handleLogout = () => { setIsLoggedIn(false); setUserEmail(""); localStorage.removeItem("userEmail"); };
-  const saveSetToProfile = (items) => {
-    const newSet = { items, date: new Date().toLocaleDateString() };
-    const updatedSets = [newSet, ...savedSets];
-    setSavedSets(updatedSets);
-    localStorage.setItem("savedSets", JSON.stringify(updatedSets));
+  const handleLoginSuccess = (email, token, rememberMe, rank, score) => {
+    setIsLoggedIn(true); setUserEmail(email); setAuthToken(token); const resolvedRank = rank || 'bolshevik'; const resolvedScore = score || 1; setRankTitle(resolvedRank); setRankScore(resolvedScore);
+    const storage = rememberMe ? localStorage : sessionStorage; storage.setItem("authToken", token); storage.setItem("userEmail", email); storage.setItem("rankTitle", resolvedRank); storage.setItem("rankScore", String(resolvedScore));
   };
-  const addLegislatureItem = (item) => setLegislatureItems([item, ...legislatureItems]);
+  const handleLogout = () => {
+    setIsLoggedIn(false); setUserEmail(""); setAuthToken(""); setRankTitle("bolshevik"); setRankScore(1);
+    localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); localStorage.removeItem("rankTitle"); localStorage.removeItem("rankScore");
+    sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); sessionStorage.removeItem("rankTitle"); sessionStorage.removeItem("rankScore");
+  };
+  const saveSetToProfile = (items) => { const newSet = { items, date: new Date().toLocaleDateString() }; const updatedSets = [newSet, ...savedSets]; setSavedSets(updatedSets); localStorage.setItem("savedSets", JSON.stringify(updatedSets)); };
+  const addDumaItem = (item) => setDumaItems(prev => [item, ...prev]);
+  const addPoints = (points) => {
+    const newScore = rankScore + points; setRankScore(newScore); const newRank = getRankTitle(newScore); setRankTitle(newRank);
+    const storage = localStorage.getItem("authToken") ? localStorage : sessionStorage; storage.setItem("rankScore", String(newScore)); storage.setItem("rankTitle", newRank);
+    if (authToken) { fetch(`${BACKEND_URL}/api/profile/add-points`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }, body: JSON.stringify({ points }) }).catch(err => console.error("Error updating points:", err)); }
+  };
   return (
     <Router>
       <ScrollToTop />
@@ -484,9 +763,10 @@ export default function App() {
               <>
                 <Link to="/recommend" style={styles.navLink}>Recommend</Link>
                 <Link to="/partner" style={styles.navLink}>Partner</Link>
-                <Link to="/legislature" style={styles.navLink}>Legislature</Link>
+                <Link to="/duma" style={styles.navLink}>Duma</Link>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: '1px solid #eee', paddingLeft: '15px' }}>
                   <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
+                  {rankTitle && <RankBadge rankTitle={rankTitle} />}
                   <span style={styles.auth} onClick={handleLogout}>Logout</span>
                 </div>
               </>
@@ -501,13 +781,14 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage saveSetToProfile={saveSetToProfile} />} />
           <Route path="/login" element={<LoginPage onLogin={handleLoginSuccess} />} />
-          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/signup" element={<SignupPage onLogin={handleLoginSuccess} />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-          <Route path="/recommend" element={<RecommendPage addLegislatureItem={addLegislatureItem} />} />
-          <Route path="/partner" element={<PartnerPage addLegislatureItem={addLegislatureItem} />} />
-          <Route path="/legislature" element={<LegislaturePage items={legislatureItems} />} />
-          <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} />} />
+          <Route path="/recommend" element={<RecommendPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} />} />
+          <Route path="/partner" element={<PartnerPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} />} />
+          <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} />} />
+          <Route path="/legislature" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} />} />
+          <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} />} />
           <Route path="/orders" element={<div style={{ padding: '60px', textAlign: 'center' }}><h2>Payment Received!</h2><p>Your custom hair set is being prepared. Check your Profile to see your formula.</p><Link to="/profile">Go to Profile</Link></div>} />
         </Routes>
       </div>

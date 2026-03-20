@@ -1110,7 +1110,158 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
   );
 };
 
-const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints }) => {
+// --- CULTURE LAB PAGE (Share Your Perspective) ---
+const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, onAddPoints }) => {
+  const navigate = useNavigate();
+  const [selectedPrompt, setSelectedPrompt] = useState("");
+  const [response, setResponse] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const prompts = [
+    { id: 1, text: "Introduce yourself." },
+    { id: 2, text: "Tell us what you do." },
+    { id: 3, text: "What makes someone beautiful?" },
+    { id: 4, text: "Thoughts about anything." }
+  ];
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedPrompt || !response.trim()) {
+      setErrorMsg("Please select a prompt and provide your response.");
+      return;
+    }
+    
+    setErrorMsg("");
+    
+    try {
+      if (authToken) {
+        const res = await fetch(`${BACKEND_URL}/api/duma/culture`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+          body: JSON.stringify({
+            prompt: selectedPrompt,
+            response: response,
+            category: "Culture"
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); return; }
+      }
+
+      // Add to local Duma and award points
+      addDumaItem({
+        id: Date.now(),
+        type: "Culture",
+        category: "Culture",
+        prompt: selectedPrompt,
+        response: response,
+        submittedBy: userEmail,
+        submitterRank: rankTitle || 'bolshevik',
+        votes: { yes: 0 }
+      });
+
+      if (onAddPoints) onAddPoints(1); // 1 point for submission
+      
+      setSubmitted(true);
+      setTimeout(() => {
+        navigate("/duma");
+      }, 2000);
+    } catch (err) {
+      // Fallback to local only
+      addDumaItem({
+        id: Date.now(),
+        type: "Culture",
+        category: "Culture",
+        prompt: selectedPrompt,
+        response: response,
+        submittedBy: userEmail,
+        submitterRank: rankTitle || 'bolshevik',
+        votes: { yes: 0 }
+      });
+      if (onAddPoints) onAddPoints(1);
+      setSubmitted(true);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
+          <div style={{ fontSize: '40px', marginBottom: '16px' }}>🎬</div>
+          <h2 style={{ marginBottom: '10px' }}>Perspective Shared!</h2>
+          <p style={{ color: '#666', marginBottom: '20px' }}>
+            Your response has been submitted to The Majority's Culture section and appears in the Duma for community voting.
+          </p>
+          <p style={{ fontSize: '12px', color: '#888' }}>You earned 1 point!</p>
+          {rankTitle && <RankBadge rankTitle={rankTitle} />}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+      <h2>Share Your Perspective</h2>
+      <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
+        Contribute to our Culture section by answering one of these prompts. 
+        Submit your response to the Duma for community voting and earn points!
+      </p>
+
+      {userEmail && rankTitle && (
+        <div style={{ marginBottom: '30px' }}>
+          <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} />
+        </div>
+      )}
+
+      {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
+
+      <form style={styles.dumaCard} onSubmit={handleSubmit}>
+        <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Choose a Prompt</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+          {prompts.map(prompt => (
+            <label key={prompt.id} style={{
+              padding: '16px',
+              border: selectedPrompt === prompt.text ? '2px solid #222' : '1px solid #ddd',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              backgroundColor: selectedPrompt === prompt.text ? '#f9f9f9' : '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <input
+                type="radio"
+                name="prompt"
+                value={prompt.text}
+                checked={selectedPrompt === prompt.text}
+                onChange={(e) => setSelectedPrompt(e.target.value)}
+                style={{ accentColor: '#222' }}
+              />
+              <span style={{ fontSize: '13px', color: '#222', fontWeight: selectedPrompt === prompt.text ? '600' : '400' }}>
+                {prompt.text}
+              </span>
+            </label>
+          ))}
+        </div>
+
+        <h3 style={{ marginTop: '24px', marginBottom: '12px' }}>Your Response</h3>
+        <p style={{ fontSize: '12px', color: '#666', margin: '0 0 12px 0' }}>Share your thoughts (recommended: 45 seconds of speaking if recorded)</p>
+        <textarea
+          required
+          placeholder="Type your response here..."
+          style={{ ...styles.input, height: '140px' }}
+          value={response}
+          onChange={(e) => setResponse(e.target.value)}
+        />
+
+        <button type="submit" style={styles.authButton}>Submit to the Duma (+1 point)</button>
+      </form>
+    </div>
+  );
+};
+
+// --- DUMA PAGE ---
   const [dumaItems, setDumaItems] = useState(items);
   const [userVotes, setUserVotes] = useState({});
   const [showScores, setShowScores] = useState({});
@@ -1182,7 +1333,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
     return `**-${cleaned.slice(-7)}`;
   };
 
-  const culturalItems = dumaItems.filter(item => item.section === "Cultural" || item.type === "Video");
+  const culturalItems = dumaItems.filter(item => item.section === "Cultural" || item.category === "Culture" || item.type === "Video" || item.type === "Culture");
   const commerceItems = dumaItems.filter(item => item.section === "Commerce" || (item.type === "Recommendation" || item.type === "Partner"));
   
   return (
@@ -1196,7 +1347,8 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
       </div>
       <div style={{ display: 'flex', gap: '10px', marginBottom: '30px', borderBottom: '2px solid #eee', paddingBottom: '15px' }}>
         <button onClick={() => setActiveSection("Commerce")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Commerce" ? '#222' : '#f5f5f5', color: activeSection === "Commerce" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>💼 Commerce ({commerceItems.length})</button>
-        <button onClick={() => setActiveSection("Cultural")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Cultural" ? '#222' : '#f5f5f5', color: activeSection === "Cultural" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>🎨 Cultural ({culturalItems.length})</button>
+        <button onClick={() => setActiveSection("Culture")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Culture" ? '#222' : '#f5f5f5', color: activeSection === "Culture" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>🎨 Perspectives ({culturalItems.length})</button>
+        {authToken && <button onClick={() => window.location.href = '/culture'} style={{ padding: '10px 20px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', marginLeft: 'auto' }}>+ Share Your Perspective</button>}
       </div>
       
       {activeSection === "Commerce" && (
@@ -1338,16 +1490,16 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
       {activeSection === "Cultural" && (
         <div>
           {culturalItems.length === 0 ? (
-            <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No cultural submissions yet. Share your perspective on what makes a person beautiful!</div>
+            <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No perspectives shared yet. Share yours and contribute to our culture section!</div>
           ) : (
             culturalItems.map(item => (
               <div key={item.id || item._id} style={styles.dumaCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                  <span style={styles.typeTag}>📹 Video Submission</span>
+                  <span style={styles.typeTag}>🎬 Perspective</span>
                   {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
                 </div>
                 {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'bolshevik'} rankScore={null} />}
-                <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Question: "What makes a person beautiful?"</h4>
+                <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
                 <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6', marginBottom: '14px' }}>{item.response || item.reason || item.desc}</p>
                 
                 {authToken && (
@@ -1448,6 +1600,7 @@ export default function App() {
               <>
                 <Link to="/recommend" style={styles.navLink}>Recommend</Link>
                 <Link to="/partner" style={styles.navLink}>Partner</Link>
+                <Link to="/culture" style={styles.navLink}>Share</Link>
                 <Link to="/duma" style={styles.navLink}>The Duma</Link>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: '1px solid #eee', paddingLeft: '15px' }}>
                   <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
@@ -1471,6 +1624,7 @@ export default function App() {
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           <Route path="/recommend" element={<RecommendPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} />} />
           <Route path="/partner" element={<PartnerPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} />} />
+          <Route path="/culture" element={<CultureLabPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} />} />
           <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} />} />
           <Route path="/legislature" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} />} />
           <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} />} />

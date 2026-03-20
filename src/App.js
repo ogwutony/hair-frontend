@@ -1055,17 +1055,55 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
 
 const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints }) => {
   const [dumaItems, setDumaItems] = useState(items);
-  const [voting, setVoting] = useState({});
+  const [userVotes, setUserVotes] = useState({});
+  const [showScores, setShowScores] = useState({});
+  const [showComments, setShowComments] = useState({});
+  const [comments, setComments] = useState({});
+  const [commentText, setCommentText] = useState({});
   const [activeSection, setActiveSection] = useState("Commerce");
-  useEffect(() => { fetch(`${BACKEND_URL}/api/duma`).then(r => r.json()).then(data => { if (Array.isArray(data) && data.length > 0) setDumaItems([...data, ...items]); }).catch(() => {}); }, [items]);
+  
+  useEffect(() => { 
+    fetch(`${BACKEND_URL}/api/duma`).then(r => r.json()).then(data => { 
+      if (Array.isArray(data) && data.length > 0) setDumaItems([...data, ...items]); 
+    }).catch(() => {}); 
+  }, [items]);
+  
   const handleVote = async (itemId, voteType) => {
     if (!authToken) return alert("Please log in to vote.");
-    setVoting(prev => ({ ...prev, [itemId]: true }));
+    if (userVotes[itemId]) return; // Already voted
+    
+    // Record user vote
+    setUserVotes(prev => ({ ...prev, [itemId]: voteType }));
+    
+    // Show vote scores after voting
+    setShowScores(prev => ({ ...prev, [itemId]: true }));
+    
+    // Enable comments
+    setShowComments(prev => ({ ...prev, [itemId]: true }));
+    
+    // Award points
+    if (onAddPoints) onAddPoints(1);
+    
     try {
-      const response = await fetch(`${BACKEND_URL}/api/duma/${itemId}/vote`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }, body: JSON.stringify({ vote: voteType }) });
-      if (response.ok) { const data = await response.json(); if (voteType === 'upvote' && onAddPoints) onAddPoints(1); setDumaItems(prev => prev.map(item => item.id === itemId || item._id === itemId ? { ...item, votes: data.votes || item.votes } : item)); }
+      const response = await fetch(`${BACKEND_URL}/api/duma/${itemId}/vote`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }, 
+        body: JSON.stringify({ vote: voteType }) 
+      });
+      if (response.ok) { 
+        const data = await response.json(); 
+        setDumaItems(prev => prev.map(item => item.id === itemId || item._id === itemId ? { ...item, votes: data.votes || item.votes } : item)); 
+      }
     } catch (err) {}
-    setVoting(prev => ({ ...prev, [itemId]: false }));
+  };
+  
+  const handleCommentSubmit = (itemId) => {
+    if (!commentText[itemId]?.trim()) return;
+    setComments(prev => ({
+      ...prev,
+      [itemId]: [...(prev[itemId] || []), { author: userEmail, text: commentText[itemId], timestamp: new Date().toLocaleString() }]
+    }));
+    setCommentText(prev => ({ ...prev, [itemId]: '' }));
   };
 
   const maskPhoneNumber = (phone) => {
@@ -1089,6 +1127,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
 
   const culturalItems = dumaItems.filter(item => item.section === "Cultural" || item.type === "Video");
   const commerceItems = dumaItems.filter(item => item.section === "Commerce" || (item.type === "Recommendation" || item.type === "Partner"));
+  
   return (
     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '30px' }}>
@@ -1102,6 +1141,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
         <button onClick={() => setActiveSection("Commerce")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Commerce" ? '#222' : '#f5f5f5', color: activeSection === "Commerce" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>💼 Commerce ({commerceItems.length})</button>
         <button onClick={() => setActiveSection("Cultural")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Cultural" ? '#222' : '#f5f5f5', color: activeSection === "Cultural" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>🎨 Cultural ({culturalItems.length})</button>
       </div>
+      
       {activeSection === "Commerce" && (
         <div>
           {commerceItems.length === 0 ? (
@@ -1117,24 +1157,67 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                 
                 {item.type === "Partner" ? (
                   <>
-                    <h3 style={{ marginTop: '12px', marginBottom: '8px' }}>{item.productType} - {item.company}</h3>
-                    <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #2980b9' }}>
-                      <p style={{ fontSize: '12px', color: '#666', margin: '0 0 8px 0' }}>
-                        <strong>Contact:</strong> {maskEmail(item.contactEmail)} | {maskPhoneNumber(item.phoneNumber)} | EIN: {maskEIN(item.ein)}
+                    <h3 style={{ marginTop: '12px', marginBottom: '12px' }}>{item.productType} - {item.company}</h3>
+                    
+                    {/* PRODUCT DETAILS */}
+                    <h4 style={{ marginBottom: '6px', fontSize: '13px', color: '#555', fontWeight: '700' }}>Product Details:</h4>
+                    <p style={{ color: '#666', fontSize: '13px', marginBottom: '6px', lineHeight: '1.5' }}>
+                      <strong>Type:</strong> {item.productType}
+                    </p>
+                    <p style={{ color: '#222', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>
+                      <strong>Description:</strong> {item.productDescription}
+                    </p>
+                    <p style={{ color: '#222', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>
+                      <strong>Partnership Rationale:</strong> {item.whyPartner}
+                    </p>
+                    
+                    {/* MEDIA */}
+                    {(item.hasPhoto || item.hasVideo) && (
+                      <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '12px', borderLeft: '4px solid #9b59b6' }}>
+                        <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Media:</h4>
+                        {item.hasPhoto && <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>📷 Product photo included</p>}
+                        {item.hasVideo && <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>🎬 Product video included</p>}
+                      </div>
+                    )}
+                    
+                    {/* LOGISTICS */}
+                    <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '12px', borderLeft: '4px solid #27ae60' }}>
+                      <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Logistics & Requirements:</h4>
+                      <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                        <strong>Minimum Order:</strong> 500 units (3.4 oz)
                       </p>
-                      <p style={{ fontSize: '12px', color: '#666', margin: '0 0 8px 0' }}>
-                        <strong>Location:</strong> {item.countryOfOrigin} (Operating in {item.operatingCountry})
+                      {item.desiredOrderQuantity && (
+                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                          <strong>Desired Fulfillment:</strong> {item.desiredOrderQuantity} units
+                        </p>
+                      )}
+                      {item.pricing5Gallon && (
+                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                          <strong>5-Gallon Pricing:</strong> {item.pricing5Gallon}
+                        </p>
+                      )}
+                    </div>
+                    
+                    {/* REVENUE & PRICING */}
+                    <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #e67e22' }}>
+                      <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Revenue & Pricing:</h4>
+                      {item.standardUnitPrice && (
+                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                          <strong>Standard Price:</strong> ${item.standardUnitPrice}
+                        </p>
+                      )}
+                      {item.promotionalUnitPrice && (
+                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                          <strong>Promotional Price:</strong> ${item.promotionalUnitPrice}
+                        </p>
+                      )}
+                      <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                        <strong>Commission:</strong> The Majority takes 25% | Partner receives 75%
                       </p>
-                      <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>
-                        <strong>Commitment:</strong> {item.unitsOf34Oz} units (3.4 oz) | <strong>Tier:</strong> {item.tier}
+                      <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                        <strong>Tier:</strong> {item.tier}
                       </p>
                     </div>
-                    <h4 style={{ marginBottom: '6px', fontSize: '13px', color: '#555' }}>Product Description:</h4>
-                    <p style={{ color: '#666', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>{item.productDescription}</p>
-                    <h4 style={{ marginBottom: '6px', fontSize: '13px', color: '#555' }}>Why Partner With Us:</h4>
-                    <p style={{ color: '#222', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>{item.whyPartner}</p>
-                    {item.hasPhoto && <p style={{ fontSize: '12px', color: '#888', marginBottom: '8px' }}>📷 Product photo included</p>}
-                    {item.hasVideo && <p style={{ fontSize: '12px', color: '#888', marginBottom: '12px' }}>🎬 Product video included</p>}
                   </>
                 ) : (
                   <>
@@ -1143,10 +1226,50 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                   </>
                 )}
                 
+                {/* VOTING SECTION */}
                 {authToken && (
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button disabled={voting[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'upvote')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60' }}>👍 Upvote {item.votes?.upvote > 0 && `(${item.votes.upvote})`}</button>
-                    <button disabled={voting[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'downvote')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c' }}>👎 Downvote {item.votes?.downvote > 0 && `(${item.votes.downvote})`}</button>
+                  <div>
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[item.id || item._id] === 'yes' ? 1 : 0.7 }}>👍 Yes</button>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[item.id || item._id] === 'no' ? 1 : 0.7 }}>👎 No</button>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[item.id || item._id] === 'abstain' ? 1 : 0.7 }}>🤷 Abstain</button>
+                    </div>
+                    
+                    {/* VOTE SCORES - VISIBLE ONLY AFTER VOTING */}
+                    {showScores[item.id || item._id] && (
+                      <div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
+                        <p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>📊 Vote Results:</p>
+                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
+                          👍 Yes: {item.votes?.yes || 0} | 👎 No: {item.votes?.no || 0} | 🤷 Abstain: {item.votes?.abstain || 0}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* COMMENTS SECTION - VISIBLE AFTER VOTING */}
+                    {showComments[item.id || item._id] && (
+                      <div style={{ borderTop: '2px solid #eee', paddingTop: '12px' }}>
+                        <h4 style={{ fontSize: '13px', color: '#555', marginBottom: '12px', fontWeight: '700' }}>Comments:</h4>
+                        
+                        {/* EXISTING COMMENTS */}
+                        {comments[item.id || item._id]?.length > 0 && (
+                          <div style={{ marginBottom: '12px' }}>
+                            {comments[item.id || item._id].map((comment, idx) => (
+                              <div key={idx} style={{ backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', marginBottom: '8px', borderLeft: '3px solid #3498db' }}>
+                                <p style={{ fontSize: '11px', fontWeight: '600', color: '#222', margin: '0 0 4px 0' }}>{comment.author}</p>
+                                <p style={{ fontSize: '12px', color: '#666', margin: '0 0 4px 0' }}>{comment.text}</p>
+                                <p style={{ fontSize: '10px', color: '#aaa', margin: 0 }}>{comment.timestamp}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* ADD COMMENT */}
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <input type="text" placeholder="Add a comment..." style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px' }} value={commentText[item.id || item._id] || ''} onChange={(e) => setCommentText(prev => ({ ...prev, [item.id || item._id]: e.target.value }))} />
+                          <button onClick={() => handleCommentSubmit(item.id || item._id)} style={{ padding: '8px 16px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Post</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1154,6 +1277,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
           )}
         </div>
       )}
+      
       {activeSection === "Cultural" && (
         <div>
           {culturalItems.length === 0 ? (
@@ -1168,10 +1292,46 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                 {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'bolshevik'} rankScore={null} />}
                 <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Question: "What makes a person beautiful?"</h4>
                 <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6', marginBottom: '14px' }}>{item.response || item.reason || item.desc}</p>
+                
                 {authToken && (
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button disabled={voting[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'upvote')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60' }}>❤️ Resonate {item.votes?.upvote > 0 && `(${item.votes.upvote})`}</button>
-                    <button disabled={voting[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'downvote')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6' }}>👁️ View {item.votes?.downvote > 0 && `(${item.votes.downvote})`}</button>
+                  <div>
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[item.id || item._id] === 'yes' ? 1 : 0.7 }}>👍 Yes</button>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[item.id || item._id] === 'no' ? 1 : 0.7 }}>👎 No</button>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[item.id || item._id] === 'abstain' ? 1 : 0.7 }}>🤷 Abstain</button>
+                    </div>
+                    
+                    {showScores[item.id || item._id] && (
+                      <div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
+                        <p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>📊 Vote Results:</p>
+                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
+                          👍 Yes: {item.votes?.yes || 0} | 👎 No: {item.votes?.no || 0} | 🤷 Abstain: {item.votes?.abstain || 0}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {showComments[item.id || item._id] && (
+                      <div style={{ borderTop: '2px solid #eee', paddingTop: '12px' }}>
+                        <h4 style={{ fontSize: '13px', color: '#555', marginBottom: '12px', fontWeight: '700' }}>Comments:</h4>
+                        
+                        {comments[item.id || item._id]?.length > 0 && (
+                          <div style={{ marginBottom: '12px' }}>
+                            {comments[item.id || item._id].map((comment, idx) => (
+                              <div key={idx} style={{ backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', marginBottom: '8px', borderLeft: '3px solid #3498db' }}>
+                                <p style={{ fontSize: '11px', fontWeight: '600', color: '#222', margin: '0 0 4px 0' }}>{comment.author}</p>
+                                <p style={{ fontSize: '12px', color: '#666', margin: '0 0 4px 0' }}>{comment.text}</p>
+                                <p style={{ fontSize: '10px', color: '#aaa', margin: 0 }}>{comment.timestamp}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <input type="text" placeholder="Add a comment..." style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px' }} value={commentText[item.id || item._id] || ''} onChange={(e) => setCommentText(prev => ({ ...prev, [item.id || item._id]: e.target.value }))} />
+                          <button onClick={() => handleCommentSubmit(item.id || item._id)} style={{ padding: '8px 16px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Post</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

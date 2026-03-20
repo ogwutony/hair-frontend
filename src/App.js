@@ -9,6 +9,113 @@ const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 // --- 2. BACKEND CONFIGURATION ---
 const BACKEND_URL = "https://hair-backend-2.onrender.com";
 
+// --- 3. GOOGLE OAUTH CONFIG ---
+const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+const GOOGLE_ENABLED = !!GOOGLE_CLIENT_ID;
+
+// --- 4. RANK SYSTEM ---
+const RANK_TIERS = [
+  { title: "General Secretary",              min: 8500001 },
+  { title: "Premier",                        min: 7000001 },
+  { title: "Head of State",                  min: 5500001 },
+  { title: "Politburo",                      min: 4000001 },
+  { title: "Party National",                 min: 2500001 },
+  { title: "Central committee",              min: 1000001 },
+  { title: "Councils of ministers",          min: 500001  },
+  { title: "Supreme soviets",                min: 250000  },
+  { title: "Republican Party committeemen",  min: 160000  },
+  { title: "Regional party head",            min: 80000   },
+  { title: "City Party Head",                min: 40000   },
+  { title: "District Party head",            min: 20000   },
+  { title: "District Soviet",                min: 10000   },
+  { title: "Executive",                      min: 5000    },
+  { title: "Department head",                min: 2500    },
+  { title: "enterprises",                    min: 2000    },
+  { title: "Partymember",                    min: 800     },
+  { title: "bold carp",                      min: 500     },
+  { title: "crucian carp",                   min: 250     },
+  { title: "elephants",                      min: 160     },
+  { title: "Small elephants",                min: 80      },
+  { title: "godok",                          min: 40      },
+  { title: "podgodok",                       min: 20      },
+  { title: "one-and-a-half",                 min: 10      },
+  { title: "bolshevik",                      min: 1       },
+];
+
+const getRankTitle = (score) => {
+  for (const tier of RANK_TIERS) {
+    if (score >= tier.min) return tier.title;
+  }
+  return "bolshevik";
+};
+
+const getRankColor = (rankTitle) => {
+  const topGold = ["General Secretary", "Premier", "Head of State"];
+  const midPurple = ["Politburo", "Party National", "Central committee", "Councils of ministers"];
+  const midBlue = ["Supreme soviets", "Republican Party committeemen", "Regional party head", "City Party Head", "District Party head", "District Soviet"];
+  if (topGold.includes(rankTitle)) return '#FFD700';
+  if (midPurple.includes(rankTitle)) return '#9b59b6';
+  if (midBlue.includes(rankTitle)) return '#2980b9';
+  return '#888';
+};
+
+const isPolitburoOrHigher = (score) => score >= 4000001;
+
+// --- RANK BADGE COMPONENT ---
+const RankBadge = ({ rankTitle, score }) => {
+  const color = getRankColor(rankTitle);
+  const isGenSec = rankTitle === "General Secretary";
+  return (
+    <span style={{
+      fontSize: '11px',
+      fontWeight: '700',
+      color: color,
+      padding: '2px 8px',
+      borderRadius: '12px',
+      border: `1px solid ${color}`,
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
+      ...(isGenSec ? styles.generalSecretaryBadge : {})
+    }}>
+      {rankTitle}
+    </span>
+  );
+};
+
+// --- CREDENTIAL HEADER COMPONENT ---
+const CredentialHeader = ({ email, rankTitle, rankScore }) => {
+  const initial = (rankTitle || 'B')[0].toUpperCase();
+  const color = getRankColor(rankTitle || 'bolshevik');
+  const isGenSec = rankTitle === "General Secretary";
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+      <div style={{
+        width: '50px',
+        height: '50px',
+        borderRadius: '50%',
+        backgroundColor: color,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '18px',
+        fontWeight: '700',
+        color: '#fff',
+        flexShrink: 0,
+        ...(isGenSec ? { boxShadow: '0 0 12px rgba(255,215,0,0.8)' } : {})
+      }}>
+        {initial}
+      </div>
+      <div>
+        <div style={{ fontSize: '13px', fontWeight: '600', color: '#222' }}>{email}</div>
+        <RankBadge rankTitle={rankTitle || 'bolshevik'} />
+        <span style={{ fontSize: '11px', color: '#aaa', marginLeft: '6px' }}>
+          {(rankScore || 1).toLocaleString()} pts
+        </span>
+      </div>
+    </div>
+  );
+};
+
 // --- 3. UI HELPERS ---
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -16,7 +123,7 @@ const ScrollToTop = () => {
   return null;
 };
 
-// --- 4. STRIPE UI CONFIGURATION ---
+// --- 5. STRIPE UI CONFIGURATION ---
 const appearance = { theme: 'flat', variables: { colorPrimaryText: '#262626' } };
 const paymentElementOptions = {
   layout: { type: 'accordion', defaultCollapsed: false, radios: 'always', spacedAccordionItems: false },

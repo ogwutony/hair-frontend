@@ -745,6 +745,7 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
     phoneNumber: "",
     ein: "",
     company: "",
+    websiteOrSocial: "",
     countryOfOrigin: "",
     operatingCountry: "",
     productType: "",
@@ -753,7 +754,9 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
     photoFile: null,
     videoFile: null,
     unitsOf34Oz: "500",
+    desiredOrderQuantity: "",
     pricing5Gallon: "",
+    unitPriceToConsumers: "",
     commission25AgreedTo: false,
     tier: "National Associate"
   });
@@ -798,6 +801,14 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
       setErrorMsg("Please fill in all product details.");
       return;
     }
+    if (!formData.desiredOrderQuantity) {
+      setErrorMsg("Please provide your desired inventory fulfillment quantity.");
+      return;
+    }
+    if (!formData.unitPriceToConsumers) {
+      setErrorMsg("Please provide the unit price to consumers for pricing transparency.");
+      return;
+    }
     if (!formData.commission25AgreedTo) {
       setErrorMsg("You must agree to the 25% commission agreement.");
       return;
@@ -816,13 +827,16 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
         formDataObj.append('phoneNumber', formData.phoneNumber);
         formDataObj.append('ein', formData.ein);
         formDataObj.append('company', formData.company);
+        formDataObj.append('websiteOrSocial', formData.websiteOrSocial);
         formDataObj.append('countryOfOrigin', formData.countryOfOrigin);
         formDataObj.append('operatingCountry', formData.operatingCountry);
         formDataObj.append('productType', formData.productType);
         formDataObj.append('productDescription', formData.productDescription);
         formDataObj.append('whyPartner', formData.whyPartner);
         formDataObj.append('unitsOf34Oz', formData.unitsOf34Oz);
+        formDataObj.append('desiredOrderQuantity', formData.desiredOrderQuantity);
         formDataObj.append('pricing5Gallon', formData.pricing5Gallon);
+        formDataObj.append('unitPriceToConsumers', formData.unitPriceToConsumers);
         formDataObj.append('tier', formData.tier);
         if (formData.photoFile) formDataObj.append('photo', formData.photoFile);
         if (formData.videoFile) formDataObj.append('video', formData.videoFile);
@@ -891,6 +905,9 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
         {/* SECTION 1: CONTACT INFORMATION */}
         <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
           <h3 style={styles.formSectionTitle}>1. CONTACT INFORMATION</h3>
+          <p style={{ fontSize: '12px', color: '#666', marginBottom: '14px', fontStyle: 'italic', backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', borderLeft: '3px solid #2980b9' }}>
+            ℹ️ Contact information will be kept private.
+          </p>
           <input required placeholder="Full Name *" style={styles.input} 
             value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
           <input required placeholder="Business Email *" type="email" style={styles.input} 
@@ -910,6 +927,8 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
             value={formData.countryOfOrigin} onChange={e => setFormData({...formData, countryOfOrigin: e.target.value})} />
           <input required placeholder="Operating Country *" style={styles.input} 
             value={formData.operatingCountry} onChange={e => setFormData({...formData, operatingCountry: e.target.value})} />
+          <input placeholder="Website or Social Media (e.g., www.yoursite.com or @yourhandle)" style={styles.input} 
+            value={formData.websiteOrSocial} onChange={e => setFormData({...formData, websiteOrSocial: e.target.value})} />
         </div>
 
         {/* SECTION 3: PRODUCT DETAILS */}
@@ -944,7 +963,13 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
           <input type="text" value="500 units (3.4 oz)" disabled style={{ ...styles.input, backgroundColor: '#f5f5f5', color: '#666' }} />
           
           <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>
-            Pricing for 5-gallon units (optional) *
+            Desired Inventory Fulfillment (units) *
+          </label>
+          <input required placeholder="Enter desired order quantity (minimum 500 units)" type="number" min="500" style={styles.input}
+            value={formData.desiredOrderQuantity} onChange={e => setFormData({...formData, desiredOrderQuantity: e.target.value})} />
+          
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>
+            Pricing for 5-gallon units (optional)
           </label>
           <input placeholder="Please provide pricing for bulk 5-gallon units" style={styles.input}
             value={formData.pricing5Gallon} onChange={e => setFormData({...formData, pricing5Gallon: e.target.value})} />
@@ -952,15 +977,31 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
 
         {/* SECTION 6: REVENUE AGREEMENT */}
         <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-          <h3 style={styles.formSectionTitle}>6. REVENUE AGREEMENT</h3>
-          <div style={{ backgroundColor: '#f5f5f5', padding: '16px', borderRadius: '8px', marginBottom: '14px' }}>
+          <h3 style={styles.formSectionTitle}>6. REVENUE AGREEMENT & PRICING</h3>
+          
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
+            Unit Price to Consumers *
+          </label>
+          <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', marginTop: 0 }}>
+            What will consumers pay for each unit? (This helps calculate your 75% revenue share)
+          </p>
+          <input required placeholder="e.g., $25.99" style={styles.input}
+            value={formData.unitPriceToConsumers} onChange={e => setFormData({...formData, unitPriceToConsumers: e.target.value})} />
+          
+          <div style={{ backgroundColor: '#f5f5f5', padding: '16px', borderRadius: '8px', marginTop: '16px', marginBottom: '14px' }}>
             <p style={{ fontSize: '13px', color: '#333', margin: '0 0 10px 0', lineHeight: '1.6' }}>
               <strong>Commission Structure:</strong> The Majority takes a <strong>25%</strong> commission on all partner charges to customers.
             </p>
-            <p style={{ fontSize: '12px', color: '#666', margin: 0, lineHeight: '1.5' }}>
-              This means for every dollar in sales, Majority Hair Solutions receives 75 cents and The Majority platform receives 25 cents.
+            <p style={{ fontSize: '12px', color: '#666', margin: '0 0 8px 0', lineHeight: '1.5' }}>
+              This means for every dollar in sales, Majority Hair Solutions receives 75¢ and The Majority platform receives 25¢.
             </p>
+            {formData.unitPriceToConsumers && (
+              <p style={{ fontSize: '12px', color: '#2980b9', margin: 0, fontWeight: '600', backgroundColor: '#e3f2fd', padding: '8px', borderRadius: '4px' }}>
+                💡 Example: At ${formData.unitPriceToConsumers}, you'd earn ~${(parseFloat(formData.unitPriceToConsumers) * 0.75).toFixed(2)} per unit (75%), with The Majority taking ~${(parseFloat(formData.unitPriceToConsumers) * 0.25).toFixed(2)} (25%)
+              </p>
+            )}
           </div>
+          
           <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer' }}>
             <input type="checkbox" required checked={formData.commission25AgreedTo} 
               onChange={e => setFormData({...formData, commission25AgreedTo: e.target.checked})}

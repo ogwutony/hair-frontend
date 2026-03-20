@@ -9,11 +9,7 @@ const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 // --- 2. BACKEND CONFIGURATION ---
 const BACKEND_URL = "https://hair-backend-2.onrender.com";
 
-// --- 3. GOOGLE OAUTH CONFIG ---
-const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
-const GOOGLE_ENABLED = !!GOOGLE_CLIENT_ID;
-
-// --- 4. RANK SYSTEM ---
+// --- 3. RANK SYSTEM ---
 const RANK_TIERS = [
   { title: "General Secretary",              min: 8500001 },
   { title: "Premier",                        min: 7000001 },
@@ -58,8 +54,6 @@ const getRankColor = (rankTitle) => {
   if (midBlue.includes(rankTitle)) return '#2980b9';
   return '#888';
 };
-
-const isPolitburoOrHigher = (score) => score >= 4000001;
 
 // --- RANK BADGE COMPONENT ---
 const RankBadge = ({ rankTitle, score }) => {
@@ -153,7 +147,6 @@ const productsData = {
 
 // --- PROFILE PAGE COMPONENT - Enhanced with Photo & Video Features ---
 const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, onAddPoints }) => {
-  const [profilePicture, setProfilePicture] = useState(null);
   const [videoSubmission, setVideoSubmission] = useState("");
   const [showVideoForm, setShowVideoForm] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -743,7 +736,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
   const [dumaItems, setDumaItems] = useState(items);
   const [voting, setVoting] = useState({});
   const [activeSection, setActiveSection] = useState("Commerce");
-  useEffect(() => { fetch(`${BACKEND_URL}/api/duma`).then(r => r.json()).then(data => { if (Array.isArray(data) && data.length > 0) setDumaItems([...data, ...items]); }).catch(() => {}); }, []);
+  useEffect(() => { fetch(`${BACKEND_URL}/api/duma`).then(r => r.json()).then(data => { if (Array.isArray(data) && data.length > 0) setDumaItems([...data, ...items]); }).catch(() => {}); }, [items]);
   const handleVote = async (itemId, voteType) => {
     if (!authToken) return alert("Please log in to vote.");
     setVoting(prev => ({ ...prev, [itemId]: true }));

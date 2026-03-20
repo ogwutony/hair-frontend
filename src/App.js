@@ -1007,9 +1007,6 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
             <p style={{ fontSize: '13px', color: '#333', margin: '0 0 10px 0', lineHeight: '1.6' }}>
               <strong>Commission Structure:</strong> The Majority takes a <strong>25%</strong> commission on all partner charges to customers.
             </p>
-            <p style={{ fontSize: '12px', color: '#666', margin: '0 0 8px 0', lineHeight: '1.5' }}>
-              This means for every dollar in sales, Majority Hair Solutions receives 75¢ and The Majority platform receives 25¢.
-            </p>
             {formData.standardUnitPrice && (
               <p style={{ fontSize: '12px', color: '#2980b9', margin: 0, fontWeight: '600', backgroundColor: '#e3f2fd', padding: '8px', borderRadius: '4px' }}>
                 💡 Standard: At ${formData.standardUnitPrice}, you'd earn ~${(parseFloat(formData.standardUnitPrice) * 0.75).toFixed(2)} per unit (75%), with The Majority taking ~${(parseFloat(formData.standardUnitPrice) * 0.25).toFixed(2)} (25%)

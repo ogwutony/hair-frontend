@@ -9,33 +9,48 @@ const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 // --- 2. BACKEND CONFIGURATION ---
 const BACKEND_URL = "https://hair-backend-2.onrender.com";
 
-// --- 3. RANK SYSTEM ---
+// --- 3. RANK SYSTEM (40-Tier Dedovshchina Hierarchy) ---
 const RANK_TIERS = [
-  { title: "General Secretary",              min: 8500001 },
-  { title: "Premier",                        min: 7000001 },
-  { title: "Head of State",                  min: 5500001 },
-  { title: "Politburo",                      min: 4000001 },
-  { title: "Party National",                 min: 2500001 },
-  { title: "Central committee",              min: 1000001 },
-  { title: "Councils of ministers",          min: 500001  },
-  { title: "Supreme soviets",                min: 250000  },
-  { title: "Republican Party committeemen",  min: 160000  },
-  { title: "Regional party head",            min: 80000   },
-  { title: "City Party Head",                min: 40000   },
-  { title: "District Party head",            min: 20000   },
-  { title: "District Soviet",                min: 10000   },
-  { title: "Executive",                      min: 5000    },
-  { title: "Department head",                min: 2500    },
-  { title: "enterprises",                    min: 2000    },
-  { title: "Partymember",                    min: 800     },
-  { title: "bold carp",                      min: 500     },
-  { title: "crucian carp",                   min: 250     },
-  { title: "elephants",                      min: 160     },
-  { title: "Small elephants",                min: 80      },
-  { title: "godok",                          min: 40      },
-  { title: "podgodok",                       min: 20      },
-  { title: "one-and-a-half",                 min: 10      },
-  { title: "bolshevik",                      min: 1       },
+  { title: "Knight Bear",       min: 20000000 },
+  { title: "Magistral",         min: 18000000 },
+  { title: "Demobbed",          min: 16000000 },
+  { title: "Dedovshchina",       min: 14000000 },
+  { title: "Gold Bear",         min: 12000000 },
+  { title: "Green Elephant",    min: 10800000 },
+  { title: "Smears",            min: 9720000  },
+  { title: "Boiler",            min: 8748000  },
+  { title: "Pheasants",         min: 7873200  },
+  { title: "Bold Carp",         min: 7085880  },
+  { title: "Sliver Bear",       min: 6377292  },
+  { title: "Scoop",             min: 5739563  },
+  { title: "Skull",             min: 5165607  },
+  { title: "Mammoth",           min: 4649046  },
+  { title: "Goldfinches",       min: 4184142  },
+  { title: "Walruses",          min: 3765728  },
+  { title: "Young",             min: 3389155  },
+  { title: "Crucian Carp",      min: 3050239  },
+  { title: "Crows",             min: 2745215  },
+  { title: "Gromov",            min: 2470694  },
+  { title: "Laces",             min: 2223625  },
+  { title: "Pomose",            min: 2001263  },
+  { title: "Chyzhi",            min: 1801137  },
+  { title: "Shchygli",          min: 1621023  },
+  { title: "Chekist",           min: 1458921  },
+  { title: "Check",             min: 1313029  },
+  { title: "Sparrow",           min: 1181726  },
+  { title: "Hedgehog",          min: 1063554  },
+  { title: "Baby",              min: 957199   },
+  { title: "Batky",             min: 861479   },
+  { title: "Vasky",             min: 775331   },
+  { title: "Geese",             min: 697798   },
+  { title: "Salabon",           min: 628018   },
+  { title: "Beaver",            min: 565216   },
+  { title: "Salagi",            min: 508694   },
+  { title: "Small Elephant",    min: 457825   },
+  { title: "Quarantines Spirit",min: 412042   },
+  { title: "Disembodied Spirit",min: 370838   },
+  { title: "Drishchy",          min: 333754   },
+  { title: "Smell",             min: 1        },
 ];
 
 const getRankTitle = (score) => {
@@ -45,15 +60,15 @@ const getRankTitle = (score) => {
   return "bolshevik";
 };
 
-const isPolitburoOrHigher = (score) => score >= 4000001;
+const isPolitburoOrHigher = (score) => score >= 12000000;
 
 const getRankColor = (rankTitle) => {
-  const topGold = ["General Secretary", "Premier", "Head of State"];
-  const midPurple = ["Politburo", "Party National", "Central committee", "Councils of ministers"];
-  const midBlue = ["Supreme soviets", "Republican Party committeemen", "Regional party head", "City Party Head", "District Party head", "District Soviet"];
-  if (topGold.includes(rankTitle)) return '#FFD700';
-  if (midPurple.includes(rankTitle)) return '#9b59b6';
-  if (midBlue.includes(rankTitle)) return '#2980b9';
+  const topTier = ["Knight Bear", "Magistral", "Demobbed"];
+  const goldTier = ["Dedovshchina", "Gold Bear", "Green Elephant"];
+  const silverTier = ["Sliver Bear", "Bold Carp", "Scoop"];
+  if (topTier.includes(rankTitle)) return '#FFD700';
+  if (goldTier.includes(rankTitle)) return '#FFD700';
+  if (silverTier.includes(rankTitle)) return '#C0C0C0';
   return '#888';
 };
 
@@ -215,12 +230,27 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   return (
     <div style={{ padding: '40px 60px', maxWidth: '900px', margin: '0 auto' }}>
       <div style={{ marginBottom: '40px' }}>
-        <h1 style={{ fontSize: '32px', marginBottom: '10px' }}>Welcome back,</h1>
-        <p style={{ color: '#666' }}>{userEmail}</p>
+        <h1 style={{ fontSize: '32px', marginBottom: '10px' }}>Welcome, Comrade</h1>
+        <p style={{ color: '#666', marginBottom: '12px', fontSize: '16px' }}><strong>{userEmail}</strong></p>
         {rankTitle && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
-            <RankBadge rankTitle={rankTitle} />
-            <span style={{ fontSize: '12px', color: '#aaa' }}>{(rankScore || 1).toLocaleString()} points</span>
+          <div style={{ marginTop: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+              <RankBadge rankTitle={rankTitle} />
+              <span style={{ fontSize: '13px', color: '#222', fontWeight: '600' }}>{rankTitle}</span>
+            </div>
+            <div style={{ fontSize: '12px', color: '#666' }}>
+              <strong>{(rankScore || 1).toLocaleString()}</strong> points earned
+            </div>
+            <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
+              {(() => {
+                const nextRank = RANK_TIERS.find(r => rankScore && rankScore < r.min);
+                if (nextRank) {
+                  const pointsNeeded = nextRank.min - (rankScore || 1);
+                  return `${pointsNeeded.toLocaleString()} points until <strong>${nextRank.title}</strong>`;
+                }
+                return "You have reached the highest rank!";
+              })()}
+            </div>
           </div>
         )}
       </div>
@@ -525,19 +555,38 @@ const SignupPage = () => {
 };
 
 // --- LANDING PAGE ---
-function LandingPage({ saveSetToProfile }) {
+function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
   const navigate = useNavigate();
   const [selection, setSelection] = useState({ shampoo1: null, shampoo2: null, conditioner1: null, conditioner2: null, oil1: null, oil2: null });
   const [focusedItem, setFocusedItem] = useState(null);
   const [clientSecret, setClientSecret] = useState("");
   const [price, setPrice] = useState(0);
+  const [purchaseType, setPurchaseType] = useState(null); // "one-time" or "subscription"
+  
   const handleSelect = (slot, item) => {
     setFocusedItem(item);
     setSelection(prev => ({ ...prev, [slot]: prev[slot]?.name === item.name ? null : item }));
   };
+  
   const selectedItems = Object.values(selection).filter(Boolean);
   const isSetComplete = selectedItems.length === 6;
-  const initializePayment = async (amt) => {
+  
+  // Calculate points based on purchase type
+  const getPointsForPurchase = (type) => {
+    if (type === "one-time") return 30;
+    if (type === "subscription") {
+      const subscriptionCount = (savedSets?.length || 0) + 1;
+      const pointMap = {
+        1: 576, 2: 1152, 3: 2304, 4: 4608, 5: 10000,
+        13: 13000, 15: 15000, 20: 20000
+      };
+      return pointMap[subscriptionCount] || 576; // default 576 if not in special thresholds
+    }
+    return 0;
+  };
+  
+  const initializePayment = async (amt, type) => {
+    setPurchaseType(type);
     setPrice(amt);
     try {
       const response = await fetch(`${BACKEND_URL}/api/create-payment-intent`, {
@@ -549,7 +598,14 @@ function LandingPage({ saveSetToProfile }) {
       if (data.clientSecret) setClientSecret(data.clientSecret);
     } catch (err) { alert("Payment initialization failed."); }
   };
-  const onPurchaseSuccess = () => { saveSetToProfile(selectedItems); navigate("/orders"); };
+  
+  const onPurchaseSuccess = () => {
+    const points = getPointsForPurchase(purchaseType);
+    if (onAddPoints) onAddPoints(points);
+    saveSetToProfile(selectedItems);
+    navigate("/orders");
+  };
+  
   const renderRow = (label, slot, category) => (
     <div style={styles.rowSection}>
       <h3 style={styles.rowLabel}>{label}</h3>
@@ -566,6 +622,7 @@ function LandingPage({ saveSetToProfile }) {
       </div>
     </div>
   );
+  
   return (
     <div style={styles.layout}>
       <div style={styles.left}>
@@ -587,8 +644,8 @@ function LandingPage({ saveSetToProfile }) {
             <div style={{ borderTop: '2px solid #222', paddingTop: '15px' }}>
               {!clientSecret ? (
                 <>
-                  <button style={styles.checkoutBtn} onClick={() => initializePayment(30)}>Checkout One-Time ($30.00)</button>
-                  <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => initializePayment(25)}>Subscribe ($25.00/mo)</button>
+                  <button style={styles.checkoutBtn} onClick={() => initializePayment(30, "one-time")}>Checkout One-Time ($30.00) - 30 pts</button>
+                  <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => initializePayment(25, "subscription")}>Subscribe ($25.00/mo) - {getPointsForPurchase("subscription")} pts</button>
                 </>
               ) : (
                 <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
@@ -1407,7 +1464,7 @@ export default function App() {
           </nav>
         </header>
         <Routes>
-          <Route path="/" element={<LandingPage saveSetToProfile={saveSetToProfile} />} />
+          <Route path="/" element={<LandingPage saveSetToProfile={saveSetToProfile} onAddPoints={addPoints} savedSets={savedSets} />} />
           <Route path="/login" element={<LoginPage onLogin={handleLoginSuccess} />} />
           <Route path="/signup" element={<SignupPage onLogin={handleLoginSuccess} />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />

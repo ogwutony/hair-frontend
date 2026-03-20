@@ -602,10 +602,18 @@ function LandingPage({ saveSetToProfile }) {
   );
 }
 
-// --- RECOMMEND & PARTNER & LEGISLATURE ---
+// --- RECOMMEND PAGE ---
 const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }) => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ name: "", company: "", reason: "" });
+  const [formData, setFormData] = useState({ 
+    name: "", 
+    company: "", 
+    productType: "Moisturizer",
+    websiteLink: "",
+    whyRecommend: "", 
+    photo: null,
+    video: null
+  });
   const [submitted, setSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -613,18 +621,46 @@ const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
-    if (!formData.name || !formData.company || !formData.reason) { setErrorMsg("Please fill in all fields."); return; }
+
+    // Validation
+    if (!formData.name || !formData.company || !formData.productType || !formData.websiteLink || !formData.whyRecommend) {
+      setErrorMsg("Please fill in all required fields.");
+      return;
+    }
+
+    if (formData.whyRecommend.split(' ').length < 15) {
+      setErrorMsg("Justification must be at least 2–3 sentences (15+ words).");
+      return;
+    }
+
+    // Check for valid URL
+    try {
+      new URL(formData.websiteLink);
+    } catch (err) {
+      setErrorMsg("Website Link must be a valid URL starting with http:// or https://");
+      return;
+    }
+
     setIsLoading(true);
     try {
       if (authToken) {
-        const res = await fetch(`${BACKEND_URL}/api/duma/recommend`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }, body: JSON.stringify(formData) });
+        const submitData = new FormData();
+        submitData.append('name', formData.name);
+        submitData.append('company', formData.company);
+        submitData.append('productType', formData.productType);
+        submitData.append('websiteLink', formData.websiteLink);
+        submitData.append('whyRecommend', formData.whyRecommend);
+        if (formData.photo) submitData.append('photo', formData.photo);
+        if (formData.video) submitData.append('video', formData.video);
+
+        const res = await fetch(`${BACKEND_URL}/api/duma/recommend`, { method: 'POST', headers: { Authorization: `Bearer ${authToken}` }, body: submitData });
         const data = await res.json();
         if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); setIsLoading(false); return; }
       }
-      addDumaItem({ ...formData, id: Date.now(), type: "Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'bolshevik', section: "Commerce" });
+      addDumaItem({ ...formData, id: Date.now(), type: "Product Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'bolshevik', section: "Commerce" });
       setSubmitted(true);
     } catch (err) {
-      addDumaItem({ ...formData, id: Date.now(), type: "Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'bolshevik', section: "Commerce" });
+      addDumaItem({ ...formData, id: Date.now(), type: "Product Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'bolshevik', section: "Commerce" });
       setSubmitted(true);
     }
     setIsLoading(false);
@@ -636,7 +672,7 @@ const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken
         <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
           <div style={{ fontSize: '40px', marginBottom: '16px' }}>✅</div>
           <h2 style={{ marginBottom: '10px' }}>Recommendation Submitted!</h2>
-          <p style={{ color: '#666', marginBottom: '20px' }}>Your recommendation has been sent to The Majority's Duma Commerce section for community review.</p>
+          <p style={{ color: '#666', marginBottom: '20px' }}>Your product recommendation has been sent to The Majority's Duma Commerce section for community review and voting.</p>
           {rankTitle && <RankBadge rankTitle={rankTitle} />}
           <div style={{ marginTop: '20px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
             <button style={styles.authButton} onClick={() => navigate("/duma")}>View the Duma</button>
@@ -649,16 +685,56 @@ const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken
 
   return (
     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
-      <h2>Recommend Products</h2>
-      <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Recommendations go to <strong>The Majority's Duma Commerce section</strong> for community voting and review.</p>
+      <h2>Submit Product Recommendation</h2>
+      <p style={{ color: '#666', fontSize: '14px', marginBottom: '30px' }}>
+        Submit high-quality, verified hair care products to <strong>The Majority's Duma Commerce</strong> section for community review and voting.
+      </p>
+
       {userEmail && rankTitle && <div style={{ marginBottom: '20px' }}><CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} /></div>}
       {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
+
       <form style={styles.dumaCard} onSubmit={handleSubmit}>
-        <input required placeholder="Product Name *" style={styles.input} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-        <input required placeholder="Company Name *" style={styles.input} value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
-        <textarea required placeholder="Why do you recommend this product? *" style={{ ...styles.input, height: '100px' }} value={formData.reason} onChange={e => setFormData({...formData, reason: e.target.value})} />
+        <div style={{ marginBottom: '25px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '700', marginBottom: '15px', textTransform: 'uppercase', color: '#222' }}>1. Product Identification</h3>
+          <input required placeholder="Product Name (e.g., 'Rosemary Mint Scalp & Hair Strengthening Oil') *" style={styles.input} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+          <input required placeholder="Company Name (legal brand name, e.g., 'Mielle Organics') *" style={styles.input} value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
+        </div>
+
+        <div style={{ marginBottom: '25px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '700', marginBottom: '15px', textTransform: 'uppercase', color: '#222' }}>2. Categorization & Sourcing</h3>
+          <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginBottom: '8px' }}>Product Type *</label>
+          <select required style={{ ...styles.input, cursor: 'pointer' }} value={formData.productType} onChange={e => setFormData({...formData, productType: e.target.value})}>
+            <option value="Moisturizer">Moisturizer (leave-ins, creams, hydrating milks)</option>
+            <option value="Regrowth">Regrowth (serums, oils, hair loss treatments)</option>
+          </select>
+          <input required type="url" placeholder="Website Link (direct product page URL, not retailer links like Amazon unless exclusive) *" style={styles.input} value={formData.websiteLink} onChange={e => setFormData({...formData, websiteLink: e.target.value})} />
+        </div>
+
+        <div style={{ marginBottom: '25px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '700', marginBottom: '15px', textTransform: 'uppercase', color: '#222' }}>3. Justification & Evidence</h3>
+          <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginBottom: '8px' }}>Why Recommend? (2–3 sentences, focus on results) *</label>
+          <textarea required placeholder="Good: 'Highly effective for type 4C hair; significantly reduced breakage within 3 weeks of consistent use without heavy buildup.' *" style={{ ...styles.input, height: '100px' }} value={formData.whyRecommend} onChange={e => setFormData({...formData, whyRecommend: e.target.value})} />
+
+          <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginTop: '15px', marginBottom: '8px' }}>Upload Product Photo (high-resolution, label must be legible)</label>
+          <input type="file" accept="image/*" style={styles.input} onChange={e => setFormData({...formData, photo: e.target.files?.[0] || null})} />
+
+          <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginTop: '15px', marginBottom: '8px' }}>Upload Product Video (under 60s, or link to review)</label>
+          <input type="file" accept="video/*" style={styles.input} onChange={e => setFormData({...formData, video: e.target.files?.[0] || null})} />
+        </div>
+
         <button type="submit" style={styles.authButton} disabled={isLoading}>{isLoading ? "Submitting..." : "Submit to the Duma"}</button>
       </form>
+
+      <div style={{ ...styles.dumaCard, background: '#f9f9f9', marginTop: '30px' }}>
+        <h3 style={{ marginTop: 0, fontSize: '14px', fontWeight: '700' }}>📋 Before You Submit:</h3>
+        <ul style={{ fontSize: '13px', color: '#555', lineHeight: '1.8', marginLeft: '20px' }}>
+          <li>Verify you are logged in with your profile (displayed above) to ensure points are tracked</li>
+          <li>Double-check the Website Link for valid access before submitting</li>
+          <li>Ensure product photo label is legible and high-resolution</li>
+          <li>Keep video under 60 seconds</li>
+          <li>Justification must be 2–3 sentences focused on results, not personal opinions</li>
+        </ul>
+      </div>
     </div>
   );
 };

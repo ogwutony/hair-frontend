@@ -170,6 +170,15 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   const [isSubmittingVideo, setIsSubmittingVideo] = useState(false);
   const [photoMessage, setPhotoMessage] = useState("");
   const [videoMessage, setVideoMessage] = useState("");
+  const [editingFormulaIndex, setEditingFormulaIndex] = useState(null);
+
+  const handleEditFormula = (index) => {
+    // Navigate to home with edit mode  
+    const activeFormula = savedSets[index];
+    const params = new URLSearchParams();
+    params.append('editFormula', JSON.stringify(activeFormula));
+    window.location.href = `/?${params.toString()}`;
+  };
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -293,9 +302,19 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         ) : (
           savedSets.map((set, index) => (
             <div key={index} style={styles.dumaCard}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h4 style={{ margin: 0 }}>Formula #{savedSets.length - index}</h4>
-                <span style={{ fontSize: '12px', color: '#888' }}>{set.date}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <div>
+                  <h4 style={{ margin: '0 0 4px 0' }}>Formula #{savedSets.length - index}</h4>
+                  <span style={{ fontSize: '12px', color: '#888' }}>{set.date}</span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {index === 0 && (
+                    <>
+                      <button onClick={() => handleEditFormula(index)} style={{ padding: '8px 12px', fontSize: '12px', backgroundColor: '#2980b9', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>Edit</button>
+                      <button onClick={() => handleEditFormula(index)} style={{ padding: '8px 12px', fontSize: '12px', backgroundColor: '#e67e22', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>Change Formula</button>
+                    </>
+                  )}
+                </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginTop: '20px' }}>
                 {set.items.map((item, i) => (

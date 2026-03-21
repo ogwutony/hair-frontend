@@ -116,6 +116,68 @@ const getRankRange = (title) => {
 
 const isPolitburoOrHigher = (score) => score >= POLITBURO_MIN;
 
+// --- MongoDB Models API Integration ---
+const MONGODB_MODELS_API_KEY = process.env.MONGODB_MODELS_API_KEY;
+const MONGODB_MODELS_BASE_URL = 'https://api.mongodb.com/app/data/v1';
+
+if (MONGODB_MODELS_API_KEY) {
+  console.log("✅ MongoDB Models API Key configured");
+} else {
+  console.warn("⚠️ WARNING: MONGODB_MODELS_API_KEY is not defined in environment variables");
+}
+
+// Initialize MongoDB Models API client
+const mongoDBModelsClient = {
+  async callModel(modelId, inputs) {
+    if (!MONGODB_MODELS_API_KEY) {
+      throw new Error('MongoDB Models API Key not configured');
+    }
+    try {
+      const response = await axios.post(`${MONGODB_MODELS_BASE_URL}/models/${modelId}/infer`, 
+        { inputs },
+        {
+          headers: {
+            'Authorization': `Bearer ${MONGODB_MODELS_API_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('MongoDB Models API Error:', error.response?.data || error.message);
+      throw new Error('Failed to call MongoDB Model: ' + error.message);
+    }
+  },
+
+  // Helper: Generate hair care recommendation based on user profile
+  async generateRecommendation(userProfile) {
+    try {
+      // This endpoint uses a model that analyzes hair type, needs, preferences
+      const response = await axios.post(
+        `${MONGODB_MODELS_BASE_URL}/models/hair-recommendation/infer`,
+        {
+          inputs: {
+            hairType: userProfile.hairType || 'unspecified',
+            concerns: userProfile.concerns || [],
+            preferredIngredients: userProfile.preferredIngredients || [],
+            budget: userProfile.budget || 'moderate'
+          }
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${MONGODB_MODELS_API_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Recommendation API Error:', error.message);
+      throw error;
+    }
+  }
+};
+
 // --- SCHEMAS ---
 const userSchema = new mongoose.Schema({
   email:            { type: String, required: true, unique: true },
@@ -286,6 +348,95 @@ app.get('/', (req, res) => res.send('The Majority Backend is Live!'));
 // API Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Backend is running' });
+});
+
+// --- MongoDB Models API Endpoints ---
+
+// Health check for MongoDB Models API
+app.get('/api/models/health', async (req, res) => {
+  try {
+    const hasKey = !!MONGODB_MODELS_API_KEY;
+    res.json({
+      status: hasKey ? 'configured' : 'not-configured',
+      message: hasKey ? 'MongoDB Models API is ready' : 'MongoDB Models API key not configured',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Generate personalized hair care recommendation
+app.post('/api/models/recommend', authMiddleware, async (req, res) => {
+  try {
+    const { hairType, concerns, preferredIngredients, budget } = req.body;
+
+    // Validate input
+    if (!hairType) {
+      return res.status(400).json({ error: 'Hair type is required' });
+    }
+
+    // Call MongoDB Models API
+    const recommendation = await mongoDBModelsClient.generateRecommendation({
+      hairType,
+      concerns: concerns || [],
+      preferredIngredients: preferredIngredients || [],
+      budget: budget || 'moderate'
+    });
+
+    // Save recommendation to user profile (optional)
+    const user = await User.findOne({ email: req.user.email });
+    if (user) {
+      user.lastRecommendation = {
+        input: { hairType, concerns, preferredIngredients, budget },
+        result: recommendation,
+        timestamp: new Date()
+      };
+      await user.save();
+    }
+
+    res.json({
+      success: true,
+      recommendation: recommendation,
+      userEmail: req.user.email
+    });
+  } catch (error) {
+    console.error('Recommendation endpoint error:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate recommendation',
+      details: error.message 
+    });
+  }
+});
+
+// Generic MongoDB Models API call endpoint (authenticated)
+app.post('/api/models/call', authMiddleware, async (req, res) => {
+  try {
+    const { modelId, inputs } = req.body;
+
+    if (!modelId) {
+      return res.status(400).json({ error: 'Model ID is required' });
+    }
+
+    if (!inputs) {
+      return res.status(400).json({ error: 'Inputs are required' });
+    }
+
+    const result = await mongoDBModelsClient.callModel(modelId, inputs);
+
+    res.json({
+      success: true,
+      modelId,
+      result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Model call error:', error);
+    res.status(500).json({
+      error: 'Failed to call model',
+      details: error.message
+    });
+  }
 });
 
 // Auth: verify token and return user info including rank

@@ -42,6 +42,89 @@ const LoadingSpinner = ({ message = "Loading..." }) => (
   </div>
 );
 
+// --- ENHANCED LOADING SPINNER ---
+const EnhancedLoadingSpinner = ({ startTime }) => {
+  const [elapsed, setElapsed] = useState(0);
+  const [messageIndex, setMessageIndex] = useState(0);
+  
+  const messages = [
+    "⏳ Initializing server...",
+    "⏳ Still waking up...",
+    "⏳ Almost there...",
+    "⏳ Service coming online...",
+    "⏳ Final preparations...",
+    "✅ Server ready!"
+  ];
+
+  useEffect(() => {
+    if (!startTime) return;
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const diff = Math.floor((now - startTime) / 1000);
+      setElapsed(diff);
+      
+      if (diff < 5) setMessageIndex(0);
+      else if (diff < 15) setMessageIndex(1);
+      else if (diff < 30) setMessageIndex(2);
+      else if (diff < 45) setMessageIndex(3);
+      else if (diff < 60) setMessageIndex(4);
+      else setMessageIndex(5);
+    }, 500);
+    return () => clearInterval(interval);
+  }, [startTime]);
+
+  const progress = Math.min((elapsed / 60) * 100, 100);
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(255, 255, 255, 0.98)',
+      zIndex: 9999
+    }}>
+      <div style={{
+        width: '60px',
+        height: '60px',
+        border: '3px solid #e0e0e0',
+        borderTop: '3px solid #222',
+        borderRadius: '50%',
+        animation: 'spin 0.8s linear infinite',
+        marginBottom: '30px'
+      }} />
+      
+      <div style={{ fontSize: '18px', fontWeight: '600', color: '#222', marginBottom: '8px', minHeight: '24px' }}>
+        {messages[messageIndex]}
+      </div>
+      
+      <div style={{ fontSize: '13px', color: '#888', marginBottom: '20px' }}>
+        {elapsed} / ~60 seconds
+      </div>
+      
+      <div style={{ width: '160px', height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', overflow: 'hidden' }}>
+        <div style={{
+          height: '100%',
+          width: `${progress}%`,
+          backgroundColor: '#222',
+          transition: 'width 0.3s ease'
+        }} />
+      </div>
+      
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
+};
+
 // --- 1. STRIPE INITIALIZATION ---
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
@@ -80,6 +163,168 @@ const OrDivider = () => (
     <div style={{ flex: 1, height: '1px', backgroundColor: '#eee' }} />
   </div>
 );
+
+// --- VALIDATION HELPERS ---
+const validateEmail = (email) => {
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(email);
+};
+
+const getPasswordStrength = (password) => {
+  if (!password) return { score: 0, label: '', color: '#ddd' };
+  let strength = 0;
+  if (password.length >= 8) strength++;
+  if (password.length >= 12) strength++;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+  if (/\d/.test(password)) strength++;
+  if (/[!@#$%^&*]/.test(password)) strength++;
+  
+  const levels = [
+    { score: 0, label: 'Too weak', color: '#ccc' },
+    { score: 1, label: 'Weak', color: '#e74c3c' },
+    { score: 2, label: 'Fair', color: '#f39c12' },
+    { score: 3, label: 'Good', color: '#f1c40f' },
+    { score: 4, label: 'Strong', color: '#2ecc71' },
+    { score: 5, label: 'Very strong', color: '#27ae60' }
+  ];
+  return levels[strength] || levels[0];
+};
+
+// --- PASSWORD INPUT COMPONENT ---
+const PasswordInputField = ({ value, onChange, onKeyDown, placeholder = 'Password' }) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
+  const strength = getPasswordStrength(value);
+
+  const handleKeyDown = (e) => {
+    setCapsLockOn(e.getModifierState && e.getModifierState('CapsLock'));
+    if (onKeyDown) onKeyDown(e);
+  };
+
+  return (
+    <div style={{ marginBottom: '14px', position: 'relative' }}>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        <input
+          type={showPassword ? 'text' : 'password'}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          onKeyDown={handleKeyDown}
+          style={{
+            width: '100%',
+            padding: '12px 36px 12px 12px',
+            borderRadius: '8px',
+            border: `1.5px solid ${value ? (strength.score >= 3 ? '#2ecc71' : '#f39c12') : '#ddd'}`,
+            boxSizing: 'border-box',
+            fontSize: '14px',
+            transition: 'all 0.2s ease',
+            backgroundColor: '#fafafa'
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          style={{
+            position: 'absolute',
+            right: '10px',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#666'
+          }}
+        >
+          {showPassword ? '👁️' : '👁️‍🗨️'}
+        </button>
+      </div>
+
+      {value && (
+        <div style={{ marginTop: '6px', display: 'flex', gap: '4px', alignItems: 'center' }}>
+          <div style={{ flex: 1, height: '3px', backgroundColor: '#eee', borderRadius: '2px', overflow: 'hidden' }}>
+            <div
+              style={{
+                height: '100%',
+                width: `${(strength.score / 5) * 100}%`,
+                backgroundColor: strength.color,
+                transition: 'width 0.3s ease, background-color 0.3s ease'
+              }}
+            />
+          </div>
+          <span style={{ fontSize: '11px', color: strength.color, fontWeight: '600', minWidth: '70px' }}>
+            {strength.label}
+          </span>
+        </div>
+      )}
+
+      {capsLockOn && (
+        <div style={{
+          marginTop: '6px',
+          padding: '8px',
+          backgroundColor: '#fff3cd',
+          border: '1px solid #ffc107',
+          borderRadius: '6px',
+          fontSize: '12px',
+          color: '#856404',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px'
+        }}>
+          ⌨️ Caps Lock is on
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- EMAIL INPUT COMPONENT ---
+const EmailInputField = ({ value, onChange, onKeyDown, placeholder = 'Email' }) => {
+  const isValid = !value || validateEmail(value);
+  const hasError = value && !isValid;
+
+  return (
+    <div style={{ marginBottom: '14px', position: 'relative' }}>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        <input
+          type="email"
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          onKeyDown={onKeyDown}
+          style={{
+            width: '100%',
+            padding: '12px 36px 12px 12px',
+            borderRadius: '8px',
+            border: `1.5px solid ${hasError ? '#e74c3c' : isValid && value ? '#2ecc71' : '#ddd'}`,
+            boxSizing: 'border-box',
+            fontSize: '14px',
+            transition: 'all 0.2s ease',
+            backgroundColor: '#fafafa'
+          }}
+        />
+        {value && (
+          <div style={{ position: 'absolute', right: '10px', fontSize: '16px' }}>
+            {hasError ? '✗' : '✓'}
+          </div>
+        )}
+      </div>
+      {hasError && (
+        <div style={{
+          marginTop: '6px',
+          fontSize: '12px',
+          color: '#e74c3c',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px'
+        }}>
+          ⚠️ Please enter a valid email
+        </div>
+      )}
+    </div>
+  );
+};
 
 // --- 3. RANK SYSTEM ---
 const RANK_TIERS = [
@@ -365,6 +610,7 @@ const LoginPage = ({ onLogin }) => {
         const response = await fetch(`${BACKEND_URL}/api/auth/google`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ accessToken })
         });
         const data = await response.json();
@@ -378,32 +624,62 @@ const LoginPage = ({ onLogin }) => {
   return (
     <div style={styles.authContainer}>
       <div style={styles.authCard}>
-        <h2 style={{ marginBottom: '6px' }}>Sign In</h2>
-        <p style={{ color: '#888', fontSize: '13px', marginTop: 0, marginBottom: '20px' }}>Welcome back to Majority Hair Solutions</p>
+        <h2 style={{ marginBottom: '8px', fontSize: '28px', fontWeight: '700' }}>Welcome Back</h2>
+        <p style={{ color: '#888', fontSize: '14px', marginTop: 0, marginBottom: '24px', lineHeight: '1.4' }}>
+          Sign in to your Majority Hair Solutions account
+        </p>
         {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
         {GOOGLE_ENABLED && (
           <>
-            <button style={styles.googleButton} onClick={handleGoogle} disabled={isLoading}>
-              <GoogleIcon /> Continue with Google
+            <button 
+              style={styles.googleButtonEnhanced} 
+              onClick={handleGoogle} 
+              disabled={isLoading}
+              title="Sign in with your Google account for faster authentication"
+            >
+              <GoogleIcon /> 
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <span style={{ fontWeight: '600' }}>Continue with Google</span>
+                <span style={{ fontSize: '11px', opacity: 0.7 }}>Fast & secure</span>
+              </div>
             </button>
             <OrDivider />
           </>
         )}
-        <input type="email" placeholder="Email" style={styles.input} value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} />
-        <input type="password" placeholder="Password" style={styles.input} value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '4px 0 14px' }}>
+        <EmailInputField 
+          value={email} 
+          onChange={(e) => setEmail(e.target.value)} 
+          onKeyDown={(e) => e.key === 'Enter' && isFormValid && handleSubmit()} 
+          placeholder="Email address"
+        />
+        <PasswordInputField 
+          value={password} 
+          onChange={(e) => setPassword(e.target.value)} 
+          onKeyDown={(e) => e.key === 'Enter' && isFormValid && handleSubmit()} 
+          placeholder="Password"
+        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '12px 0 20px' }}>
           <label style={{ fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: '#555' }}>
             <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} style={{ accentColor: '#222' }} />
             Remember me
           </label>
-          <Link to="/forgot-password" style={{ fontSize: '13px', color: '#666', textDecoration: 'none' }}>Forgot password?</Link>
+          <Link to="/forgot-password" style={{ fontSize: '13px', color: '#666', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={(e) => e.target.style.color = '#222'} onMouseLeave={(e) => e.target.style.color = '#666'}>
+            Forgot password?
+          </Link>
         </div>
-        <button style={styles.authButton} onClick={handleSubmit} disabled={isLoading}>
-          {isLoading ? "Signing inâ€¦" : "Sign In"}
+        <button 
+          style={{...styles.authButton, opacity: isFormValid ? 1 : 0.6, cursor: isFormValid ? 'pointer' : 'not-allowed'}} 
+          onClick={handleSubmit} 
+          disabled={isLoading || !isFormValid}
+        >
+          {isLoading ? "Signing in..." : "Sign In"}
         </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center', margin: '14px 0', fontSize: '12px', color: '#aaa' }}>
+          🔒 Secure login with encryption
+        </div>
         <p style={{ textAlign: 'center', fontSize: '13px', marginTop: '20px', color: '#666' }}>
           Don't have an account?{' '}
-          <Link to="/signup" style={{ color: '#222', fontWeight: '600', textDecoration: 'none' }}>Sign Up</Link>
+          <Link to="/signup" style={{ color: '#222', fontWeight: '600', textDecoration: 'none' }}>Create one</Link>
         </p>
       </div>
     </div>
@@ -461,23 +737,82 @@ const SignupPage = ({ onLogin }) => {
   return (
     <div style={styles.authContainer}>
       <div style={styles.authCard}>
-        <h2 style={{ marginBottom: '6px' }}>Create Account</h2>
-        <p style={{ color: '#888', fontSize: '13px', marginTop: 0, marginBottom: '20px' }}>Join Majority Hair Solutions</p>
+        <h2 style={{ marginBottom: '8px', fontSize: '28px', fontWeight: '700' }}>Create Account</h2>
+        <p style={{ color: '#888', fontSize: '14px', marginTop: 0, marginBottom: '24px', lineHeight: '1.4' }}>Join Majority Hair Solutions and build your custom hair care formulas</p>
         {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
         {GOOGLE_ENABLED && (
           <>
-            <button style={styles.googleButton} onClick={handleGoogle} disabled={isLoading}>
-              <GoogleIcon /> Sign up with Google
+            <button 
+              style={styles.googleButtonEnhanced} 
+              onClick={handleGoogle} 
+              disabled={isLoading}
+              title="Sign up with your Google account for faster registration"
+            >
+              <GoogleIcon /> 
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <span style={{ fontWeight: '600' }}>Sign up with Google</span>
+                <span style={{ fontSize: '11px', opacity: 0.7 }}>Fast & secure</span>
+              </div>
             </button>
             <OrDivider />
           </>
         )}
-        <input type="email" placeholder="Email" style={styles.input} value={email} onChange={(e) => setEmail(e.target.value)} />
-        <input type="password" placeholder="Password (min. 8 characters)" style={styles.input} value={password} onChange={(e) => setPassword(e.target.value)} />
-        <input type="password" placeholder="Confirm Password" style={styles.input} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} />
-        <button style={styles.authButton} onClick={handleSubmit} disabled={isLoading}>
-          {isLoading ? "Creating accountâ€¦" : "Create Account"}
+        <EmailInputField 
+          value={email} 
+          onChange={(e) => setEmail(e.target.value)} 
+          placeholder="Email address"
+        />
+        <PasswordInputField 
+          value={password} 
+          onChange={(e) => setPassword(e.target.value)} 
+          placeholder="Password"
+        />
+        <div style={{ marginBottom: '14px', position: 'relative' }}>
+          <input 
+            type="password" 
+            placeholder="Confirm Password" 
+            value={confirmPassword} 
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && isFormValid && handleSubmit()}
+            style={{
+              width: '100%',
+              padding: '12px 36px 12px 12px',
+              borderRadius: '8px',
+              border: `1.5px solid ${confirmPassword && passwordsMatch ? '#2ecc71' : confirmPassword ? '#e74c3c' : '#ddd'}`,
+              boxSizing: 'border-box',
+              fontSize: '14px',
+              transition: 'all 0.2s ease',
+              backgroundColor: '#fafafa'
+            }}
+          />
+          {confirmPassword && (
+            <div style={{ position: 'absolute', right: '10px', top: '12px', fontSize: '16px' }}>
+              {passwordsMatch ? '✓' : '✗'}
+            </div>
+          )}
+          {confirmPassword && !passwordsMatch && (
+            <div style={{
+              marginTop: '6px',
+              fontSize: '12px',
+              color: '#e74c3c',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              ⚠️ Passwords don't match
+            </div>
+          )}
+        </div>
+        <button 
+          style={{...styles.authButton, opacity: isFormValid ? 1 : 0.6, cursor: isFormValid ? 'pointer' : 'not-allowed'}} 
+          onClick={handleSubmit} 
+          disabled={isLoading || !isFormValid}
+        >
+          {isLoading ? "Creating account..." : "Create Account"}
         </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center', margin: '14px 0', fontSize: '12px', color: '#aaa' }}>
+          🔒 Secure signup with encryption
+        </div>
         <p style={{ textAlign: 'center', fontSize: '13px', marginTop: '20px', color: '#666' }}>
           Already have an account?{' '}
           <Link to="/login" style={{ color: '#222', fontWeight: '600', textDecoration: 'none' }}>Sign In</Link>
@@ -1156,10 +1491,27 @@ const styles = {
   summaryContainer: { backgroundColor: '#fff', padding: '15px', borderRadius: '20px', border: '1px solid #eee' },
   checkoutBtn: { width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #222', background: '#fff', cursor: 'pointer', marginBottom: '10px', fontWeight: '600' },
   authContainer: { display: 'flex', justifyContent: 'center', minHeight: '70vh', alignItems: 'center', padding: '20px' },
-  authCard: { width: '100%', maxWidth: '400px', padding: '36px', border: '1px solid #eee', borderRadius: '24px' },
+  authCard: { width: '100%', maxWidth: '420px', padding: '40px', border: '1px solid #e0e0e0', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', backgroundColor: '#fff' },
   input: { width: '100%', padding: '12px', margin: '6px 0', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box', fontSize: '14px' },
-  authButton: { width: '100%', padding: '12px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' },
+  authButton: { width: '100%', padding: '12px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', transition: 'all 0.2s ease' },
   googleButton: { width: '100%', padding: '11px', backgroundColor: '#fff', color: '#222', border: '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  googleButtonEnhanced: { 
+    width: '100%', 
+    padding: '13px 14px', 
+    backgroundColor: '#fff', 
+    color: '#222', 
+    border: '1px solid #e0e0e0', 
+    borderRadius: '8px', 
+    cursor: 'pointer', 
+    fontWeight: '600', 
+    fontSize: '14px', 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '10px',
+    transition: 'all 0.2s ease',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+    ':hover': { border: '1px solid #4285F4', boxShadow: '0 2px 8px rgba(66,133,244,0.12)' }
+  },
   errorMsg: { background: '#fff3f3', color: '#c00', border: '1px solid #fcc', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', marginBottom: '12px', textAlign: 'left' },
   formSectionTitle: { fontSize: '13px', fontWeight: '800', marginTop: '20px', borderBottom: '1px solid #eee', paddingBottom: '5px', textTransform: 'uppercase' },
   uploadBox: { border: '2px dashed #ddd', borderRadius: '12px', padding: '20px', textAlign: 'center', backgroundColor: '#fafafa' },

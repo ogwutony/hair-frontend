@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation, useParams } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
@@ -311,6 +311,7 @@ const LoginPage = ({ onLogin }) => {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isServerWaking, setIsServerWaking] = useState(false);
+  const [serverWakeStartTime, setServerWakeStartTime] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
 
   const handleSubmit = async () => {
@@ -344,7 +345,7 @@ const LoginPage = ({ onLogin }) => {
       if (isServerWaking) {
         setErrorMsg("Server is still waking up. Please try again in a moment.");
       } else {
-        setErrorMsg("Server is waking up — please try again in 30 seconds.");
+        setErrorMsg("Server is waking up â€” please try again in 30 seconds.");
       }
       setIsLoading(false);
       setIsServerWaking(false);
@@ -397,7 +398,7 @@ const LoginPage = ({ onLogin }) => {
           <Link to="/forgot-password" style={{ fontSize: '13px', color: '#666', textDecoration: 'none' }}>Forgot password?</Link>
         </div>
         <button style={styles.authButton} onClick={handleSubmit} disabled={isLoading}>
-          {isLoading ? "Signing in…" : "Sign In"}
+          {isLoading ? "Signing inâ€¦" : "Sign In"}
         </button>
         <p style={{ textAlign: 'center', fontSize: '13px', marginTop: '20px', color: '#666' }}>
           Don't have an account?{' '}
@@ -432,7 +433,7 @@ const SignupPage = ({ onLogin }) => {
       const data = await response.json();
       if (response.ok) { onLogin(data.email, data.token, false, data.rank_title, 1); navigate("/"); }
       else setErrorMsg(data.error || "Signup failed. Please try again.");
-    } catch (err) { setErrorMsg("Server is waking up — please try again in 30 seconds."); }
+    } catch (err) { setErrorMsg("Server is waking up â€” please try again in 30 seconds."); }
     setIsLoading(false);
   };
 
@@ -472,7 +473,7 @@ const SignupPage = ({ onLogin }) => {
         <input type="password" placeholder="Password (min. 8 characters)" style={styles.input} value={password} onChange={(e) => setPassword(e.target.value)} />
         <input type="password" placeholder="Confirm Password" style={styles.input} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} />
         <button style={styles.authButton} onClick={handleSubmit} disabled={isLoading}>
-          {isLoading ? "Creating account…" : "Create Account"}
+          {isLoading ? "Creating accountâ€¦" : "Create Account"}
         </button>
         <p style={{ textAlign: 'center', fontSize: '13px', marginTop: '20px', color: '#666' }}>
           Already have an account?{' '}
@@ -502,7 +503,7 @@ const ForgotPasswordPage = () => {
       });
       if (response.ok) { setSent(true); }
       else setErrorMsg("Something went wrong. Please try again.");
-    } catch (err) { setErrorMsg("Server is waking up — please try again in 30 seconds."); }
+    } catch (err) { setErrorMsg("Server is waking up â€” please try again in 30 seconds."); }
     setIsLoading(false);
   };
 
@@ -644,7 +645,7 @@ function LandingPage({ saveSetToProfile }) {
         </div>
         <div style={styles.summaryContainer}>
           <h4 style={{ fontSize: '14px', borderBottom: '1px solid #eee', paddingBottom: '10px', marginTop: 0 }}>Your Custom Set ({selectedItems.length}/6)</h4>
-          <div style={{ margin: '10px 0' }}>{selectedItems.map((item, idx) => (<p key={idx} style={{ fontSize: '11px', margin: '4px 0' }}>✓ {item.name}</p>))}</div>
+          <div style={{ margin: '10px 0' }}>{selectedItems.map((item, idx) => (<p key={idx} style={{ fontSize: '11px', margin: '4px 0' }}>âœ“ {item.name}</p>))}</div>
           {isSetComplete ? (
             <div style={{ borderTop: '2px solid #222', paddingTop: '15px' }}>
               {!clientSecret ? (
@@ -655,7 +656,7 @@ function LandingPage({ saveSetToProfile }) {
               ) : (
                 <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
                   <CheckoutForm totalPrice={price} onPurchaseSuccess={onPurchaseSuccess} />
-                  <button onClick={() => setClientSecret("")} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '11px', marginTop: '10px' }}>← Change Plan</button>
+                  <button onClick={() => setClientSecret("")} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '11px', marginTop: '10px' }}>â† Change Plan</button>
                 </Elements>
               )}
             </div>
@@ -707,7 +708,7 @@ const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken
     return (
       <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
         <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
-          <div style={{ fontSize: '40px', marginBottom: '16px' }}>✅</div>
+          <div style={{ fontSize: '40px', marginBottom: '16px' }}>âœ…</div>
           <h2 style={{ marginBottom: '10px' }}>Recommendation Submitted!</h2>
           <p style={{ color: '#666', marginBottom: '20px' }}>
             Your recommendation has been sent to The Majority's Duma for voting.
@@ -785,7 +786,7 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
     return (
       <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
         <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
-          <div style={{ fontSize: '40px', marginBottom: '16px' }}>🤝</div>
+          <div style={{ fontSize: '40px', marginBottom: '16px' }}>ðŸ¤</div>
           <h2>Partner Application Submitted!</h2>
           <p style={{ color: '#666' }}>Your application has been sent to The Majority's Duma.</p>
           <button style={{ ...styles.authButton, marginTop: '20px', width: 'auto', padding: '12px 24px' }} onClick={() => navigate("/duma")}>View the Duma</button>
@@ -865,7 +866,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore }) => {
         <div>
           <h2 style={{ marginBottom: '6px' }}>The Majority's Duma</h2>
           <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
-            Community recommendations and partner applications — vote to shape The Majority.
+            Community recommendations and partner applications â€” vote to shape The Majority.
           </p>
         </div>
         {userEmail && rankTitle && (
@@ -902,13 +903,13 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore }) => {
                 disabled={voting[item.id || item._id]}
                 onClick={() => handleVote(item._id || item.id, 'yay')}
                 style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60' }}>
-                👍 Yay {item.votes?.yay > 0 && `(${item.votes.yay})`}
+                ðŸ‘ Yay {item.votes?.yay > 0 && `(${item.votes.yay})`}
               </button>
               <button
                 disabled={voting[item.id || item._id]}
                 onClick={() => handleVote(item._id || item.id, 'nay')}
                 style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c' }}>
-                👎 Nay {item.votes?.nay > 0 && `(${item.votes.nay})`}
+                ðŸ‘Ž Nay {item.votes?.nay > 0 && `(${item.votes.nay})`}
               </button>
             </div>
           )}
@@ -1154,7 +1155,7 @@ const styles = {
   errorMsg: { background: '#fff3f3', color: '#c00', border: '1px solid #fcc', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', marginBottom: '12px', textAlign: 'left' },
   formSectionTitle: { fontSize: '13px', fontWeight: '800', marginTop: '20px', borderBottom: '1px solid #eee', paddingBottom: '5px', textTransform: 'uppercase' },
   uploadBox: { border: '2px dashed #ddd', borderRadius: '12px', padding: '20px', textAlign: 'center', backgroundColor: '#fafafa' },
-  // Renamed from legislatureCard → dumaCard
+  // Renamed from legislatureCard â†’ dumaCard
   dumaCard: { backgroundColor: '#fff', border: '1px solid #eee', borderRadius: '24px', padding: '30px', marginBottom: '20px' },
   typeTag: { background: '#222', color: '#fff', padding: '4px 10px', borderRadius: '20px', fontSize: '10px' },
   voteBtn: { padding: '8px 16px', borderRadius: '8px', border: '1px solid', background: 'transparent', cursor: 'pointer', fontWeight: '600', fontSize: '13px' },
@@ -1167,3 +1168,5 @@ const styles = {
     boxShadow: '0 0 8px rgba(255, 215, 0, 0.5)',
   },
 };
+
+

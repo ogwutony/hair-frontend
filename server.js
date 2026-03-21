@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const axios = require('axios');
+const multer = require('multer');
 require('dotenv').config();
 
 // Validate critical environment variables
@@ -19,6 +20,20 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(cors());
+
+// File upload configuration
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 52428800 }, // 50MB
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type'));
+    }
+  }
+});
 
 // --- DATABASE ---
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -88,7 +103,23 @@ const userSchema = new mongoose.Schema({
   resetTokenExpiry: { type: Date },
   rank_score:       { type: Number, default: 1 },   // BigInt-scale (up to 10,000,000)
   rank_title:       { type: String, default: 'bolshevik' },
-  rank_rewards_sent: { type: [String], default: [] } // Track which ranks already rewarded
+  rank_rewards_sent: { type: [String], default: [] }, // Track which ranks already rewarded
+  
+  // Profile perspectives (4-box layout)
+  perspective: {
+    box1: { content: String, mediaUrls: [String], videoUrl: String, updatedAt: Date },
+    box2: { content: String, mediaUrls: [String], videoUrl: String, updatedAt: Date },
+    box3: { content: String, mediaUrls: [String], videoUrl: String, updatedAt: Date },
+    box4: { content: String, mediaUrls: [String], videoUrl: String, updatedAt: Date },
+  },
+  
+  // Social media links
+  socialLinks: {
+    instagram: String,
+    tiktok: String,
+    facebook: String,
+    updatedAt: Date
+  }
 });
 const User = mongoose.model('User', userSchema);
 
@@ -113,6 +144,21 @@ const DumaItem = mongoose.model('DumaItem', new mongoose.Schema({
   submitterRank: String,
   votes:      { yay: { type: Number, default: 0 }, nay: { type: Number, default: 0 } },
   createdAt:  { type: Date, default: Date.now }
+}));
+
+// Media uploads
+const Media = mongoose.model('Media', new mongoose.Schema({
+  userId:      { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  filename:    String,
+  originalName: String,
+  mimetype:    String,
+  size:        Number,
+  storageUrl:  String,
+  s3Key:       String,
+  type:        { type: String, enum: ['image', 'video'] },
+  duration:    Number,
+  uploadedAt:  { type: Date, default: Date.now },
+  expiresAt:   Date
 }));
 
 // --- HELPERS ---
@@ -224,6 +270,60 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
     rank_title: user.rank_title || getRankTitle(user.rank_score || 1),
     isPolitburoOrHigher: isPolitburoOrHigher(user.rank_score || 1)
   });
+});
+
+// POST /api/auth/google - Google OAuth Authentication
+app.post('/api/auth/google', async (req, res) => {
+  try {
+    const { accessToken } = req.body;
+    
+    if (!accessToken) {
+      return res.status(400).json({ error: 'Access token required' });
+    }
+    
+    // Verify token with Google
+    const googleResponse = await axios.get(
+      `https://www.googleapis.com/oauth2/v1/userinfo?access_token=${accessToken}`
+    );
+    
+    if (!googleResponse.data.email) {
+      return res.status(400).json({ error: 'Invalid Google token' });
+    }
+    
+    const email = googleResponse.data.email.toLowerCase();
+    let user = await User.findOne({ email });
+    
+    if (!user) {
+      // Create new user from Google OAuth
+      const randomPassword = await bcrypt.hash(Math.random().toString(36), 12);
+      user = await User.create({
+        email,
+        password: randomPassword,
+        googleId: googleResponse.data.id,
+        rank_title: 'bolshevik',
+        rank_score: 1
+      });
+    } else {
+      // Update existing user's Google ID
+      if (!user.googleId) {
+        user.googleId = googleResponse.data.id;
+        await user.save();
+      }
+    }
+    
+    // Generate JWT
+    const token = generateToken(user._id, true);
+    
+    res.json({
+      email: user.email,
+      token,
+      rank_title: user.rank_title || getRankTitle(user.rank_score || 1),
+      rank_score: user.rank_score || 1,
+      _id: user._id
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Google authentication failed: ' + err.message });
+  }
 });
 
 // SIGN UP
@@ -446,7 +546,156 @@ app.get('/api/rank', authMiddleware, async (req, res) => {
   });
 });
 
-// Leaderboard
+// ========== PROFILE ENDPOINTS ==========
+
+// GET /api/profile - Fetch user profile with perspectives and social links
+app.get('/api/profile', authMiddleware, async (req, res) => {
+  try {
+    const user = req.user;
+    res.json({
+      email: user.email,
+      rank_title: user.rank_title || getRankTitle(user.rank_score || 1),
+      rank_score: user.rank_score || 1,
+      perspective: user.perspective || {
+        box1: { content: "", mediaUrls: [], videoUrl: null },
+        box2: { content: "", mediaUrls: [], videoUrl: null },
+        box3: { content: "", mediaUrls: [], videoUrl: null },
+        box4: { content: "", mediaUrls: [], videoUrl: null }
+      },
+      socialLinks: user.socialLinks || { instagram: "", tiktok: "", facebook: "" },
+      _id: user._id
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/profile - Update user profile perspectives
+app.put('/api/profile', authMiddleware, async (req, res) => {
+  try {
+    const { perspective, socialLinks } = req.body;
+    
+    const updateData = {};
+    
+    // Update perspective if provided
+    if (perspective) {
+      updateData.perspective = {
+        box1: { ...perspective.box1, updatedAt: new Date() },
+        box2: { ...perspective.box2, updatedAt: new Date() },
+        box3: { ...perspective.box3, updatedAt: new Date() },
+        box4: { ...perspective.box4, updatedAt: new Date() }
+      };
+    }
+    
+    // Update social links if provided
+    if (socialLinks) {
+      updateData.socialLinks = { ...socialLinks, updatedAt: new Date() };
+    }
+    
+    const user = await User.findByIdAndUpdate(req.user._id, updateData, { new: true });
+    res.json({ success: true, message: 'Profile updated successfully', profile: {
+      perspective: user.perspective,
+      socialLinks: user.socialLinks
+    }});
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/profile/social-links - Update only social media links
+app.put('/api/profile/social-links', authMiddleware, async (req, res) => {
+  try {
+    const { socialLinks } = req.body;
+    
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { socialLinks: { ...socialLinks, updatedAt: new Date() } },
+      { new: true }
+    );
+    
+    res.json({ success: true, message: 'Social links updated', socialLinks: user.socialLinks });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== MEDIA UPLOAD ENDPOINTS ==========
+
+// POST /api/media/upload - Upload media file (photo or video)
+app.post('/api/media/upload', authMiddleware, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file provided' });
+    }
+    
+    const { file } = req;
+    const isImage = file.mimetype.startsWith('image');
+    const isVideo = file.mimetype.startsWith('video');
+    
+    if (!isImage && !isVideo) {
+      return res.status(400).json({ error: 'Only images and videos allowed' });
+    }
+    
+    // File size validation
+    if (isImage && file.size > 5242880) { // 5MB
+      return res.status(400).json({ error: 'Image must be under 5MB' });
+    }
+    if (isVideo && file.size > 52428800) { // 50MB
+      return res.status(400).json({ error: 'Video must be under 50MB' });
+    }
+    
+    // TODO: Upload to S3/Cloudinary and get actual storageUrl
+    // For now: create placeholder URL
+    const media = await Media.create({
+      userId: req.user._id,
+      filename: file.originalname,
+      originalName: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size,
+      type: isImage ? 'image' : 'video',
+      storageUrl: `${process.env.CDN_URL || 'https://cdn.majority-hair.com'}/media/${Date.now()}-${file.originalname}`,
+      uploadedAt: new Date()
+    });
+    
+    // Award points for uploading
+    await updateRankScore(req.user._id, 5);
+    
+    res.json({
+      _id: media._id,
+      filename: media.filename,
+      storageUrl: media.storageUrl,
+      type: media.type,
+      size: media.size,
+      uploadedAt: media.uploadedAt
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/media/{mediaId} - Delete media file
+app.delete('/api/media/:mediaId', authMiddleware, async (req, res) => {
+  try {
+    const media = await Media.findById(req.params.mediaId);
+    if (!media) {
+      return res.status(404).json({ error: 'Media not found' });
+    }
+    
+    // Verify user owns the media
+    if (media.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    // TODO: Delete from S3/Cloudinary
+    await Media.deleteOne({ _id: req.params.mediaId });
+    
+    res.json({ success: true, message: 'Media deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== LEADERBOARD ==========
 app.get('/api/leaderboard', async (req, res) => {
   try {
     const users = await User.find({}, 'email rank_score rank_title')

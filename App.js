@@ -328,6 +328,7 @@ const LoginPage = ({ onLogin }) => {
       const response = await fetch(`${BACKEND_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email, password, rememberMe })
       });
       clearTimeout(serverWakeTimer);
@@ -428,6 +429,7 @@ const SignupPage = ({ onLogin }) => {
       const response = await fetch(`${BACKEND_URL}/api/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email, password })
       });
       const data = await response.json();
@@ -445,6 +447,7 @@ const SignupPage = ({ onLogin }) => {
         const response = await fetch(`${BACKEND_URL}/api/auth/google`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ accessToken })
         });
         const data = await response.json();
@@ -499,6 +502,7 @@ const ForgotPasswordPage = () => {
       const response = await fetch(`${BACKEND_URL}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email })
       });
       if (response.ok) { setSent(true); }
@@ -544,6 +548,7 @@ const ResetPasswordPage = () => {
       const response = await fetch(`${BACKEND_URL}/api/auth/reset-password/${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ password })
       });
       const data = await response.json();
@@ -971,7 +976,10 @@ export default function App() {
     const storedSets = localStorage.getItem("savedSets");
     if (storedSets) { try { setSavedSets(JSON.parse(storedSets)); } catch (e) {} }
     if (token) {
-      fetch(`${BACKEND_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
+      fetch(`${BACKEND_URL}/api/auth/me`, { 
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include'
+      })
         .then(r => r.json())
         .then(data => {
           if (data.email) {

@@ -3,7 +3,10 @@
   "buildCommand": "npm install && npm run build",
   "outputDirectory": "build",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {

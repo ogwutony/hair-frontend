@@ -7,7 +7,7 @@ import {
   useElements
 } from "@stripe/react-stripe-js";
 
-const stripePromise = loadStripe("pk_live_REPLACE_WITH_YOUR_PUBLIC_KEY");
+const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
 const CheckoutForm = () => {
   const stripe = useStripe();

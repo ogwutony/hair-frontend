@@ -62,6 +62,20 @@ const getRankTitle = (score) => {
 
 const isPolitburoOrHigher = (score) => score >= 12000000;
 
+// --- CALCULATE POINTS TO NEXT RANK ---
+const getPointsToNextRank = (currentScore, currentRankTitle) => {
+  const currentIndex = RANK_TIERS.findIndex(r => r.title === currentRankTitle);
+  if (currentIndex === 0) return 0;
+  const nextRank = RANK_TIERS[currentIndex - 1];
+  return Math.max(0, nextRank.min - currentScore);
+};
+
+const getNextRankTitle = (currentRankTitle) => {
+  const currentIndex = RANK_TIERS.findIndex(r => r.title === currentRankTitle);
+  if (currentIndex === 0) return null;
+  return RANK_TIERS[currentIndex - 1].title;
+};
+
 const getRankColor = (rankTitle) => {
   const topTier = ["Knight Bear", "Magistral", "Demobbed"];
   const goldTier = ["Dedovshchina", "Gold Bear", "Green Elephant"];
@@ -163,170 +177,179 @@ const productsData = {
 };
 
 // --- PROFILE PAGE COMPONENT - Enhanced with Photo & Video Features ---
-const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, onAddPoints }) => {
-  const [videoSubmission, setVideoSubmission] = useState("");
-  const [showVideoForm, setShowVideoForm] = useState(false);
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  const [isSubmittingVideo, setIsSubmittingVideo] = useState(false);
-  const [photoMessage, setPhotoMessage] = useState("");
-  const [videoMessage, setVideoMessage] = useState("");
+const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) => {
+  const [perspective, setPerspective] = useState({
+    box1: { content: "", mediaUrls: [], videoUrl: null },
+    box2: { content: "", mediaUrls: [], videoUrl: null },
+    box3: { content: "", mediaUrls: [], videoUrl: null },
+    box4: { content: "", mediaUrls: [], videoUrl: null }
+  });
+  const [socialLinks, setSocialLinks] = useState({
+    instagram: "",
+    tiktok: "",
+    facebook: ""
+  });
+  const [editingBox, setEditingBox] = useState(null);
+  const [saveStatus, setSaveStatus] = useState("");
 
-  const handleEditFormula = (index) => {
-    // Navigate to home with edit mode  
-    const activeFormula = savedSets[index];
-    const params = new URLSearchParams();
-    params.append('editFormula', JSON.stringify(activeFormula));
-    window.location.href = `/?${params.toString()}`;
+  const boxes = [
+    { key: "box1", label: "Introduce yourself", icon: "👋" },
+    { key: "box2", label: "Tell us what you do", icon: "💼" },
+    { key: "box3", label: "What are your thoughts on what makes someone beautiful?", icon: "✨" },
+    { key: "box4", label: "Ideas about anything else", icon: "💭" }
+  ];
+
+  const handleBoxChange = (boxKey, content) => {
+    setPerspective(prev => ({
+      ...prev,
+      [boxKey]: { ...prev[boxKey], content }
+    }));
   };
 
-  const handlePhotoUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsUploadingPhoto(true);
-    setPhotoMessage("");
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const response = await fetch(`${BACKEND_URL}/api/profile/upload-photo`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${authToken}` },
-        body: formData,
-      });
-      if (response.ok) {
-        setPhotoMessage("✅ Profile picture uploaded! +5 points awarded");
-        if (onAddPoints) onAddPoints(5);
-      } else {
-        setPhotoMessage("❌ Photo upload failed. Try again.");
-      }
-    } catch (err) {
-      setPhotoMessage("❌ Server error. Try again in 30 seconds.");
-    }
-    setIsUploadingPhoto(false);
+  const handleSocialChange = (provider, value) => {
+    setSocialLinks(prev => ({ ...prev, [provider]: value }));
   };
 
-  const handleVideoSubmission = async () => {
-    if (!videoSubmission.trim()) return alert("Please enter your response.");
-    setIsSubmittingVideo(true);
-    setVideoMessage("");
+  const handleSaveProfile = async () => {
+    if (!authToken) return;
+    setSaveStatus("Saving...");
     try {
-      const response = await fetch(`${BACKEND_URL}/api/cultural/submit-video`, {
-        method: "POST",
+      const response = await fetch(`${BACKEND_URL}/api/profile`, {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
+          Authorization: `Bearer ${authToken}`
         },
-        body: JSON.stringify({
-          question: "What makes a person beautiful?",
-          response: videoSubmission,
-          category: "Cultural",
-        }),
+        body: JSON.stringify({ perspective, socialLinks })
       });
       if (response.ok) {
-        setVideoMessage("✅ Video submission sent to Cultural Section! +10 points awarded");
-        setVideoSubmission("");
-        setShowVideoForm(false);
-        if (onAddPoints) onAddPoints(10);
+        setSaveStatus("✅ Profile saved successfully!");
+        setTimeout(() => setSaveStatus(""), 3000);
       } else {
-        setVideoMessage("❌ Submission failed. Try again.");
+        setSaveStatus("❌ Failed to save profile");
       }
     } catch (err) {
-      setVideoMessage("❌ Server error. Try again in 30 seconds.");
+      setSaveStatus("❌ Server error");
     }
-    setIsSubmittingVideo(false);
   };
 
+  const pointsToNextRank = getPointsToNextRank(rankScore || 1, rankTitle || 'Batky');
+  const nextRankTitle = getNextRankTitle(rankTitle || 'Batky');
+
   return (
-    <div style={{ padding: '40px 60px', maxWidth: '900px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '40px' }}>
-        <h1 style={{ fontSize: '32px', marginBottom: '10px' }}>Welcome, Comrade,</h1>
-        <p style={{ color: '#666', marginBottom: '12px', fontSize: '16px' }}><strong>{userEmail}</strong></p>
+    <div style={{ padding: '40px 60px', maxWidth: '1000px', margin: '0 auto' }}>
+      {/* HEADER SECTION */}
+      <div style={{ marginBottom: '50px' }}>
+        <h1 style={{ fontSize: '32px', marginBottom: '8px', fontWeight: '700' }}>Welcome Comrade</h1>
         {rankTitle && (
           <div style={{ marginTop: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
               <RankBadge rankTitle={rankTitle} />
-              <span style={{ fontSize: '13px', color: '#222', fontWeight: '600' }}>{rankTitle}</span>
+              <span style={{ fontSize: '13px', color: '#666' }}>{(rankScore || 1).toLocaleString()} points</span>
             </div>
-            <div style={{ fontSize: '12px', color: '#666' }}>
-              <strong>{(rankScore || 1).toLocaleString()}</strong> points earned
-            </div>
-            <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
-              {(() => {
-                const nextRank = RANK_TIERS.find(r => rankScore && rankScore < r.min);
-                if (nextRank) {
-                  const pointsNeeded = nextRank.min - (rankScore || 1);
-                  return `${pointsNeeded.toLocaleString()} points until <strong>${nextRank.title}</strong>`;
-                }
-                return "You have reached the highest rank!";
-              })()}
-            </div>
+            {nextRankTitle && (
+              <div style={{ fontSize: '12px', color: '#888', marginTop: '8px' }}>
+                <strong>{pointsToNextRank.toLocaleString()}</strong> battle points to your next rank ({nextRankTitle})
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      <section style={{ marginBottom: '40px' }}>
-        <h3>Build Your Profile</h3>
-        
-        <div style={styles.dumaCard}>
-          <h4 style={{ marginTop: 0 }}>Profile Picture</h4>
-          <p style={{ fontSize: '13px', color: '#666', marginBottom: '15px' }}>Upload a profile photo - earn 5 points!</p>
-          <input type="file" accept="image/*" onChange={handlePhotoUpload} disabled={isUploadingPhoto} style={{ marginBottom: '10px', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', width: '100%', boxSizing: 'border-box' }} />
-          {photoMessage && <p style={{ fontSize: '12px', color: photoMessage.includes('✅') ? '#2a7a2a' : '#c00', marginBottom: 0 }}>{photoMessage}</p>}
-        </div>
-
-        <div style={styles.dumaCard}>
-          <h4 style={{ marginTop: 0 }}>Share Your Perspective</h4>
-          <p style={{ fontSize: '13px', color: '#666', marginBottom: '15px' }}><strong>Question:</strong> "What makes a person beautiful?" - Earn 10 points!</p>
-          {!showVideoForm ? (
-            <button style={styles.authButton} onClick={() => setShowVideoForm(true)}>Submit Your Answer</button>
-          ) : (
-            <div>
-              <textarea placeholder="Share your thoughts..." value={videoSubmission} onChange={(e) => setVideoSubmission(e.target.value)} style={{ ...styles.input, height: '100px', marginBottom: '10px' }} />
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button style={styles.authButton} onClick={handleVideoSubmission} disabled={isSubmittingVideo}>{isSubmittingVideo ? "Submitting..." : "Submit to Cultural Section"}</button>
-                <button style={{ ...styles.authButton, background: '#f5f5f5', color: '#222' }} onClick={() => setShowVideoForm(false)}>Cancel</button>
-              </div>
-            </div>
-          )}
-          {videoMessage && <p style={{ fontSize: '12px', color: videoMessage.includes('✅') ? '#2a7a2a' : '#c00', marginTop: '10px', marginBottom: 0 }}>{videoMessage}</p>}
+      {/* VIDEO/PHOTO UPLOAD SECTION */}
+      <section style={{ marginBottom: '50px' }}>
+        <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Upload Video or Photo</h2>
+        <div style={styles.uploadBox}>
+          <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '12px' }}>
+            <span style={{ fontSize: '24px' }}>📸</span>
+            <input type="file" accept="image/*,video/*" style={{ display: 'none' }} />
+            <span style={{ fontSize: '14px', fontWeight: '600', color: '#222' }}>Click to upload media</span>
+            <span style={{ fontSize: '12px', color: '#888' }}>(Photos: max 5MB JPG/PNG/WEBP, Videos: max 50MB MP4/WebM 60s)</span>
+          </label>
         </div>
       </section>
 
+      {/* PERSPECTIVE BOXES (4-BOX LAYOUT) */}
+      <section style={{ marginBottom: '50px' }}>
+        <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Share Your Perspectives</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginBottom: '20px' }}>
+          {boxes.map(box => (
+            <div key={box.key} style={{...styles.perspectiveBox, border: editingBox === box.key ? '2px solid #222' : '1px solid #eee'}}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ fontSize: '24px' }}>{box.icon}</span>
+                <button
+                  onClick={() => setEditingBox(editingBox === box.key ? null : box.key)}
+                  style={{ fontSize: '12px', cursor: 'pointer', background: 'none', border: 'none', color: '#2980b9', fontWeight: '600' }}>
+                  {editingBox === box.key ? '✓ Done' : 'Edit'}
+                </button>
+              </div>
+              <h4 style={{ fontSize: '13px', fontWeight: '600', marginBottom: '12px', color: '#222' }}>{box.label}</h4>
+              {editingBox === box.key ? (
+                <textarea
+                  placeholder={`Share your thoughts about ${box.label.toLowerCase()}...`}
+                  value={perspective[box.key].content}
+                  onChange={(e) => handleBoxChange(box.key, e.target.value)}
+                  style={{ ...styles.input, height: '120px', fontSize: '13px', marginBottom: '10px' }} />
+              ) : (
+                <p style={{ fontSize: '13px', color: perspective[box.key].content ? '#333' : '#aaa', minHeight: '60px', margin: '0' }}>
+                  {perspective[box.key].content || `Click "Edit" to add your response...`}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+        {editingBox && (
+          <button onClick={handleSaveProfile} style={{ ...styles.authButton, width: '100%' }}>
+            {saveStatus || '💾 Save All Changes'}
+          </button>
+        )}
+      </section>
+
+      {/* SOCIAL LINKS SECTION */}
+      <section style={{ marginBottom: '50px' }}>
+        <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Connect Your Social Profiles</h2>
+        <div style={styles.dumaCard}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
+            {[
+              { key: 'instagram', label: '📱 Instagram', placeholder: 'username' },
+              { key: 'tiktok', label: '🎵 TikTok', placeholder: 'username' },
+              { key: 'facebook', label: '👥 Facebook', placeholder: 'facebook.com/yourprofile' }
+            ].map(social => (
+              <div key={social.key}>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#222', display: 'block', marginBottom: '6px' }}>
+                  {social.label}
+                </label>
+                <input
+                  type="text"
+                  placeholder={social.placeholder}
+                  value={socialLinks[social.key]}
+                  onChange={(e) => handleSocialChange(social.key, e.target.value)}
+                  style={{ ...styles.input, margin: 0 }} />
+              </div>
+            ))}
+          </div>
+          <button onClick={handleSaveProfile} style={{ ...styles.authButton, marginTop: '15px', width: '100%' }}>
+            Save Social Links
+          </button>
+        </div>
+      </section>
+
+      {/* SAVED FORMULAS SECTION */}
       <section>
-        <h3>Your Saved Formulas & Orders</h3>
-        
-        <div style={{ ...styles.dumaCard, marginBottom: '20px' }}>
-          <h4 style={{ margin: '0 0 12px 0' }}>Past Orders</h4>
-          <p style={{ fontSize: '13px', color: '#666', marginBottom: '8px' }}>Your purchase history and saved custom formulas</p>
-        </div>
-
-        <div style={{ ...styles.dumaCard, marginBottom: '20px' }}>
-          <h4 style={{ margin: '0 0 12px 0' }}>Current Subscriptions</h4>
-          <p style={{ fontSize: '13px', color: '#666', marginBottom: '8px' }}>Manage your active subscriptions</p>
-        </div>
-
+        <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Your Saved Formulas</h2>
         {savedSets.length === 0 ? (
           <div style={styles.dumaCard}>
-            <p style={{ color: '#888' }}>You haven't saved any custom sets yet. Head home to build your first one!</p>
-            <Link to="/"><button style={{ ...styles.authButton, width: '200px', marginTop: '10px' }}>Start Building</button></Link>
+            <p style={{ color: '#888', marginBottom: '12px' }}>You haven't saved any custom sets yet. Head home to build your first one!</p>
+            <Link to="/"><button style={{ ...styles.authButton, width: '200px' }}>Start Building</button></Link>
           </div>
         ) : (
           savedSets.map((set, index) => (
             <div key={index} style={styles.dumaCard}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <div>
-                  <h4 style={{ margin: '0 0 4px 0' }}>Formula #{savedSets.length - index}</h4>
-                  <span style={{ fontSize: '12px', color: '#888' }}>{set.date}</span>
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {index === 0 && (
-                    <>
-                      <button onClick={() => handleEditFormula(index)} style={{ padding: '8px 12px', fontSize: '12px', backgroundColor: '#2980b9', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>Edit</button>
-                      <button onClick={() => handleEditFormula(index)} style={{ padding: '8px 12px', fontSize: '12px', backgroundColor: '#e67e22', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>Change Formula</button>
-                    </>
-                  )}
-                </div>
+                <h4 style={{ margin: 0 }}>Formula #{savedSets.length - index}</h4>
+                <span style={{ fontSize: '12px', color: '#888' }}>{set.date}</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginTop: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
                 {set.items.map((item, i) => (
                   <div key={i} style={{ fontSize: '12px', padding: '10px', background: '#f9f9f9', borderRadius: '8px' }}>
                     <strong>{item.name}</strong>
@@ -1819,4 +1842,5 @@ const styles = {
   uploadBox: { border: '2px dashed #ddd', borderRadius: '12px', padding: '20px', textAlign: 'center', backgroundColor: '#fafafa' },
   legislatureCard: { backgroundColor: '#fff', border: '1px solid #eee', borderRadius: '24px', padding: '30px', marginBottom: '20px' },
   typeTag: { background: '#222', color: '#fff', padding: '4px 10px', borderRadius: '20px', fontSize: '10px' },
+  perspectiveBox: { backgroundColor: '#fff', border: '1px solid #eee', borderRadius: '16px', padding: '20px', marginBottom: '20px', position: 'relative' },
 };

@@ -19,7 +19,29 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+
+// CORS Configuration - Allows multiple origins
+const allowedOrigins = [
+  'https://majorityhairsolutions.com',
+  'https://www.majorityhairsolutions.com',
+  'http://localhost:3000' // For local development
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true, // Required if you are sending cookies or Authorization headers
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // File upload configuration
 const upload = multer({
@@ -260,6 +282,11 @@ const updateRankScore = async (userId, pointsToAdd) => {
 
 // Health check
 app.get('/', (req, res) => res.send('The Majority Backend is Live!'));
+
+// API Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Backend is running' });
+});
 
 // Auth: verify token and return user info including rank
 app.get('/api/auth/me', authMiddleware, async (req, res) => {

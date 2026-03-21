@@ -3,6 +3,45 @@ import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation,
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
+// --- LOADING SPINNER COMPONENT ---
+const LoadingSpinner = ({ message = "Loading..." }) => (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    zIndex: 9999,
+    backdropFilter: 'blur(4px)'
+  }}>
+    <div style={{
+      width: '60px',
+      height: '60px',
+      border: '4px solid #f0f0f0',
+      borderTop: '4px solid #222',
+      borderRadius: '50%',
+      animation: 'spin 0.8s linear infinite',
+      marginBottom: '20px'
+    }} />
+    <div style={{ fontSize: '18px', fontWeight: '600', color: '#222', marginBottom: '8px' }}>
+      {message}
+    </div>
+    <div style={{ fontSize: '13px', color: '#888' }}>
+      This may take up to 60 seconds on our free tier.
+    </div>
+    <style>{`
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    `}</style>
+  </div>
+);
+
 // --- 1. STRIPE INITIALIZATION ---
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
@@ -271,30 +310,50 @@ const LoginPage = ({ onLogin }) => {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isServerWaking, setIsServerWaking] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   const handleSubmit = async () => {
     if (!email || !password) return setErrorMsg("Please enter your email and password.");
     setIsLoading(true);
+    setIsServerWaking(false);
     setErrorMsg("");
+    
+    const serverWakeTimer = setTimeout(() => {
+      setIsServerWaking(true);
+    }, 3000);
+
     try {
       const response = await fetch(`${BACKEND_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, rememberMe })
       });
+      clearTimeout(serverWakeTimer);
       const data = await response.json();
       if (response.ok) {
         onLogin(data.email, data.token, rememberMe, data.rank_title, data.rank_score);
         navigate("/");
       } else {
         setErrorMsg(data.error || "Invalid email or password.");
+        setIsLoading(false);
+        setIsServerWaking(false);
       }
     } catch (err) {
-      setErrorMsg("Server is waking up — please try again in 30 seconds.");
+      clearTimeout(serverWakeTimer);
+      if (isServerWaking) {
+        setErrorMsg("Server is still waking up. Please try again in a moment.");
+      } else {
+        setErrorMsg("Server is waking up — please try again in 30 seconds.");
+      }
+      setIsLoading(false);
+      setIsServerWaking(false);
     }
-    setIsLoading(false);
   };
+
+  if (isServerWaking) {
+    return <LoadingSpinner message="Waking up server..." />;
+  }
 
   const handleGoogle = () => {
     setErrorMsg("");
@@ -867,9 +926,31 @@ export default function App() {
   const [savedSets, setSavedSets] = useState([]);
   const [rankTitle, setRankTitle] = useState("bolshevik");
   const [rankScore, setRankScore] = useState(1);
+  const [isServerWaking, setIsServerWaking] = useState(true);
   const [dumaItems, setDumaItems] = useState([
     { id: 1, type: "Partner", company: "EcoHair Labs", product: "Silk Serum", desc: "Organic serum for hair.", submitterRank: "bolshevik" }
   ]);
+
+  // Health check to wake up backend server
+  useEffect(() => {
+    const checkServerHealth = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/health`, { timeout: 10000 });
+        if (response.ok) {
+          setIsServerWaking(false);
+        }
+      } catch (err) {
+        // Retry once after 2 seconds
+        setTimeout(() => {
+          fetch(`${BACKEND_URL}/api/health`)
+            .then(() => setIsServerWaking(false))
+            .catch(() => setIsServerWaking(false));
+        }, 2000);
+      }
+    };
+
+    checkServerHealth();
+  }, []);
 
   // Load Google Sign-In script
   useEffect(() => {

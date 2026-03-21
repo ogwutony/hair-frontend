@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation, useParams } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
@@ -238,7 +238,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   return (
     <div style={{ padding: '40px 60px', maxWidth: '900px', margin: '0 auto' }}>
       <div style={{ marginBottom: '40px' }}>
-        <h1 style={{ fontSize: '32px', marginBottom: '10px' }}>Welcome, Comrade</h1>
+        <h1 style={{ fontSize: '32px', marginBottom: '10px' }}>Welcome, Comrade,</h1>
         <p style={{ color: '#666', marginBottom: '12px', fontSize: '16px' }}><strong>{userEmail}</strong></p>
         {rankTitle && (
           <div style={{ marginTop: '16px' }}>
@@ -292,7 +292,18 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       </section>
 
       <section>
-        <h3>Your Saved Formulas</h3>
+        <h3>Your Saved Formulas & Orders</h3>
+        
+        <div style={{ ...styles.dumaCard, marginBottom: '20px' }}>
+          <h4 style={{ margin: '0 0 12px 0' }}>Past Orders</h4>
+          <p style={{ fontSize: '13px', color: '#666', marginBottom: '8px' }}>Your purchase history and saved custom formulas</p>
+        </div>
+
+        <div style={{ ...styles.dumaCard, marginBottom: '20px' }}>
+          <h4 style={{ margin: '0 0 12px 0' }}>Current Subscriptions</h4>
+          <p style={{ fontSize: '13px', color: '#666', marginBottom: '8px' }}>Manage your active subscriptions</p>
+        </div>
+
         {savedSets.length === 0 ? (
           <div style={styles.dumaCard}>
             <p style={{ color: '#888' }}>You haven't saved any custom sets yet. Head home to build your first one!</p>
@@ -1552,6 +1563,112 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
   );
 };
 
+// --- PERSPECTIVES PAGE (Personalized Feed from Following) ---
+const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, following, onFollowUser, onUnfollowUser, onAddPoints }) => {
+  const [followingList, setFollowingList] = useState([]);
+  const [selectedFollowing, setSelectedFollowing] = useState(following || []);
+  const [filteredItems, setFilteredItems] = useState(items);
+
+  useEffect(() => {
+    // Extract unique submitters from Duma posts
+    const uniqueSubmitters = [...new Set(items.map(item => item.submittedBy))].filter(Boolean).filter(p => p !== userEmail);
+    setFollowingList(uniqueSubmitters);
+  }, [items, userEmail]);
+
+  const handleFollowingToggle = (person) => {
+    if (selectedFollowing.includes(person)) {
+      onUnfollowUser?.(person);
+      setSelectedFollowing(prev => prev.filter(p => p !== person));
+    } else {
+      onFollowUser?.(person);
+      setSelectedFollowing(prev => [...prev, person]);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedFollowing.length === 0) {
+      setFilteredItems([]);
+    } else {
+      const filtered = items.filter(item => selectedFollowing.includes(item.submittedBy));
+      setFilteredItems(filtered);
+    }
+  }, [selectedFollowing, items]);
+
+  return (
+    <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '30px' }}>
+        <h2 style={{ marginBottom: '6px' }}>My Perspectives</h2>
+        <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
+          Follow people from The Duma to see their perspectives in your personalized feed. Earn +10 points for each person you follow!
+        </p>
+      </div>
+
+      {userEmail && rankTitle && (
+        <div style={{ marginBottom: '20px' }}>
+          <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} />
+        </div>
+      )}
+
+      <div style={{ ...styles.dumaCard, marginBottom: '30px' }}>
+        <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Who You Follow ({selectedFollowing.length}/{followingList.length})</h3>
+        {followingList.length === 0 ? (
+          <p style={{ color: '#888', fontSize: '13px' }}>No people yet. Submit to the Duma to build your community!</p>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px' }}>
+            {followingList.map(person => (
+              <button
+                key={person}
+                onClick={() => handleFollowingToggle(person)}
+                style={{
+                  padding: '12px',
+                  border: selectedFollowing.includes(person) ? '2px solid #222' : '1px solid #ddd',
+                  borderRadius: '8px',
+                  backgroundColor: selectedFollowing.includes(person) ? '#f9f9f9' : '#fff',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: selectedFollowing.includes(person) ? '600' : '400',
+                  color: '#222',
+                  textAlign: 'center',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {selectedFollowing.includes(person) ? '✓ ' : ''}{person}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h3 style={{ marginBottom: '16px' }}>Perspectives Feed ({filteredItems.length})</h3>
+        {filteredItems.length === 0 && selectedFollowing.length === 0 ? (
+          <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>
+            Select people you follow to see their perspectives here.
+          </div>
+        ) : selectedFollowing.length > 0 && filteredItems.length === 0 ? (
+          <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>
+            No perspectives yet from people you follow.
+          </div>
+        ) : (
+          filteredItems.map(item => (
+            <div key={item.id || item._id} style={styles.dumaCard}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                <span style={styles.typeTag}>🎬 Perspective</span>
+                {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
+              </div>
+              {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'bolshevik'} rankScore={null} />}
+              <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
+              <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6' }}>{item.response || item.reason || item.desc}</p>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
 // --- MAIN APP COMPONENT ---
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -1561,6 +1678,8 @@ export default function App() {
   const [rankScore, setRankScore] = useState(1);
   const [savedSets, setSavedSets] = useState([]);
   const [dumaItems, setDumaItems] = useState([{ id: 1, type: "Partner", company: "EcoHair Labs", product: "Silk Serum", desc: "Organic serum for hair.", section: "Commerce", submitterRank: "bolshevik" }]);
+  const [following, setFollowing] = useState([]);
+  const [networkGrowth, setNetworkGrowth] = useState(0);
   useEffect(() => {
     const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
     const email = localStorage.getItem("userEmail") || sessionStorage.getItem("userEmail");
@@ -1583,11 +1702,49 @@ export default function App() {
   };
   const saveSetToProfile = (items) => { const newSet = { items, date: new Date().toLocaleDateString() }; const updatedSets = [newSet, ...savedSets]; setSavedSets(updatedSets); localStorage.setItem("savedSets", JSON.stringify(updatedSets)); };
   const addDumaItem = (item) => setDumaItems(prev => [item, ...prev]);
-  const addPoints = (points) => {
-    const newScore = rankScore + points; setRankScore(newScore); const newRank = getRankTitle(newScore); setRankTitle(newRank);
-    const storage = localStorage.getItem("authToken") ? localStorage : sessionStorage; storage.setItem("rankScore", String(newScore)); storage.setItem("rankTitle", newRank);
-    if (authToken) { fetch(`${BACKEND_URL}/api/profile/add-points`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }, body: JSON.stringify({ points }) }).catch(err => console.error("Error updating points:", err)); }
+  const addPoints = useCallback((points) => {
+    setRankScore(prevScore => {
+      const newScore = prevScore + points;
+      const newRank = getRankTitle(newScore);
+      setRankTitle(newRank);
+      const storage = localStorage.getItem("authToken") ? localStorage : sessionStorage;
+      storage.setItem("rankScore", String(newScore));
+      storage.setItem("rankTitle", newRank);
+      if (authToken) {
+        fetch(`${BACKEND_URL}/api/profile/add-points`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+          body: JSON.stringify({ points })
+        }).catch(err => console.error("Error updating points:", err));
+      }
+      return newScore;
+    });
+  }, [authToken]);
+
+  const followUser = (personEmail) => {
+    if (!following.includes(personEmail)) {
+      setFollowing(prev => [...prev, personEmail]);
+      addPoints(10); // +10 points for following
+    }
   };
+
+  const unfollowUser = (personEmail) => {
+    setFollowing(prev => prev.filter(p => p !== personEmail));
+  };
+
+  useEffect(() => {
+    const newNetworkGrowth = following.filter(person => {
+      // This would check if person follows someone, but for now we'll count based on following list size
+      return true;
+    }).length;
+    
+    if (newNetworkGrowth > networkGrowth) {
+      const newConnections = newNetworkGrowth - networkGrowth;
+      addPoints(newConnections * 10);
+      setNetworkGrowth(newNetworkGrowth);
+    }
+  }, [following, networkGrowth, addPoints]);
+
   return (
     <Router>
       <ScrollToTop />
@@ -1600,8 +1757,8 @@ export default function App() {
               <>
                 <Link to="/recommend" style={styles.navLink}>Recommend</Link>
                 <Link to="/partner" style={styles.navLink}>Partner</Link>
-                <Link to="/culture" style={styles.navLink}>Share</Link>
                 <Link to="/duma" style={styles.navLink}>The Duma</Link>
+                <Link to="/perspectives" style={styles.navLink}>Perspectives</Link>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: '1px solid #eee', paddingLeft: '15px' }}>
                   <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
                   {rankTitle && <RankBadge rankTitle={rankTitle} />}
@@ -1626,6 +1783,7 @@ export default function App() {
           <Route path="/partner" element={<PartnerPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} />} />
           <Route path="/culture" element={<CultureLabPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} />} />
           <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} />} />
+          <Route path="/perspectives" element={<PerspectivesPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} following={following} onFollowUser={followUser} onUnfollowUser={unfollowUser} onAddPoints={addPoints} />} />
           <Route path="/legislature" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} />} />
           <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} />} />
           <Route path="/orders" element={<div style={{ padding: '60px', textAlign: 'center' }}><h2>Payment Received!</h2><p>Your custom hair set is being prepared. Check your Profile to see your formula.</p><Link to="/profile">Go to Profile</Link></div>} />

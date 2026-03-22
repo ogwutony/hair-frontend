@@ -709,7 +709,12 @@ const SignupPage = ({ onLogin }) => {
         body: JSON.stringify({ email, password })
       });
       const data = await response.json();
-      if (response.ok) { onLogin(data.email, data.token, false, data.rank_title, 1); navigate("/"); }
+      if (response.ok) { 
+        onLogin(data.email, data.token, false, data.rank_title, 1); 
+        const redirect = sessionStorage.getItem("redirectAfterSignup");
+        sessionStorage.removeItem("redirectAfterSignup");
+        navigate(redirect === "checkout" ? "/" : "/");
+      }
       else setErrorMsg(data.error || "Signup failed. Please try again.");
     } catch (err) { setErrorMsg("Server is waking up â€” please try again in 30 seconds."); }
     setIsLoading(false);
@@ -727,7 +732,12 @@ const SignupPage = ({ onLogin }) => {
           body: JSON.stringify({ accessToken })
         });
         const data = await response.json();
-        if (response.ok) { onLogin(data.email, data.token, true, data.rank_title, data.rank_score); navigate("/"); }
+        if (response.ok) { 
+          onLogin(data.email, data.token, true, data.rank_title, data.rank_score); 
+          const redirect = sessionStorage.getItem("redirectAfterSignup");
+          sessionStorage.removeItem("redirectAfterSignup");
+          navigate(redirect === "checkout" ? "/" : "/");
+        }
         else setErrorMsg(data.error || "Google sign-up failed.");
       } catch (err) { setErrorMsg("Google sign-up failed. Please try again."); }
       setIsLoading(false);
@@ -919,7 +929,7 @@ const ResetPasswordPage = () => {
 };
 
 // --- LANDING PAGE ---
-function LandingPage({ saveSetToProfile }) {
+function LandingPage({ saveSetToProfile, authToken }) {
   const navigate = useNavigate();
   const [selection, setSelection] = useState({ shampoo1: null, shampoo2: null, conditioner1: null, conditioner2: null, oil1: null, oil2: null });
   const [focusedItem, setFocusedItem] = useState(null);
@@ -934,7 +944,15 @@ function LandingPage({ saveSetToProfile }) {
   const selectedItems = Object.values(selection).filter(Boolean);
   const isSetComplete = selectedItems.length === 6;
 
-  const initializePayment = async (amt) => {
+  const initializePayment = async (amt, type) => {
+    // Subscription requires login
+    if (type === "subscription" && !authToken) {
+      sessionStorage.setItem("redirectAfterSignup", "checkout");
+      navigate("/signup");
+      return;
+    }
+
+    // One-time purchase allowed for guests - proceed directly
     setPrice(amt);
     try {
       const response = await fetch(`${BACKEND_URL}/api/create-payment-intent`, {
@@ -970,8 +988,16 @@ function LandingPage({ saveSetToProfile }) {
   );
 
   return (
-    <div style={styles.layout}>
-      <div style={styles.left}>
+    <>
+      <style>{`
+        @media (max-width: 768px) {
+          .landing-layout { display: flex; flex-direction: column; padding: 15px !important; }
+          .landing-left { width: 100% !important; padding-right: 0 !important; }
+          .landing-right { width: 100% !important; position: static !important; margin-top: 20px; }
+        }
+      `}</style>
+      <div style={styles.layout} className="landing-layout">
+        <div style={styles.left} className="landing-left">
         {renderRow("Pick Shampoo 1", "shampoo1", "shampoos")}
         {renderRow("Pick Shampoo 2", "shampoo2", "shampoos")}
         {renderRow("Pick Conditioner 1", "conditioner1", "conditioners")}
@@ -979,7 +1005,7 @@ function LandingPage({ saveSetToProfile }) {
         {renderRow("Pick Oil 1", "oil1", "oils")}
         {renderRow("Pick Oil 2", "oil2", "oils")}
       </div>
-      <aside style={styles.right}>
+      <aside style={styles.right} className="landing-right">
         <div style={{ minHeight: '100px', marginBottom: '15px' }}>
           {focusedItem ? (<div><h3>{focusedItem.name}</h3><p style={{ fontSize: '13px', color: '#666' }}>{focusedItem.desc}</p></div>) : <p style={{color: '#888'}}>Select a product</p>}
         </div>
@@ -990,8 +1016,8 @@ function LandingPage({ saveSetToProfile }) {
             <div style={{ borderTop: '2px solid #222', paddingTop: '15px' }}>
               {!clientSecret ? (
                 <>
-                  <button style={styles.checkoutBtn} onClick={() => initializePayment(24.99)}>Checkout One-Time ($24.99)</button>
-                  <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => initializePayment(19.99)}>Subscribe ($19.99/mo)</button>
+                  <button style={styles.checkoutBtn} onClick={() => initializePayment(30, "one-time")}>One-Time Purchase — $30.00</button>
+                  <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => initializePayment(25, "subscription")}>Monthly Subscription — $25.00/mo</button>
                 </>
               ) : (
                 <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
@@ -1004,6 +1030,7 @@ function LandingPage({ saveSetToProfile }) {
         </div>
       </aside>
     </div>
+    </>
   );
 }
 
@@ -1409,7 +1436,7 @@ export default function App() {
         </header>
 
         <Routes>
-          <Route path="/" element={<LandingPage saveSetToProfile={saveSetToProfile} />} />
+          <Route path="/" element={<LandingPage saveSetToProfile={saveSetToProfile} authToken={authToken} />} />
           <Route path="/login" element={<LoginPage onLogin={handleLoginSuccess} />} />
           <Route path="/signup" element={<SignupPage onLogin={handleLoginSuccess} />} />
           <Route path="/recommend" element={
@@ -1479,9 +1506,9 @@ const styles = {
   nav: { display: "flex", gap: "25px", fontSize: "13px", alignItems: 'center' },
   navLink: { textDecoration: 'none', color: '#222', fontWeight: '500' },
   auth: { fontWeight: "600", textDecoration: 'none', color: '#222', cursor: 'pointer' },
-  layout: { display: "flex", padding: "20px 60px" },
-  left: { width: "70%", paddingRight: "40px" },
-  right: { width: "30%", padding: "20px", borderRadius: "24px", backgroundColor: "#f9f9f9", height: "fit-content", position: 'sticky', top: '20px' },
+  layout: { display: "flex", padding: "20px 60px", flexWrap: "wrap" },
+  left: { width: "70%", paddingRight: "40px", minWidth: "300px" },
+  right: { width: "30%", padding: "20px",borderRadius: "24px", backgroundColor: "#f9f9f9", height: "fit-content", position: 'sticky', top: '20px', minWidth: "280px" },
   rowSection: { marginBottom: "20px" },
   rowLabel: { fontSize: "14px", color: "#666", fontWeight: "600", marginBottom: "10px" },
   scrollRow: { display: "flex", gap: "12px", overflowX: "auto", paddingBottom: '10px' },

@@ -356,10 +356,13 @@ const RANK_TIERS = [
 ];
 
 const getRankTitle = (score) => {
-  for (const tier of RANK_TIERS) {
-    if (score >= tier.min) return tier.title;
-  }
-  return "bolshevik";
+  // Ensure score is a number and provide a fallback
+  const numericScore = Number(score) || 0;
+  
+  // Find the first tier where the score is greater than or equal to min
+  const tier = RANK_TIERS.find(t => numericScore >= t.min);
+  
+  return tier ? tier.title : "bolshevik";
 };
 
 // Color for rank badge based on tier level

@@ -126,7 +126,12 @@ const EnhancedLoadingSpinner = ({ startTime }) => {
 };
 
 // --- 1. STRIPE INITIALIZATION ---
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
+const stripePromise = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY 
+  ? loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY).catch(err => {
+      console.warn("⚠️ Stripe failed to load (may be blocked by AdBlocker). Checkout disabled:", err);
+      return null;
+    })
+  : Promise.resolve(null);
 
 // --- 2. BACKEND CONFIGURATION ---
 const BACKEND_URL = "https://hair-backend-2.onrender.com";
@@ -513,6 +518,72 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore }) => (
     </section>
   </div>
 );
+
+// --- DUMA PANEL COMPONENT ---
+const DumaPanel = ({ authToken }) => {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/api/duma`)
+      .then(res => res.json())
+      .then(data => {
+        setItems(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const handleVote = async (id, voteType) => {
+    try {
+      const token = authToken || localStorage.getItem('authToken');
+      const response = await fetch(`${BACKEND_URL}/api/duma/${id}/vote`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ vote: voteType })
+      });
+      if (response.ok) {
+        const updatedData = await response.json();
+        setItems(items.map(item => item._id === id ? { ...item, votes: updatedData.votes } : item));
+      }
+    } catch (err) {
+      console.error("Voting failed", err);
+    }
+  };
+
+  if (loading) return <p style={{ padding: '20px', textAlign: 'center' }}>Loading Duma sessions...</p>;
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <h2 style={styles.formSectionTitle}>Community Duma</h2>
+      {items.length === 0 ? (
+        <p style={{ color: '#888', textAlign: 'center', padding: '40px 20px' }}>No submissions yet. Be the first to contribute!</p>
+      ) : (
+        items.map(item => (
+          <div key={item._id} style={styles.dumaCard}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <span style={styles.typeTag}>{item.type}</span>
+              <RankBadge rankTitle={item.submitterRank} />
+            </div>
+            <h3 style={{ marginTop: '0', marginBottom: '10px' }}>{item.product || item.company || item.name}</h3>
+            <p style={{ fontSize: '14px', color: '#444', margin: '10px 0' }}>{item.desc || item.reason}</p>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+              <button onClick={() => handleVote(item._id, 'yay')} style={styles.voteButton}>
+                👍 Yay ({item.votes?.yay || 0})
+              </button>
+              <button onClick={() => handleVote(item._id, 'nay')} style={styles.voteButton}>
+                👎 Nay ({item.votes?.nay || 0})
+              </button>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+};
 
 // --- STRIPE CHECKOUT COMPONENT ---
 const CheckoutForm = ({ totalPrice, onPurchaseSuccess }) => {
@@ -1221,12 +1292,20 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore }) => {
     if (!authToken) return alert("Please log in to vote.");
     setVoting(prev => ({ ...prev, [itemId]: true }));
     try {
-      await fetch(`${BACKEND_URL}/api/duma/${itemId}/vote`, {
+      const response = await fetch(`${BACKEND_URL}/api/duma/${itemId}/vote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
         body: JSON.stringify({ vote })
       });
-    } catch (err) {}
+      if (response.ok) {
+        const data = await response.json();
+        setDumaItems(prev => prev.map(item => 
+          item._id === itemId ? { ...item, votes: data.votes } : item
+        ));
+      }
+    } catch (err) {
+      console.error("Vote failed:", err);
+    }
     setVoting(prev => ({ ...prev, [itemId]: false }));
   };
 
@@ -1345,7 +1424,10 @@ export default function App() {
         headers: { Authorization: `Bearer ${token}` },
         credentials: 'include'
       })
-        .then(r => r.json())
+        .then(r => {
+          if (!r.ok) throw new Error(`Auth failed with status ${r.status}`);
+          return r.json();
+        })
         .then(data => {
           if (data.email) {
             setIsLoggedIn(true);
@@ -1546,8 +1628,9 @@ const styles = {
   formSectionTitle: { fontSize: '13px', fontWeight: '800', marginTop: '20px', borderBottom: '1px solid #eee', paddingBottom: '5px', textTransform: 'uppercase' },
   uploadBox: { border: '2px dashed #ddd', borderRadius: '12px', padding: '20px', textAlign: 'center', backgroundColor: '#fafafa' },
   // Renamed from legislatureCard â†’ dumaCard
-  dumaCard: { backgroundColor: '#fff', border: '1px solid #eee', borderRadius: '24px', padding: '30px', marginBottom: '20px' },
-  typeTag: { background: '#222', color: '#fff', padding: '4px 10px', borderRadius: '20px', fontSize: '10px' },
+  dumaCard: { backgroundColor: '#fff', border: '1px solid #eee', borderRadius: '24px', padding: '30px', marginBottom: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' },
+  typeTag: { background: '#222', color: '#fff', padding: '4px 10px', borderRadius: '20px', fontSize: '10px', textTransform: 'uppercase' },
+  voteButton: { padding: '8px 16px', borderRadius: '20px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s ease', fontWeight: '500' },
   voteBtn: { padding: '8px 16px', borderRadius: '8px', border: '1px solid', background: 'transparent', cursor: 'pointer', fontWeight: '600', fontSize: '13px' },
   // Gold Glow for General Secretary badge
   generalSecretaryBadge: {

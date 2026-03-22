@@ -622,18 +622,43 @@ app.post('/api/create-payment-intent', async (req, res) => {
   }
 });
 
-// DUMA SUBMISSIONS (formerly Legislature)
-// Get all Duma items
+// --- DUMA (LEGISLATURE) ROUTES ---
+
+// 1. Fetch all submissions
 app.get('/api/duma', async (req, res) => {
   try {
-    const items = await DumaItem.find().sort({ createdAt: -1 }).limit(100);
+    const items = await DumaItem.find().sort({ createdAt: -1 });
     res.json(items);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch Duma items' });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Submit recommendation to Duma
+// 2. Voting Logic - Accept both "voteType" and "vote" parameters
+app.post('/api/duma/:id/vote', authMiddleware, async (req, res) => {
+  try {
+    const voteType = req.body.voteType || req.body.vote; // Support both parameter names
+    if (!['yay', 'nay'].includes(voteType)) {
+      return res.status(400).json({ error: 'Vote must be "yay" or "nay"' });
+    }
+
+    const update = voteType === 'yay' ? 
+      { $inc: { 'votes.yay': 1 } } : 
+      { $inc: { 'votes.nay': 1 } };
+
+    const item = await DumaItem.findByIdAndUpdate(req.params.id, update, { new: true });
+    if (!item) return res.status(404).json({ error: 'Item not found' });
+
+    // Award points for voting
+    await updateRankScore(req.user._id, 2);
+
+    res.json({ success: true, votes: item.votes });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. Submit recommendation to Duma
 app.post('/api/duma/recommend', authMiddleware, async (req, res) => {
   try {
     const { name, company, reason } = req.body;
@@ -649,16 +674,14 @@ app.post('/api/duma/recommend', authMiddleware, async (req, res) => {
       submitterRank: rankTitle
     });
 
-    // Award points for recommending
     await updateRankScore(req.user._id, 5);
-
     res.status(201).json({ message: "Your recommendation has been sent to The Majority's Duma for voting", item });
   } catch (err) {
     res.status(500).json({ error: 'Failed to submit recommendation' });
   }
 });
 
-// Submit partner application to Duma (Politburo+ only for Premium Partner)
+// 4. Submit partner application to Duma
 app.post('/api/duma/partner', authMiddleware, async (req, res) => {
   try {
     const { company, product, desc, tier } = req.body;
@@ -667,7 +690,6 @@ app.post('/api/duma/partner', authMiddleware, async (req, res) => {
     const rankScore = req.user.rank_score || 1;
     const rankTitle = req.user.rank_title || getRankTitle(rankScore);
 
-    // Only Politburo+ can apply for Premium Partner
     if (tier === 'Premium' && !isPolitburoOrHigher(rankScore)) {
       return res.status(403).json({
         error: 'Premium Partner status requires Politburo rank or higher. Keep building your influence!'
@@ -683,34 +705,10 @@ app.post('/api/duma/partner', authMiddleware, async (req, res) => {
       submitterRank: rankTitle
     });
 
-    // Award points for partnering
     await updateRankScore(req.user._id, 10);
-
     res.status(201).json({ message: "Your partner application has been submitted to The Majority's Duma", item });
   } catch (err) {
     res.status(500).json({ error: 'Failed to submit partner application' });
-  }
-});
-
-// Vote on a Duma item
-app.post('/api/duma/:id/vote', authMiddleware, async (req, res) => {
-  try {
-    const { vote } = req.body; // "yay" or "nay"
-    if (!['yay', 'nay'].includes(vote)) return res.status(400).json({ error: 'Vote must be yay or nay' });
-
-    const item = await DumaItem.findByIdAndUpdate(
-      req.params.id,
-      { $inc: { [`votes.${vote}`]: 1 } },
-      { new: true }
-    );
-    if (!item) return res.status(404).json({ error: 'Item not found' });
-
-    // Award small points for voting
-    await updateRankScore(req.user._id, 2);
-
-    res.json({ success: true, votes: item.votes });
-  } catch (err) {
-    res.status(500).json({ error: 'Vote failed' });
   }
 });
 

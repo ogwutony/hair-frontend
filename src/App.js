@@ -215,6 +215,28 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
     setSocialLinks(prev => ({ ...prev, [provider]: value }));
   };
 
+  const handleVideoUpload = (boxKey, event) => {
+    const file = event.target.files[0];
+    if (file) {
+      if (file.size > 52428800) { // 50MB limit
+        alert('Video must be under 50MB');
+        return;
+      }
+      if (file.type.startsWith('video/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setPerspective(prev => ({
+            ...prev,
+            [boxKey]: { ...prev[boxKey], videoUrl: e.target.result }
+          }));
+        };
+        reader.readAsDataURL(file);
+      } else {
+        alert('Please select a valid video file');
+      }
+    }
+  };
+
   const handleSaveProfile = async () => {
     if (!authToken) return;
     setSaveStatus("Saving...");
@@ -245,7 +267,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
     <div style={{ padding: '40px 60px', maxWidth: '1000px', margin: '0 auto' }}>
       {/* HEADER SECTION */}
       <div style={{ marginBottom: '50px' }}>
-        <h1 style={{ fontSize: '32px', marginBottom: '8px', fontWeight: '700' }}>Welcome Comrade</h1>
+        <h1 style={{ fontSize: '32px', marginBottom: '8px', fontWeight: '700' }}>Welcome</h1>
         {rankTitle && (
           <div style={{ marginTop: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
@@ -290,15 +312,46 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
               </div>
               <h4 style={{ fontSize: '13px', fontWeight: '600', marginBottom: '12px', color: '#222' }}>{box.label}</h4>
               {editingBox === box.key ? (
-                <textarea
-                  placeholder={`Share your thoughts about ${box.label.toLowerCase()}...`}
-                  value={perspective[box.key].content}
-                  onChange={(e) => handleBoxChange(box.key, e.target.value)}
-                  style={{ ...styles.input, height: '120px', fontSize: '13px', marginBottom: '10px' }} />
+                <>
+                  <textarea
+                    placeholder={`Share your thoughts about ${box.label.toLowerCase()}...`}
+                    value={perspective[box.key].content}
+                    onChange={(e) => handleBoxChange(box.key, e.target.value)}
+                    style={{ ...styles.input, height: '100px', fontSize: '13px', marginBottom: '10px' }} />
+                  <div style={{ marginTop: '10px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: '600', color: '#222', display: 'block', marginBottom: '6px' }}>Upload Video</label>
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={(e) => handleVideoUpload(box.key, e)}
+                      style={{ ...styles.input, padding: '8px', margin: 0 }} />
+                    {perspective[box.key].videoUrl && (
+                      <div style={{ marginTop: '10px', position: 'relative' }}>
+                        <video
+                          src={perspective[box.key].videoUrl}
+                          controls
+                          style={{ width: '100%', maxHeight: '150px', borderRadius: '4px', marginBottom: '8px' }} />
+                        <button
+                          onClick={() => setPerspective(prev => ({ ...prev, [box.key]: { ...prev[box.key], videoUrl: null } }))}
+                          style={{ fontSize: '12px', padding: '4px 8px', background: '#ff6b6b', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                          Remove Video
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
               ) : (
-                <p style={{ fontSize: '13px', color: perspective[box.key].content ? '#333' : '#aaa', minHeight: '60px', margin: '0' }}>
-                  {perspective[box.key].content || `Click "Edit" to add your response...`}
-                </p>
+                <>
+                  <p style={{ fontSize: '13px', color: perspective[box.key].content ? '#333' : '#aaa', minHeight: '40px', margin: '0 0 12px 0' }}>
+                    {perspective[box.key].content || `Click "Edit" to add your response...`}
+                  </p>
+                  {perspective[box.key].videoUrl && (
+                    <video
+                      src={perspective[box.key].videoUrl}
+                      controls
+                      style={{ width: '100%', maxHeight: '150px', borderRadius: '4px' }} />
+                  )}
+                </>
               )}
             </div>
           ))}
@@ -909,8 +962,12 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
             <div style={{ borderTop: '2px solid #222', paddingTop: '15px' }}>
               {!clientSecret ? (
                 <>
-                  <button style={styles.checkoutBtn} onClick={() => initializePayment(30, "one-time")}>Checkout One-Time ($30.00) - 30 pts</button>
-                  <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => initializePayment(25, "subscription")}>Subscribe ($25.00/mo) - {getPointsForPurchase("subscription")} pts</button>
+                  <a href="https://buy.stripe.com/bJeeVeaVo260dny4p1c7u02" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', display: 'block' }}>
+                    <button style={styles.checkoutBtn}>💳 Checkout One-Time ($30.00)</button>
+                  </a>
+                  <a href="https://buy.stripe.com/14AcN66F83a42IU4p1c7u04" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', display: 'block' }}>
+                    <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }}>Subscribe ($25.00/mo)</button>
+                  </a>
                 </>
               ) : (
                 <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>

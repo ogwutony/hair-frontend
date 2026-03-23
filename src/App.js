@@ -14,44 +14,6 @@ const stripePromise = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY
 // --- 2. BACKEND CONFIGURATION ---
 const BACKEND_URL = "https://hair-backend-2.onrender.com";
 
-// --- GOOGLE OAUTH CONFIG ---
-const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
-const GOOGLE_ENABLED = !!GOOGLE_CLIENT_ID;
-
-// Instagram OAuth Configuration
-const INSTAGRAM_APP_ID = process.env.REACT_APP_INSTAGRAM_APP_ID;
-const INSTAGRAM_ENABLED = !!INSTAGRAM_APP_ID;
-
-const signInWithInstagram = (onSuccess, onError) => {
-  if (!INSTAGRAM_APP_ID) { onError("Instagram not configured"); return; }
-  const redirectUri = `${window.location.origin}/auth/instagram/callback`;
-  const instagramAuthUrl = `https://api.instagram.com/oauth/authorize?client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user_profile,user_media&response_type=code`;
-  window.location.href = instagramAuthUrl;
-};
-
-// TikTok OAuth Configuration
-const TIKTOK_CLIENT_KEY = process.env.REACT_APP_TIKTOK_CLIENT_KEY;
-const TIKTOK_ENABLED = !!TIKTOK_CLIENT_KEY;
-
-const signInWithTikTok = (onSuccess, onError) => {
-  if (!TIKTOK_CLIENT_KEY) { onError("TikTok not configured"); return; }
-  const redirectUri = `${window.location.origin}/auth/tiktok/callback`;
-  const tiktokAuthUrl = `https://www.tiktok.com/v1/oauth/authorize?client_key=${TIKTOK_CLIENT_KEY}&response_type=code&scope=user.info.basic&redirect_uri=${encodeURIComponent(redirectUri)}`;
-  window.location.href = tiktokAuthUrl;
-};
-
-const signInWithGoogle = (onSuccess, onError) => {
-  if (!window.google) { onError("Google Sign-In not loaded."); return; }
-  window.google.accounts.oauth2.initTokenClient({
-    client_id: GOOGLE_CLIENT_ID,
-    scope: "email profile",
-    callback: (res) => {
-      if (res.error) { onError(res.error); return; }
-      onSuccess(res.access_token);
-    },
-  }).requestAccessToken();
-};
-
 // --- 3. RANK SYSTEM (40-Tier Dedovshchina Hierarchy) ---
 const RANK_TIERS = [
   { title: "Knight Bear",       min: 20000000 },
@@ -693,12 +655,10 @@ const LoginPage = ({ onLogin }) => {
         Continue with Instagram
       </button>
 
-      {/* FUTURE: TikTok login button - to enable later
       <button onClick={handleTikTokLogin} style={{ ...styles.socialButton, backgroundColor: '#000', color: '#fff', border: 'none' }}>
         <svg style={{ width: '18px', height: '18px', marginRight: '10px', fill: '#fff' }} viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1 0-5.78 2.92 2.92 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 3 15.57 6.33 6.33 0 0 0 9.37 22a6.33 6.33 0 0 0 6.33-6.33V9.21a8.16 8.16 0 0 0 4.29 1.2V6.69z"/></svg>
         Continue with TikTok
       </button>
-      */}
 
       <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', gap: '12px' }}>
         <div style={{ flex: 1, height: '1px', backgroundColor: '#e0e0e0' }} />
@@ -760,7 +720,7 @@ const OAuthCallbackPage = ({ onLogin, provider }) => {
         setStatus("Server error. Please try again.");
         setTimeout(() => navigate("/login"), 3000);
       });
-  }, []);
+  }, [location.hash, navigate, onLogin, provider]);
 
   return (
     <div style={styles.authContainer}>

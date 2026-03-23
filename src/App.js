@@ -781,6 +781,31 @@ const SignupPage = () => {
       if (response.ok) { alert("Success! Log in now."); navigate("/login"); }
     } catch (err) { alert("Server error."); }
   };
+
+  const handleGoogleLogin = () => {
+    setSocialError("");
+    const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+    if (!clientId) { setSocialError("Google login is not configured."); return; }
+    const redirectUri = window.location.origin + "/auth/google/callback";
+    const scope = "openid email profile";
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}&prompt=select_account`;
+    window.location.href = authUrl;
+  };
+
+  const handleInstagramLogin = () => {
+    setSocialError("");
+    const appId = process.env.REACT_APP_FACEBOOK_APP_ID;
+    if (!appId) { setSocialError("Instagram login is not configured yet."); return; }
+    const redirectUri = window.location.origin + "/auth/instagram/callback";
+    const scope = "email,public_profile";
+    const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=token`;
+    window.location.href = authUrl;
+  };
+
+  const handleTikTokLogin = () => {
+    setSocialError("TikTok login coming soon.");
+  };
+
   return (
     <div style={styles.authContainer}><div style={{ ...styles.authCard, maxWidth: '420px' }}>
       <h1 style={{ fontSize: '22px', fontWeight: '700', marginBottom: '4px', letterSpacing: '-0.5px' }}>The Majority</h1>

@@ -903,6 +903,7 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
     return 0;
   };
   
+  // eslint-disable-next-line no-unused-vars
   const initializePayment = async (amt, type) => {
     setPurchaseType(type);
     setPrice(amt);

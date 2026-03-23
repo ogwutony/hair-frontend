@@ -687,10 +687,12 @@ const LoginPage = ({ onLogin }) => {
         Continue with Instagram
       </button>
 
+      {/* FUTURE: TikTok login button - to enable later
       <button onClick={handleTikTokLogin} style={{ ...styles.socialButton, backgroundColor: '#000', color: '#fff', border: 'none' }}>
         <svg style={{ width: '18px', height: '18px', marginRight: '10px', fill: '#fff' }} viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1 0-5.78 2.92 2.92 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 3 15.57 6.33 6.33 0 0 0 9.37 22a6.33 6.33 0 0 0 6.33-6.33V9.21a8.16 8.16 0 0 0 4.29 1.2V6.69z"/></svg>
         Continue with TikTok
       </button>
+      */}
 
       <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', gap: '12px' }}>
         <div style={{ flex: 1, height: '1px', backgroundColor: '#e0e0e0' }} />
@@ -802,9 +804,11 @@ const SignupPage = () => {
     window.location.href = authUrl;
   };
 
+  /* FUTURE: TikTok login handler - to enable later
   const handleTikTokLogin = () => {
     setSocialError("TikTok login coming soon.");
   };
+  */
 
   return (
     <div style={styles.authContainer}><div style={{ ...styles.authCard, maxWidth: '420px' }}>
@@ -823,10 +827,12 @@ const SignupPage = () => {
         Continue with Instagram
       </button>
 
+      {/* FUTURE: TikTok button for SignupPage - to enable later
       <button onClick={handleTikTokLogin} style={{ ...styles.socialButton, backgroundColor: '#000', color: '#fff', border: 'none' }}>
         <TikTokIcon />
         Continue with TikTok
       </button>
+      */}
 
       <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', gap: '12px' }}>
         <div style={{ flex: 1, height: '1px', backgroundColor: '#e0e0e0' }} />
@@ -2042,7 +2048,9 @@ export default function App() {
           {/* Social Auth Callback Routes */}
           <Route path="/auth/google/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="google" />} />
           <Route path="/auth/instagram/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="instagram" />} />
+          {/* FUTURE: TikTok callback route - to enable later
           <Route path="/auth/tiktok/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="tiktok" />} />
+          */}
           <Route path="/signup" element={<SignupPage onLogin={handleLoginSuccess} />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />

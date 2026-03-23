@@ -667,7 +667,13 @@ const LoginPage = ({ onLogin }) => {
   };
 
   const handleTikTokLogin = () => {
-    setSocialError("TikTok login coming soon.");
+    setSocialError("");
+    const clientKey = process.env.REACT_APP_TIKTOK_CLIENT_KEY;
+    if (!clientKey) { setSocialError("TikTok login is not configured."); return; }
+    const redirectUri = window.location.origin + "/auth/tiktok/callback";
+    const scope = "user.info.basic";
+    const authUrl = `https://www.tiktok.com/v1/oauth/authorize?client_key=${clientKey}&response_type=code&scope=${encodeURIComponent(scope)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    window.location.href = authUrl;
   };
 
   return (
@@ -804,11 +810,15 @@ const SignupPage = () => {
     window.location.href = authUrl;
   };
 
-  /* FUTURE: TikTok login handler - to enable later
   const handleTikTokLogin = () => {
-    setSocialError("TikTok login coming soon.");
+    setSocialError("");
+    const clientKey = process.env.REACT_APP_TIKTOK_CLIENT_KEY;
+    if (!clientKey) { setSocialError("TikTok login is not configured."); return; }
+    const redirectUri = window.location.origin + "/auth/tiktok/callback";
+    const scope = "user.info.basic";
+    const authUrl = `https://www.tiktok.com/v1/oauth/authorize?client_key=${clientKey}&response_type=code&scope=${encodeURIComponent(scope)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    window.location.href = authUrl;
   };
-  */
 
   return (
     <div style={styles.authContainer}><div style={{ ...styles.authCard, maxWidth: '420px' }}>
@@ -827,12 +837,10 @@ const SignupPage = () => {
         Continue with Instagram
       </button>
 
-      {/* FUTURE: TikTok button for SignupPage - to enable later
       <button onClick={handleTikTokLogin} style={{ ...styles.socialButton, backgroundColor: '#000', color: '#fff', border: 'none' }}>
         <TikTokIcon />
         Continue with TikTok
       </button>
-      */}
 
       <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', gap: '12px' }}>
         <div style={{ flex: 1, height: '1px', backgroundColor: '#e0e0e0' }} />
@@ -2048,9 +2056,7 @@ export default function App() {
           {/* Social Auth Callback Routes */}
           <Route path="/auth/google/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="google" />} />
           <Route path="/auth/instagram/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="instagram" />} />
-          {/* FUTURE: TikTok callback route - to enable later
           <Route path="/auth/tiktok/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="tiktok" />} />
-          */}
           <Route path="/signup" element={<SignupPage onLogin={handleLoginSuccess} />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />

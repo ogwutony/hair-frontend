@@ -140,6 +140,28 @@ const BACKEND_URL = "https://hair-backend-2.onrender.com";
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 const GOOGLE_ENABLED = !!GOOGLE_CLIENT_ID;
 
+// Instagram OAuth Configuration
+const INSTAGRAM_APP_ID = process.env.REACT_APP_INSTAGRAM_APP_ID;
+const INSTAGRAM_ENABLED = !!INSTAGRAM_APP_ID;
+
+const signInWithInstagram = (onSuccess, onError) => {
+  if (!INSTAGRAM_APP_ID) { onError("Instagram not configured"); return; }
+  const redirectUri = `${window.location.origin}/auth/instagram/callback`;
+  const instagramAuthUrl = `https://api.instagram.com/oauth/authorize?client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user_profile,user_media&response_type=code`;
+  window.location.href = instagramAuthUrl;
+};
+
+// TikTok OAuth Configuration
+const TIKTOK_CLIENT_KEY = process.env.REACT_APP_TIKTOK_CLIENT_KEY;
+const TIKTOK_ENABLED = !!TIKTOK_CLIENT_KEY;
+
+const signInWithTikTok = (onSuccess, onError) => {
+  if (!TIKTOK_CLIENT_KEY) { onError("TikTok not configured"); return; }
+  const redirectUri = `${window.location.origin}/auth/tiktok/callback`;
+  const tiktokAuthUrl = `https://www.tiktok.com/v1/oauth/authorize?client_key=${TIKTOK_CLIENT_KEY}&response_type=code&scope=user.info.basic&redirect_uri=${encodeURIComponent(redirectUri)}`;
+  window.location.href = tiktokAuthUrl;
+};
+
 const signInWithGoogle = (onSuccess, onError) => {
   if (!window.google) { onError("Google Sign-In not loaded."); return; }
   window.google.accounts.oauth2.initTokenClient({
@@ -158,6 +180,29 @@ const GoogleIcon = () => (
     <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 01-7.18-2.54H1.83v2.07A8 8 0 008.98 17z"/>
     <path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 010-3.04V5.41H1.83a8 8 0 000 7.18l2.67-2.07z"/>
     <path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 001.83 5.4L4.5 7.49a4.77 4.77 0 014.48-3.3z"/>
+  </svg>
+);
+
+const InstagramIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" style={{ marginRight: '8px' }}>
+    <defs>
+      <linearGradient id="insta" x1="0%" y1="100%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#feda75" />
+        <stop offset="5%" stopColor="#fa7e1e" />
+        <stop offset="45%" stopColor="#d92e7f" />
+        <stop offset="60%" stopColor="#9b36b6" />
+        <stop offset="90%" stopColor="#515bd4" />
+      </linearGradient>
+    </defs>
+    <rect x="2" y="2" width="20" height="20" rx="4.5" fill="url(#insta)" />
+    <circle cx="12" cy="12" r="3.5" fill="white" />
+    <circle cx="18" cy="6" r="1.5" fill="white" />
+  </svg>
+);
+
+const TikTokIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" style={{ marginRight: '8px' }}>
+    <path fill="currentColor" d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v12.12a2.06 2.06 0 0 1-2.1 2.05 2.06 2.06 0 0 1-2.1-2.05c0-1.24 1.01-2.23 2.25-2.12v-3.4a5.5 5.5 0 0 0-5.33 5.5 5.5 5.5 0 0 0 5.25 5.5c2.34.23 4.85-.94 4.85-4.75V8.54c1.95 1.25 4.02 1.81 6.02 1.75v-3.4a4.6 4.6 0 0 1-3.02-1.2Z"/>
   </svg>
 );
 
@@ -717,6 +762,34 @@ const LoginPage = ({ onLogin }) => {
                 <span style={{ fontSize: '11px', opacity: 0.7 }}>Fast & secure</span>
               </div>
             </button>
+            {INSTAGRAM_ENABLED && (
+              <button 
+                style={{ ...styles.googleButtonEnhanced, marginTop: '10px' }} 
+                onClick={() => signInWithInstagram(null, (err) => alert(err))} 
+                disabled={isLoading}
+                title="Sign in with your Instagram account"
+              >
+                <InstagramIcon /> 
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span style={{ fontWeight: '600' }}>Continue with Instagram</span>
+                  <span style={{ fontSize: '11px', opacity: 0.7 }}>Connect your account</span>
+                </div>
+              </button>
+            )}
+            {TIKTOK_ENABLED && (
+              <button 
+                style={{ ...styles.googleButtonEnhanced, marginTop: '10px' }} 
+                onClick={() => signInWithTikTok(null, (err) => alert(err))} 
+                disabled={isLoading}
+                title="Sign in with your TikTok account"
+              >
+                <TikTokIcon /> 
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span style={{ fontWeight: '600' }}>Continue with TikTok</span>
+                  <span style={{ fontSize: '11px', opacity: 0.7 }}>Connect your account</span>
+                </div>
+              </button>
+            )}
             <OrDivider />
           </>
         )}
@@ -838,6 +911,32 @@ const SignupPage = ({ onLogin }) => {
                 <span style={{ fontSize: '11px', opacity: 0.7 }}>Fast & secure</span>
               </div>
             </button>
+            {INSTAGRAM_ENABLED && (
+              <button 
+                style={{ ...styles.googleButtonEnhanced, marginTop: '10px' }} 
+                onClick={() => signInWithInstagram(null, (err) => alert(err))} 
+                disabled={isLoading}
+              >
+                <InstagramIcon /> 
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span style={{ fontWeight: '600' }}>Sign up with Instagram</span>
+                  <span style={{ fontSize: '11px', opacity: 0.7 }}>Connect your account</span>
+                </div>
+              </button>
+            )}
+            {TIKTOK_ENABLED && (
+              <button 
+                style={{ ...styles.googleButtonEnhanced, marginTop: '10px' }} 
+                onClick={() => signInWithTikTok(null, (err) => alert(err))} 
+                disabled={isLoading}
+              >
+                <TikTokIcon /> 
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span style={{ fontWeight: '600' }}>Sign up with TikTok</span>
+                  <span style={{ fontSize: '11px', opacity: 0.7 }}>Connect your account</span>
+                </div>
+              </button>
+            )}
             <OrDivider />
           </>
         )}

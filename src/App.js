@@ -2012,9 +2012,9 @@ export default function App() {
         </header>
         <Routes>
           <Route path="/" element={<LandingPage saveSetToProfile={saveSetToProfile} onAddPoints={addPoints} savedSets={savedSets} />} />
-          <Route path="/login" element={<LoginPage onLogin={handleLoginSuccess} />
-            <Route path="/auth/google/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="google" />} />
-            <Route path="/auth/instagram/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="instagram" />} />} />
+          <Route path="/login" element={<LoginPage onLogin={handleLoginSuccess} />} />
+          <Route path="/auth/google/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="google" />} />
+          <Route path="/auth/instagram/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="instagram" />} />
           <Route path="/signup" element={<SignupPage onLogin={handleLoginSuccess} />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />

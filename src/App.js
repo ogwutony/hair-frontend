@@ -972,7 +972,7 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
         </div>
         <div style={styles.summaryContainer}>
           <h4 style={{ fontSize: '14px', borderBottom: '1px solid #eee', paddingBottom: '10px', marginTop: 0 }}>Your Custom Set ({selectedItems.length}/6)</h4>
-          <div style={{ margin: '10px 0' }}>{selectedItems.map((item, idx) => (<p key={idx} style={{ fontSize: '11px', margin: '4px 0' }}>❤ {item.name}</p>))}</div>
+          <div style={{ margin: '10px 0' }}>{selectedItems.map((item, idx) => (<p key={idx} style={{ fontSize: '11px', margin: '4px 0' }}>{item.name}</p>))}</div>
           {isSetComplete ? (
             <div style={{ borderTop: '2px solid #222', paddingTop: '15px' }}>
               {!clientSecret ? (

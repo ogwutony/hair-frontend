@@ -183,11 +183,12 @@ const productsData = {
 
 // --- PROFILE PAGE COMPONENT - Enhanced with Photo & Video Features ---
 const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) => {
+  const [avatarUrl, setAvatarUrl] = useState(null);
   const [perspective, setPerspective] = useState({
-    box1: { content: "", mediaUrls: [], videoUrl: null },
-    box2: { content: "", mediaUrls: [], videoUrl: null },
-    box3: { content: "", mediaUrls: [], videoUrl: null },
-    box4: { content: "", mediaUrls: [], videoUrl: null }
+    box1: { videoUrl: null, description: "", videoFile: null },
+    box2: { videoUrl: null, description: "", videoFile: null },
+    box3: { videoUrl: null, description: "", videoFile: null },
+    box4: { videoUrl: null, description: "", videoFile: null }
   });
   const [socialLinks, setSocialLinks] = useState({
     instagram: "",
@@ -197,6 +198,46 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
   const [editingBox, setEditingBox] = useState(null);
   const [saveStatus, setSaveStatus] = useState("");
 
+  const handleAvatarUpload = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        alert('Please upload a valid image (JPG, PNG, WEBP).');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image must be smaller than 5MB.');
+        return;
+      }
+      setAvatarUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const handleVideoUpload = (boxKey, e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (!['video/mp4', 'video/quicktime'].includes(file.type)) {
+        alert('Please upload an MP4 or MOV video.');
+        return;
+      }
+      if (file.size > 100 * 1024 * 1024) {
+        alert('Video must be smaller than 100MB.');
+        return;
+      }
+      setPerspective(prev => ({
+        ...prev,
+        [boxKey]: { ...prev[boxKey], videoUrl: URL.createObjectURL(file), videoFile: file }
+      }));
+    }
+  };
+
+  const handleDescriptionChange = (boxKey, text) => {
+    setPerspective(prev => ({
+      ...prev,
+      [boxKey]: { ...prev[boxKey], description: text }
+    }));
+  };
+
   const boxes = [
     { key: "box1", label: "Introduce yourself", icon: "👍" },
     { key: "box2", label: "Tell us what you do", icon: "👍" },
@@ -204,37 +245,40 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
     { key: "box4", label: "Ideas about anything else", icon: "👍" }
   ];
 
-  const handleBoxChange = (boxKey, content) => {
-    setPerspective(prev => ({
-      ...prev,
-      [boxKey]: { ...prev[boxKey], content }
-    }));
-  };
-
-  const handleSocialChange = (provider, value) => {
-    setSocialLinks(prev => ({ ...prev, [provider]: value }));
-  };
-
   const handleSaveProfile = async () => {
     if (!authToken) return;
     setSaveStatus("Saving...");
     try {
+      // Build video perspectives payload
+      const videoPerspectives = {};
+      for (const boxKey in perspective) {
+        if (perspective[boxKey].videoUrl) {
+          videoPerspectives[boxKey] = {
+            videoUrl: perspective[boxKey].videoUrl,
+            description: perspective[boxKey].description
+          };
+        }
+      }
+      
       const response = await fetch(`${BACKEND_URL}/api/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${authToken}`
         },
-        body: JSON.stringify({ perspective, socialLinks })
+        body: JSON.stringify({ 
+          perspective: videoPerspectives, 
+          avatar: avatarUrl
+        })
       });
       if (response.ok) {
-        setSaveStatus("❤ Profile saved successfully!");
+        setSaveStatus("🎥 Video perspectives saved successfully!");
         setTimeout(() => setSaveStatus(""), 3000);
       } else {
-        setSaveStatus("❤ Failed to save profile");
+        setSaveStatus("❌ Failed to save profile");
       }
     } catch (err) {
-      setSaveStatus("❤ Server error");
+      setSaveStatus("❌ Server error");
     }
   };
 
@@ -261,22 +305,35 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
         )}
       </div>
 
-      {/* VIDEO/PHOTO UPLOAD SECTION */}
+      {/* AVATAR UPLOAD SECTION */}
       <section style={{ marginBottom: '50px' }}>
-        <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Share Your Perspective</h2>
+        <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Your Profile Avatar</h2>
         <div style={styles.uploadBox}>
-          <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '12px' }}>
-            <span style={{ fontSize: '24px' }}>🎥</span>
-            <input type="file" accept="image/*,video/*" style={{ display: 'none' }} />
-            <span style={{ fontSize: '14px', fontWeight: '600', color: '#222' }}>Click to upload a video or photo</span>
-            <span style={{ fontSize: '12px', color: '#888' }}>(Videos: MP4/MOV up to 50MB | Photos: JPG/PNG up to 5MB)</span>
-          </label>
+          <div style={{ textAlign: 'center' }}>
+            {avatarUrl ? (
+              <div style={{ marginBottom: '16px' }}>
+                <img src={avatarUrl} alt="Avatar Preview" style={{ width: '150px', height: '150px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px' }} />
+                <p style={{ fontSize: '13px', color: '#666' }}>Avatar preview</p>
+              </div>
+            ) : (
+              <div style={{ padding: '30px', textAlign: 'center' }}>
+                <span style={{ fontSize: '48px', marginBottom: '12px', display: 'block' }}>👤</span>
+                <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>No avatar uploaded yet</p>
+              </div>
+            )}
+            <label style={{ cursor: 'pointer', display: 'inline-block' }}>
+              <input type="file" accept="image/*" onChange={handleAvatarUpload} style={{ display: 'none' }} />
+              <button type="button" style={{ ...styles.authButton, width: '200px' }} onClick={(e) => e.currentTarget.parentElement.querySelector('input').click()}>
+                📷 Upload Avatar (JPG/PNG, max 5MB)
+              </button>
+            </label>
+          </div>
         </div>
       </section>
 
-      {/* PERSPECTIVE BOXES (4-BOX LAYOUT) */}
+      {/* PERSPECTIVE BOXES - VIDEO-FIRST (4-BOX LAYOUT) */}
       <section style={{ marginBottom: '50px' }}>
-        <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Share Your Perspectives</h2>
+        <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>🎬 Share Your Video Perspectives</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginBottom: '20px' }}>
           {boxes.map(box => (
             <div key={box.key} style={{...styles.perspectiveBox, border: editingBox === box.key ? '2px solid #222' : '1px solid #eee'}}>
@@ -290,27 +347,60 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
               </div>
               <h4 style={{ fontSize: '13px', fontWeight: '600', marginBottom: '12px', color: '#222' }}>{box.label}</h4>
               {editingBox === box.key ? (
-                <textarea
-                  placeholder={`Share your thoughts about ${box.label.toLowerCase()}...`}
-                  value={perspective[box.key].content}
-                  onChange={(e) => handleBoxChange(box.key, e.target.value)}
-                  style={{ ...styles.input, height: '120px', fontSize: '13px', marginBottom: '10px' }} />
+                <div style={{ marginBottom: '12px' }}>
+                  {/* VIDEO UPLOAD */}
+                  {perspective[box.key].videoUrl ? (
+                    <div style={{ marginBottom: '12px' }}>
+                      <video src={perspective[box.key].videoUrl} style={{ width: '100%', borderRadius: '8px', maxHeight: '200px', marginBottom: '12px' }} controls />
+                      <label style={{ cursor: 'pointer', display: 'block', fontSize: '12px', color: '#2980b9', fontWeight: '600' }}>
+                        <input type="file" accept="video/mp4,video/quicktime" onChange={(e) => handleVideoUpload(box.key, e)} style={{ display: 'none' }} />
+                        Replace Video
+                      </label>
+                    </div>
+                  ) : (
+                    <label style={{ cursor: 'pointer', display: 'block', marginBottom: '12px', padding: '20px', textAlign: 'center', border: '2px dashed #ddd', borderRadius: '8px', background: '#fafafa' }}>
+                      <input type="file" accept="video/mp4,video/quicktime" onChange={(e) => handleVideoUpload(box.key, e)} style={{ display: 'none' }} />
+                      <span style={{ fontSize: '24px', display: 'block', marginBottom: '6px' }}>🎥</span>
+                      <span style={{ fontSize: '13px', color: '#666', fontWeight: '600' }}>Click to upload video (MP4/MOV)</span>
+                      <span style={{ fontSize: '11px', color: '#999', display: 'block', marginTop: '4px' }}>Max 60s, 100MB</span>
+                    </label>
+                  )}
+                  {/* OPTIONAL DESCRIPTION */}
+                  <textarea
+                    placeholder={`Optional: Add a brief description or context...`}
+                    value={perspective[box.key].description}
+                    onChange={(e) => handleDescriptionChange(box.key, e.target.value)}
+                    style={{ ...styles.input, height: '80px', fontSize: '13px' }}
+                  />
+                </div>
               ) : (
-                <p style={{ fontSize: '13px', color: perspective[box.key].content ? '#333' : '#aaa', minHeight: '60px', margin: '0' }}>
-                  {perspective[box.key].content || `Click "Edit" to add your response...`}
-                </p>
+                <div>
+                  {perspective[box.key].videoUrl ? (
+                    <div>
+                      <video src={perspective[box.key].videoUrl} style={{ width: '100%', borderRadius: '8px', maxHeight: '160px', marginBottom: '12px' }} controls />
+                      {perspective[box.key].description && (
+                        <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>{perspective[box.key].description}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: '13px', color: '#aaa', minHeight: '60px', margin: '0' }}>
+                      Click "Edit" to upload a video perspective...
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           ))}
         </div>
         {editingBox && (
           <button onClick={handleSaveProfile} style={{ ...styles.authButton, width: '100%' }}>
-            {saveStatus || '👍 Save All Changes'}
+            {saveStatus || '🎥 Save Video Perspectives'}
           </button>
         )}
       </section>
 
-      {/* SOCIAL LINKS SECTION */}
+      {/* SOCIAL LINKS SECTION - COMMENTED OUT */}
+      {/* 
       <section style={{ marginBottom: '50px' }}>
         <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Connect Your Social Profiles</h2>
         <div style={styles.dumaCard}>
@@ -339,7 +429,8 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
         </div>
       </section>
 
-      {/* CROSS-PLATFORM SHARING */}
+      {/* CROSS-PLATFORM SHARING - COMMENTED OUT */}
+      {/*
       <section style={{ marginBottom: '50px' }}>
         <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Share to Your Socials</h2>
         <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '30px' }}>
@@ -352,6 +443,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
           <p style={{ fontSize: '11px', color: '#aaa', marginTop: '12px' }}>Full API integration coming soon. Connect your accounts above to get started.</p>
         </div>
       </section>
+      */}
 
       {/* SAVED FORMULAS SECTION */}
       <section>

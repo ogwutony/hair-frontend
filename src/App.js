@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from "react";
+ï»¿import React, { useState, useEffect, useCallback } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation, useParams } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
@@ -198,6 +198,44 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
   const [editingBox, setEditingBox] = useState(null);
   const [saveStatus, setSaveStatus] = useState("");
 
+  autoSaveProfile = useCallback(async (updatedPerspective, updatedAvatar) => {
+    if (!authToken) return;
+    setSaveStatus("Auto-saving...");
+    try {
+      const videoPerspectives = {};
+      const perspectiveData = updatedPerspective || perspective;
+      for (const boxKey in perspectiveData) {
+        if (perspectiveData[boxKey].videoUrl) {
+          videoPerspectives[boxKey] = {
+            videoUrl: perspectiveData[boxKey].videoUrl,
+            description: perspectiveData[boxKey].description
+          };
+        }
+      }
+      const response = await fetch(`${BACKEND_URL}/api/profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          perspective: videoPerspectives,
+          avatar: updatedAvatar || avatarUrl
+        })
+      });
+      if (response.ok) {
+        setSaveStatus("Saved automatically!");
+        setTimeout(() => setSaveStatus(""), 2000);
+      } else {
+        setSaveStatus("Auto-save failed");
+        setTimeout(() => setSaveStatus(""), 3000);
+      }
+    } catch (err) {
+      setSaveStatus("Auto-save error");
+      setTimeout(() => setSaveStatus(""), 3000);
+    }
+  }, [authToken, perspective, avatarUrl]);
+
   const handleAvatarUpload = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -209,7 +247,9 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
         alert('Image must be smaller than 5MB.');
         return;
       }
-      setAvatarUrl(URL.createObjectURL(file));
+      const newUrl = URL.createObjectURL(file);
+      setAvatarUrl(newUrl);
+      autoSaveProfile(null, newUrl);
     }
   };
 
@@ -224,10 +264,45 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
         alert('Video must be smaller than 100MB.');
         return;
       }
-      setPerspective(prev => ({
-        ...prev,
-        [boxKey]: { ...prev[boxKey], videoUrl: URL.createObjectURL(file), videoFile: file }
-      }));
+      const newVideoUrl = URL.createObjectURL(file);
+      const updatedPerspective = {
+        ...perspective,
+        [boxKey]: { ...perspective[boxKey], videoUrl: newVideoUrl, videoFile: file }
+      };
+      setPerspective(updatedPerspective);
+      autoSaveProfile(updatedPerspective, null);
+    }
+  };
+
+  const handleSendToDuma = async (boxKey) => {
+    if (!perspective[boxKey].videoUrl) {
+      alert('Please upload a video first before sending to the Duma.');
+      return;
+    }
+    setDumaSubmitStatus(prev => ({ ...prev, [boxKey]: "Submitting..." }));
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/duma/culture/submit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          boxKey,
+          videoUrl: perspective[boxKey].videoUrl,
+          description: perspective[boxKey].description
+        })
+      });
+      if (response.ok) {
+        setDumaSubmitStatus(prev => ({ ...prev, [boxKey]: "Sent to Duma!" }));
+        setTimeout(() => setDumaSubmitStatus(prev => ({ ...prev, [boxKey]: "" })), 3000);
+      } else {
+        setDumaSubmitStatus(prev => ({ ...prev, [boxKey]: "Submission failed" }));
+        setTimeout(() => setDumaSubmitStatus(prev => ({ ...prev, [boxKey]: "" })), 3000);
+      }
+    } catch (err) {
+      setDumaSubmitStatus(prev => ({ ...prev, [boxKey]: "Error submitting" }));
+      setTimeout(() => setDumaSubmitStatus(prev => ({ ...prev, [boxKey]: "" })), 3000);
     }
   };
 
@@ -239,10 +314,10 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
   };
 
   const boxes = [
-    { key: "box1", label: "Introduce yourself", icon: "👍" },
-    { key: "box2", label: "Tell us what you do", icon: "👍" },
-    { key: "box3", label: "What are your thoughts on what makes someone beautiful?", icon: "❤" },
-    { key: "box4", label: "Ideas about anything else", icon: "👍" }
+    { key: "box1", label: "Introduce yourself", icon: "ð" },
+    { key: "box2", label: "Tell us what you do", icon: "ð" },
+    { key: "box3", label: "What are your thoughts on what makes someone beautiful?", icon: "â¤" },
+    { key: "box4", label: "Ideas about anything else", icon: "ð" }
   ];
 
   const handleSaveProfile = async () => {
@@ -272,13 +347,13 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
         })
       });
       if (response.ok) {
-        setSaveStatus("🎥 Video perspectives saved successfully!");
+        setSaveStatus("ð¥ Culture saved successfully!");
         setTimeout(() => setSaveStatus(""), 3000);
       } else {
-        setSaveStatus("❌ Failed to save profile");
+        setSaveStatus("â Failed to save profile");
       }
     } catch (err) {
-      setSaveStatus("❌ Server error");
+      setSaveStatus("â Server error");
     }
   };
 
@@ -317,14 +392,14 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
               </div>
             ) : (
               <div style={{ padding: '30px', textAlign: 'center' }}>
-                <span style={{ fontSize: '48px', marginBottom: '12px', display: 'block' }}>👤</span>
+                <span style={{ fontSize: '48px', marginBottom: '12px', display: 'block' }}>ð¤</span>
                 <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>No avatar uploaded yet</p>
               </div>
             )}
             <label style={{ cursor: 'pointer', display: 'inline-block' }}>
               <input type="file" accept="image/*" onChange={handleAvatarUpload} style={{ display: 'none' }} />
               <button type="button" style={{ ...styles.authButton, width: '200px' }} onClick={(e) => e.currentTarget.parentElement.querySelector('input').click()}>
-                📷 Upload Avatar (JPG/PNG, max 5MB)
+                ð· Upload Avatar (JPG/PNG, max 5MB)
               </button>
             </label>
           </div>
@@ -333,7 +408,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
 
       {/* PERSPECTIVE BOXES - VIDEO-FIRST (4-BOX LAYOUT) */}
       <section style={{ marginBottom: '50px' }}>
-        <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>🎬 Share Your Video Perspectives</h2>
+        <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>ð¬ Culture</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginBottom: '20px' }}>
           {boxes.map(box => (
             <div key={box.key} style={{...styles.perspectiveBox, border: editingBox === box.key ? '2px solid #222' : '1px solid #eee'}}>
@@ -342,7 +417,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
                 <button
                   onClick={() => setEditingBox(editingBox === box.key ? null : box.key)}
                   style={{ fontSize: '12px', cursor: 'pointer', background: 'none', border: 'none', color: '#2980b9', fontWeight: '600' }}>
-                  {editingBox === box.key ? '❤ Done' : 'Edit'}
+                  {editingBox === box.key ? 'â¤ Done' : 'Edit'}
                 </button>
               </div>
               <h4 style={{ fontSize: '13px', fontWeight: '600', marginBottom: '12px', color: '#222' }}>{box.label}</h4>
@@ -360,7 +435,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
                   ) : (
                     <label style={{ cursor: 'pointer', display: 'block', marginBottom: '12px', padding: '20px', textAlign: 'center', border: '2px dashed #ddd', borderRadius: '8px', background: '#fafafa' }}>
                       <input type="file" accept="video/mp4,video/quicktime" onChange={(e) => handleVideoUpload(box.key, e)} style={{ display: 'none' }} />
-                      <span style={{ fontSize: '24px', display: 'block', marginBottom: '6px' }}>🎥</span>
+                      <span style={{ fontSize: '24px', display: 'block', marginBottom: '6px' }}>ð¥</span>
                       <span style={{ fontSize: '13px', color: '#666', fontWeight: '600' }}>Click to upload video (MP4/MOV)</span>
                       <span style={{ fontSize: '11px', color: '#999', display: 'block', marginTop: '4px' }}>Max 60s, 100MB</span>
                     </label>
@@ -372,6 +447,13 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
                     onChange={(e) => handleDescriptionChange(box.key, e.target.value)}
                     style={{ ...styles.input, height: '80px', fontSize: '13px' }}
                   />
+                  {perspective[box.key].videoUrl && (
+                    <button
+                      onClick={() => handleSendToDuma(box.key)}
+                      style={{ ...styles.authButton, width: '100%', fontSize: '12px', padding: '8px 12px', background: '#8e44ad', marginTop: '8px' }}>
+                      {dumaSubmitStatus[box.key] || "\ud83c\udfdb Send to Duma Culture for Voting"}
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div>
@@ -379,8 +461,13 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
                     <div>
                       <video src={perspective[box.key].videoUrl} style={{ width: '100%', borderRadius: '8px', maxHeight: '160px', marginBottom: '12px' }} controls />
                       {perspective[box.key].description && (
-                        <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>{perspective[box.key].description}</p>
+                        <p style={{ fontSize: '13px', color: '#666', margin: 0, marginBottom: '12px' }}>{perspective[box.key].description}</p>
                       )}
+                      <button
+                        onClick={() => handleSendToDuma(box.key)}
+                        style={{ ...styles.authButton, width: '100%', fontSize: '12px', padding: '8px 12px', background: '#8e44ad', marginTop: '8px' }}>
+                        {dumaSubmitStatus[box.key] || "\ud83c\udfdb Send to Duma Culture for Voting"}
+                      </button>
                     </div>
                   ) : (
                     <p style={{ fontSize: '13px', color: '#aaa', minHeight: '60px', margin: '0' }}>
@@ -394,21 +481,20 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
         </div>
         {editingBox && (
           <button onClick={handleSaveProfile} style={{ ...styles.authButton, width: '100%' }}>
-            {saveStatus || '🎥 Save Video Perspectives'}
+            {saveStatus || 'ð¥ Save Culture'}
           </button>
         )}
       </section>
 
-      {/* SOCIAL LINKS SECTION - COMMENTED OUT */}
-      {/* 
+      {/* SOCIAL LINKS SECTION */}
       <section style={{ marginBottom: '50px' }}>
         <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Connect Your Social Profiles</h2>
         <div style={styles.dumaCard}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
             {[
-              { key: 'instagram', label: '📷 Instagram', placeholder: 'username' },
-              { key: 'tiktok', label: '🎵 TikTok', placeholder: 'username' },
-              { key: 'facebook', label: '👤 Facebook', placeholder: 'facebook.com/yourprofile' },
+              { key: 'instagram', label: 'ð· Instagram', placeholder: 'username' },
+              { key: 'tiktok', label: 'ðµ TikTok', placeholder: 'username' },
+              { key: 'facebook', label: 'ð¤ Facebook', placeholder: 'facebook.com/yourprofile' },
             ].map(social => (
               <div key={social.key}>
                 <label style={{ fontSize: '12px', fontWeight: '600', color: '#222', display: 'block', marginBottom: '6px' }}>
@@ -429,8 +515,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
         </div>
       </section>
 
-      {/* CROSS-PLATFORM SHARING - COMMENTED OUT */}
-      {/*
+      {/* CROSS-PLATFORM SHARING */}
       <section style={{ marginBottom: '50px' }}>
         <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Share to Your Socials</h2>
         <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '30px' }}>
@@ -443,7 +528,6 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
           <p style={{ fontSize: '11px', color: '#aaa', marginTop: '12px' }}>Full API integration coming soon. Connect your accounts above to get started.</p>
         </div>
       </section>
-      */}
 
       {/* SAVED FORMULAS SECTION */}
       <section>
@@ -538,13 +622,13 @@ const ForgotPasswordPage = () => {
       <div style={styles.authContainer}>
         <div style={{ ...styles.authCard, textAlign: 'center' }}>
           <h2>Forgot Password?</h2>
-          <div style={{ fontSize: '48px', margin: '20px 0' }}>👍</div>
+          <div style={{ fontSize: '48px', margin: '20px 0' }}>ð</div>
           <p style={{ color: '#555', lineHeight: '1.6' }}>
             If that email is registered, we've sent a reset link.<br />
             Check your inbox (and spam folder).
           </p>
           <p style={{ color: '#888', fontSize: '13px', marginTop: '10px' }}>
-            The email may have landed in your <strong>spam or junk folder</strong> ❤ please check there if you don't see it in your inbox.
+            The email may have landed in your <strong>spam or junk folder</strong> â¤ please check there if you don't see it in your inbox.
           </p>
           <Link to="/login">
             <button style={{ ...styles.authButton, marginTop: '20px' }}>Back to Sign In</button>
@@ -573,7 +657,7 @@ const ForgotPasswordPage = () => {
           {isLoading ? "Sending..." : "Send Reset Link"}
         </button>
         <Link to="/login" style={{ display: 'block', marginTop: '15px', fontSize: '13px', color: '#666', textDecoration: 'none' }}>
-          ❤ Back to Sign In
+          â¤ Back to Sign In
         </Link>
       </div>
     </div>
@@ -621,7 +705,7 @@ const ResetPasswordPage = () => {
       <div style={styles.authContainer}>
         <div style={{ ...styles.authCard, textAlign: 'center' }}>
           <h2>Password Reset!</h2>
-          <div style={{ fontSize: '48px', margin: '20px 0' }}>❤</div>
+          <div style={{ fontSize: '48px', margin: '20px 0' }}>â¤</div>
           <p style={{ color: '#555' }}>Your password has been updated successfully.</p>
           <p style={{ color: '#888', fontSize: '13px' }}>Redirecting to sign in...</p>
         </div>
@@ -883,7 +967,7 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
         </div>
         <div style={styles.summaryContainer}>
           <h4 style={{ fontSize: '14px', borderBottom: '1px solid #eee', paddingBottom: '10px', marginTop: 0 }}>Your Custom Set ({selectedItems.length}/6)</h4>
-          <div style={{ margin: '10px 0' }}>{selectedItems.map((item, idx) => (<p key={idx} style={{ fontSize: '11px', margin: '4px 0' }}>❤ {item.name}</p>))}</div>
+          <div style={{ margin: '10px 0' }}>{selectedItems.map((item, idx) => (<p key={idx} style={{ fontSize: '11px', margin: '4px 0' }}>â¤ {item.name}</p>))}</div>
           {isSetComplete ? (
             <div style={{ borderTop: '2px solid #222', paddingTop: '15px' }}>
               {!clientSecret ? (
@@ -894,7 +978,7 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
               ) : (
                 <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
                   <CheckoutForm totalPrice={price} onPurchaseSuccess={onPurchaseSuccess} />
-                  <button onClick={() => setClientSecret("")} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '11px', marginTop: '10px' }}>❤ Change Plan</button>
+                  <button onClick={() => setClientSecret("")} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '11px', marginTop: '10px' }}>â¤ Change Plan</button>
                 </Elements>
               )}
             </div>
@@ -932,7 +1016,7 @@ const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken
     }
 
     if (formData.whyRecommend.split(' ').length < 15) {
-      setErrorMsg("Justification must be at least 2❤3 sentences (15+ words).");
+      setErrorMsg("Justification must be at least 2â¤3 sentences (15+ words).");
       return;
     }
 
@@ -973,7 +1057,7 @@ const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken
     return (
       <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
         <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
-          <div style={{ fontSize: '40px', marginBottom: '16px' }}>❤</div>
+          <div style={{ fontSize: '40px', marginBottom: '16px' }}>â¤</div>
           <h2 style={{ marginBottom: '10px' }}>Recommendation Submitted!</h2>
           <p style={{ color: '#666', marginBottom: '20px' }}>Your product recommendation has been sent to The Majority's Duma Commerce section for community review and voting.</p>
           {rankTitle && <RankBadge rankTitle={rankTitle} />}
@@ -1011,7 +1095,7 @@ const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken
 
         <div style={{ marginBottom: '25px' }}>
           <h3 style={{ fontSize: '14px', fontWeight: '700', marginBottom: '15px', textTransform: 'uppercase', color: '#222' }}>3. Justification & Evidence</h3>
-          <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginBottom: '8px' }}>Why Recommend? (2❤3 sentences, focus on results) *</label>
+          <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginBottom: '8px' }}>Why Recommend? (2â¤3 sentences, focus on results) *</label>
           <textarea required placeholder="Good: 'Highly effective for type 4C hair; significantly reduced breakage within 3 weeks of consistent use without heavy buildup.' *" style={{ ...styles.input, height: '100px' }} value={formData.whyRecommend} onChange={e => setFormData({...formData, whyRecommend: e.target.value})} />
 
           <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginTop: '15px', marginBottom: '8px' }}>Upload Product Photo (high-resolution, label must be legible)</label>
@@ -1025,13 +1109,13 @@ const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken
       </form>
 
       <div style={{ ...styles.dumaCard, background: '#f9f9f9', marginTop: '30px' }}>
-        <h3 style={{ marginTop: 0, fontSize: '14px', fontWeight: '700' }}>👍 Before You Submit:</h3>
+        <h3 style={{ marginTop: 0, fontSize: '14px', fontWeight: '700' }}>ð Before You Submit:</h3>
         <ul style={{ fontSize: '13px', color: '#555', lineHeight: '1.8', marginLeft: '20px' }}>
           <li>Verify you are logged in with your profile (displayed above) to ensure points are tracked</li>
           <li>Double-check the Website Link for valid access before submitting</li>
           <li>Ensure product photo label is legible and high-resolution</li>
           <li>Keep video under 60 seconds</li>
-          <li>Justification must be 2❤3 sentences focused on results, not personal opinions</li>
+          <li>Justification must be 2â¤3 sentences focused on results, not personal opinions</li>
         </ul>
       </div>
     </div>
@@ -1185,7 +1269,7 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
     return (
       <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
         <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
-          <div style={{ fontSize: '40px', marginBottom: '16px' }}>👍</div>
+          <div style={{ fontSize: '40px', marginBottom: '16px' }}>ð</div>
           <h2>Partnership Application Submitted!</h2>
           <p style={{ color: '#666' }}>Your partnership application has been sent to The Majority's Duma for review.</p>
           <button style={{ ...styles.authButton, marginTop: '20px', width: 'auto', padding: '12px 24px' }} onClick={() => navigate("/duma")}>View the Duma</button>
@@ -1213,7 +1297,7 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
         <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
           <h3 style={styles.formSectionTitle}>1. CONTACT INFORMATION</h3>
           <p style={{ fontSize: '12px', color: '#666', marginBottom: '14px', fontStyle: 'italic', backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', borderLeft: '3px solid #2980b9' }}>
-            ❤ Contact information will be kept private.
+            â¤ Contact information will be kept private.
           </p>
           <input required placeholder="Full Name *" style={styles.input} 
             value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
@@ -1310,12 +1394,12 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
             </p>
             {formData.standardUnitPrice && (
               <p style={{ fontSize: '12px', color: '#2980b9', margin: 0, fontWeight: '600', backgroundColor: '#e3f2fd', padding: '8px', borderRadius: '4px' }}>
-                👍 Standard: At ${formData.standardUnitPrice}, you'd earn ~${(parseFloat(formData.standardUnitPrice) * 0.75).toFixed(2)} per unit (75%), with The Majority taking ~${(parseFloat(formData.standardUnitPrice) * 0.25).toFixed(2)} (25%)
+                ð Standard: At ${formData.standardUnitPrice}, you'd earn ~${(parseFloat(formData.standardUnitPrice) * 0.75).toFixed(2)} per unit (75%), with The Majority taking ~${(parseFloat(formData.standardUnitPrice) * 0.25).toFixed(2)} (25%)
               </p>
             )}
             {formData.promotionalUnitPrice && (
               <p style={{ fontSize: '12px', color: '#27ae60', margin: '8px 0 0 0', fontWeight: '600', backgroundColor: '#e8f8f5', padding: '8px', borderRadius: '4px' }}>
-                👍 Promotional: At ${formData.promotionalUnitPrice}, you'd earn ~${(parseFloat(formData.promotionalUnitPrice) * 0.75).toFixed(2)} per unit (75%), with The Majority taking ~${(parseFloat(formData.promotionalUnitPrice) * 0.25).toFixed(2)} (25%)
+                ð Promotional: At ${formData.promotionalUnitPrice}, you'd earn ~${(parseFloat(formData.promotionalUnitPrice) * 0.75).toFixed(2)} per unit (75%), with The Majority taking ~${(parseFloat(formData.promotionalUnitPrice) * 0.25).toFixed(2)} (25%)
               </p>
             )}
           </div>
@@ -1432,7 +1516,7 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
     return (
       <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
         <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
-          <div style={{ fontSize: '40px', marginBottom: '16px' }}>👍</div>
+          <div style={{ fontSize: '40px', marginBottom: '16px' }}>ð</div>
           <h2 style={{ marginBottom: '10px' }}>Perspective Shared!</h2>
           <p style={{ color: '#666', marginBottom: '20px' }}>
             Your response has been submitted to The Majority's Culture section and appears in the Duma for community voting.
@@ -1567,13 +1651,13 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '30px' }}>
         <div>
           <h2 style={{ marginBottom: '6px' }}>The Majority's Duma</h2>
-          <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>Community recommendations, partnerships, and cultural contributions ❤ vote to shape The Majority.</p>
+          <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>Community recommendations, partnerships, and cultural contributions â¤ vote to shape The Majority.</p>
         </div>
         {userEmail && rankTitle && <div style={{ textAlign: 'right', minWidth: '250px' }}><CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} /></div>}
       </div>
       <div style={{ display: 'flex', gap: '10px', marginBottom: '30px', borderBottom: '2px solid #eee', paddingBottom: '15px' }}>
-        <button onClick={() => setActiveSection("Culture")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Culture" ? '#222' : '#f5f5f5', color: activeSection === "Culture" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>🎨 Culture ({culturalItems.length})</button>
-        <button onClick={() => setActiveSection("Commerce")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Commerce" ? '#222' : '#f5f5f5', color: activeSection === "Commerce" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>💼 Commerce ({commerceItems.length})</button>
+        <button onClick={() => setActiveSection("Culture")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Culture" ? '#222' : '#f5f5f5', color: activeSection === "Culture" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>ð¨ Culture ({culturalItems.length})</button>
+        <button onClick={() => setActiveSection("Commerce")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Commerce" ? '#222' : '#f5f5f5', color: activeSection === "Commerce" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>ð¼ Commerce ({commerceItems.length})</button>
         {authToken && <button onClick={() => window.location.href = '/culture'} style={{ padding: '10px 20px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', marginLeft: 'auto' }}>+ Share Your Perspective</button>}
       </div>
       
@@ -1585,7 +1669,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
             culturalItems.map(item => (
               <div key={item.id || item._id} style={styles.dumaCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                  <span style={styles.typeTag}>💬 Perspective</span>
+                  <span style={styles.typeTag}>ð¬ Perspective</span>
                   {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
                 </div>
                 {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'bolshevik'} rankScore={null} />}
@@ -1595,16 +1679,16 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                 {authToken && (
                   <div>
                     <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[item.id || item._id] === 'yes' ? 1 : 0.7 }}>👍 Yes</button>
-                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[item.id || item._id] === 'no' ? 1 : 0.7 }}>👍 No</button>
-                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[item.id || item._id] === 'abstain' ? 1 : 0.7 }}>👍 Abstain</button>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[item.id || item._id] === 'yes' ? 1 : 0.7 }}>ð Yes</button>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[item.id || item._id] === 'no' ? 1 : 0.7 }}>ð No</button>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[item.id || item._id] === 'abstain' ? 1 : 0.7 }}>ð Abstain</button>
                     </div>
                     
                     {showScores[item.id || item._id] && (
                       <div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
-                        <p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>👍 Vote Results:</p>
+                        <p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>ð Vote Results:</p>
                         <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
-                          👍 Yes: {item.votes?.yes || 0} | 👍 No: {item.votes?.no || 0} | 👍 Abstain: {item.votes?.abstain || 0}
+                          ð Yes: {item.votes?.yes || 0} | ð No: {item.votes?.no || 0} | ð Abstain: {item.votes?.abstain || 0}
                         </p>
                       </div>
                     )}
@@ -1672,8 +1756,8 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                     {(item.hasPhoto || item.hasVideo) && (
                       <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '12px', borderLeft: '4px solid #9b59b6' }}>
                         <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Media:</h4>
-                        {item.hasPhoto && <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>👍 Product photo included</p>}
-                        {item.hasVideo && <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>👍 Product video included</p>}
+                        {item.hasPhoto && <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>ð Product photo included</p>}
+                        {item.hasVideo && <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>ð Product video included</p>}
                       </div>
                     )}
                     
@@ -1727,17 +1811,17 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                 {authToken && (
                   <div>
                     <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[item.id || item._id] === 'yes' ? 1 : 0.7 }}>👍 Yes</button>
-                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[item.id || item._id] === 'no' ? 1 : 0.7 }}>👍 No</button>
-                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[item.id || item._id] === 'abstain' ? 1 : 0.7 }}>👍 Abstain</button>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[item.id || item._id] === 'yes' ? 1 : 0.7 }}>ð Yes</button>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[item.id || item._id] === 'no' ? 1 : 0.7 }}>ð No</button>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[item.id || item._id] === 'abstain' ? 1 : 0.7 }}>ð Abstain</button>
                     </div>
                     
                     {/* VOTE SCORES - VISIBLE ONLY AFTER VOTING */}
                     {showScores[item.id || item._id] && (
                       <div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
-                        <p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>👍 Vote Results:</p>
+                        <p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>ð Vote Results:</p>
                         <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
-                          👍 Yes: {item.votes?.yes || 0} | 👍 No: {item.votes?.no || 0} | 👍 Abstain: {item.votes?.abstain || 0}
+                          ð Yes: {item.votes?.yes || 0} | ð No: {item.votes?.no || 0} | ð Abstain: {item.votes?.abstain || 0}
                         </p>
                       </div>
                     )}
@@ -1849,7 +1933,7 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
                   whiteSpace: 'nowrap'
                 }}
               >
-                {selectedFollowing.includes(person) ? '❤ ' : ''}{person}
+                {selectedFollowing.includes(person) ? 'â¤ ' : ''}{person}
               </button>
             ))}
           </div>
@@ -1870,7 +1954,7 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
           filteredItems.map(item => (
             <div key={item.id || item._id} style={styles.dumaCard}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                <span style={styles.typeTag}>💬 Perspective</span>
+                <span style={styles.typeTag}>ð¬ Perspective</span>
                 {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
               </div>
               {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'bolshevik'} rankScore={null} />}

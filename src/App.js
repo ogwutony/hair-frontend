@@ -977,8 +977,8 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
             <div style={{ borderTop: '2px solid #222', paddingTop: '15px' }}>
               {!clientSecret ? (
                 <>
-                  <button style={styles.checkoutBtn} onClick={() => initializePayment(30, "one-time")}>Checkout One-Time ($30.00) - 30 pts</button>
-                  <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => initializePayment(25, "subscription")}>Subscribe ($25.00/mo) - {getPointsForPurchase("subscription")} pts</button>
+                  <button style={styles.checkoutBtn} onClick={() => initializePayment(30, "one-time")}>Checkout One-Time ($30.00)</button>
+                  <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => initializePayment(25, "subscription")}>Subscribe ($25.00/mo)</button>
                 </>
               ) : (
                 <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>

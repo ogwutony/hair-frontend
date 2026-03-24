@@ -1,4 +1,4 @@
-Ã¯Â»Â¿import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation, useParams } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
@@ -197,6 +197,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
   });
   const [editingBox, setEditingBox] = useState(null);
   const [saveStatus, setSaveStatus] = useState("");
+  const [dumaSubmitStatus, setDumaSubmitStatus] = useState({});
 
   const autoSaveProfile = useCallback(async (updatedPerspective, updatedAvatar) => {
     if (!authToken) return;
@@ -311,6 +312,10 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
       ...prev,
       [boxKey]: { ...prev[boxKey], description: text }
     }));
+  };
+
+  const handleSocialChange = (key, value) => {
+    setSocialLinks(prev => ({ ...prev, [key]: value }));
   };
 
   const boxes = [

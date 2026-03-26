@@ -24,15 +24,20 @@ app.use(express.json());
 const allowedOrigins = [
   'https://majorityhairsolutions.com',
   'https://www.majorityhairsolutions.com',
+  'https://majority-hair-frontend.vercel.app',
+  'https://majority-hair.vercel.app',
   'http://localhost:3000' // For local development
 ];
+
+// Pattern to allow Vercel preview deployment URLs for this project (team: tonys-projects-36fa64d2)
+const vercelPreviewPattern = /^https:\/\/majority-hair(-frontend)?-[a-z0-9]+-tonys-projects-36fa64d2\.vercel\.app$/;
 
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) === -1) {
+    if (allowedOrigins.indexOf(origin) === -1 && !vercelPreviewPattern.test(origin)) {
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
     }

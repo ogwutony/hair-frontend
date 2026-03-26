@@ -12,7 +12,7 @@ const stripePromise = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY
   : Promise.resolve(null);
 
 // --- 2. BACKEND CONFIGURATION ---
-const BACKEND_URL = "https://hair-backend-2.onrender.com";
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://hair-backend-2.onrender.com";
 
 // --- 3. RANK SYSTEM (40-Tier Dedovshchina Hierarchy) ---
 const RANK_TIERS = [

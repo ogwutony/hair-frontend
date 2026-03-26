@@ -1159,9 +1159,11 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
     unitsOf34Oz: "500",
     desiredOrderQuantity: "",
     pricing5Gallon: "",
-    standardUnitPrice: "6",
+    standardUnitPrice: "5",
     promotionalUnitPrice: "4",
     commission25AgreedTo: false,
+    shippingReturnsAgreed: false,
+    ownershipTitleAgreed: false,
     tier: "National Associate"
   });
   const [errorMsg, setErrorMsg] = useState("");
@@ -1219,6 +1221,14 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
     }
     if (!formData.commission25AgreedTo) {
       setErrorMsg("You must agree to the 25% commission agreement.");
+      return;
+    }
+    if (!formData.shippingReturnsAgreed) {
+      setErrorMsg("You must agree to the Shipping & Returns Policy.");
+      return;
+    }
+    if (!formData.ownershipTitleAgreed) {
+      setErrorMsg("You must agree to the Ownership & Title Policy.");
       return;
     }
 
@@ -1300,7 +1310,7 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
       <h2>Partner with The Majorities</h2>
       <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
-        Apply to become a partner with Majority Hair Solutions and reach our community through The Majorities' marketplace.
+        Apply to become a partner and sell on our marketplace
       </p>
       {userEmail && rankTitle && (
         <div style={{ marginBottom: '20px' }}>
@@ -1371,9 +1381,9 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
           </p>
           
           <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
-            Order Quantity *
+            Fulfillment Quantity *
           </label>
-          <input required placeholder="Order quantity" type="number" min="500" style={styles.input}
+          <input required placeholder="Fulfillment quantity" type="number" min="500" style={styles.input}
             value={formData.desiredOrderQuantity} onChange={e => setFormData({...formData, desiredOrderQuantity: e.target.value})} />
           <p style={{ fontSize: '11px', color: '#999', marginTop: '4px', margin: '4px 0 0 0' }}>Minimum fulfillment of 500 units</p>
           
@@ -1389,22 +1399,28 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
           <h3 style={styles.formSectionTitle}>6. REVENUE AGREEMENT & PRICING</h3>
           
           <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
-            Standard Pricing: Recommended Unit Price to Consumers *
+            One Time Check out: Unit Price to Consumers *
           </label>
           <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', marginTop: 0 }}>
-            Standard unit price (Recommended: $6)
+            One Time unit price (Recommended: $5)
           </p>
-          <input required placeholder="e.g., $6.00" style={styles.input}
+          <input required placeholder="e.g., $5.00" style={styles.input}
             value={formData.standardUnitPrice} onChange={e => setFormData({...formData, standardUnitPrice: e.target.value})} />
           
           <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>
-            Promotional Pricing: Unit Price for Promotions *
+            Subscription Pricing: Unit Price for Promotions *
           </label>
           <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', marginTop: 0 }}>
-            Promotional unit price (Recommended: $4)
+            Subscription unit price (Recommended: $4)
           </p>
           <input required placeholder="e.g., $4.00" style={styles.input}
             value={formData.promotionalUnitPrice} onChange={e => setFormData({...formData, promotionalUnitPrice: e.target.value})} />
+          
+          <div style={{ backgroundColor: '#fff3cd', border: '1px solid #ffc107', padding: '12px 16px', borderRadius: '8px', marginTop: '14px', marginBottom: '4px' }}>
+            <p style={{ fontSize: '13px', color: '#856404', margin: 0, lineHeight: '1.6' }}>
+              <strong>📢 New User Promotion:</strong> New users can make a one-time purchase at the Subscription unit price as an introductory offer.
+            </p>
+          </div>
           
           <div style={{ backgroundColor: '#f5f5f5', padding: '16px', borderRadius: '8px', marginTop: '16px', marginBottom: '14px' }}>
             <p style={{ fontSize: '13px', color: '#333', margin: '0 0 10px 0', lineHeight: '1.6' }}>
@@ -1412,12 +1428,12 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
             </p>
             {formData.standardUnitPrice && (
               <p style={{ fontSize: '12px', color: '#2980b9', margin: 0, fontWeight: '600', backgroundColor: '#e3f2fd', padding: '8px', borderRadius: '4px' }}>
-                👍 Standard: At ${formData.standardUnitPrice}, you'd earn ~${(parseFloat(formData.standardUnitPrice) * 0.75).toFixed(2)} per unit (75%), with The Majorities taking ~${(parseFloat(formData.standardUnitPrice) * 0.25).toFixed(2)} (25%)
+                👍 One Time: At ${formData.standardUnitPrice}, you'd earn ~${(parseFloat(formData.standardUnitPrice) * 0.75).toFixed(2)} per unit (75%), with The Majorities taking ~${(parseFloat(formData.standardUnitPrice) * 0.25).toFixed(2)} (25%)
               </p>
             )}
             {formData.promotionalUnitPrice && (
               <p style={{ fontSize: '12px', color: '#27ae60', margin: '8px 0 0 0', fontWeight: '600', backgroundColor: '#e8f8f5', padding: '8px', borderRadius: '4px' }}>
-                👍 Promotional: At ${formData.promotionalUnitPrice}, you'd earn ~${(parseFloat(formData.promotionalUnitPrice) * 0.75).toFixed(2)} per unit (75%), with The Majorities taking ~${(parseFloat(formData.promotionalUnitPrice) * 0.25).toFixed(2)} (25%)
+                👍 Subscription: At ${formData.promotionalUnitPrice}, you'd earn ~${(parseFloat(formData.promotionalUnitPrice) * 0.75).toFixed(2)} per unit (75%), with The Majorities taking ~${(parseFloat(formData.promotionalUnitPrice) * 0.25).toFixed(2)} (25%)
               </p>
             )}
           </div>
@@ -1427,6 +1443,20 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
               onChange={e => setFormData({...formData, commission25AgreedTo: e.target.checked})}
               style={{ marginTop: '4px', accentColor: '#222', cursor: 'pointer' }} />
             <span>I acknowledge and agree to the 25% commission structure *</span>
+          </label>
+          
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '12px' }}>
+            <input type="checkbox" required checked={formData.shippingReturnsAgreed}
+              onChange={e => setFormData({...formData, shippingReturnsAgreed: e.target.checked})}
+              style={{ marginTop: '4px', accentColor: '#222', cursor: 'pointer' }} />
+            <span>I acknowledge and agree to The Majorities' Shipping & Returns Policy: Partners are responsible for fulfilling orders within the agreed timeframe. Returns and refunds are handled in accordance with platform guidelines, and any disputes will be reviewed by The Majorities' support team. *</span>
+          </label>
+          
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '12px' }}>
+            <input type="checkbox" required checked={formData.ownershipTitleAgreed}
+              onChange={e => setFormData({...formData, ownershipTitleAgreed: e.target.checked})}
+              style={{ marginTop: '4px', accentColor: '#222', cursor: 'pointer' }} />
+            <span>I acknowledge and agree to The Majorities' Ownership & Title Policy: I confirm that I own or have legal rights to sell the listed products, that the products meet all applicable regulations, and that title transfers to the buyer upon delivery. *</span>
           </label>
         </div>
 
@@ -1802,12 +1832,12 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                       <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Revenue & Pricing:</h4>
                       {item.standardUnitPrice && (
                         <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                          <strong>Standard Price:</strong> ${item.standardUnitPrice}
+                          <strong>One Time Price:</strong> ${item.standardUnitPrice}
                         </p>
                       )}
                       {item.promotionalUnitPrice && (
                         <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                          <strong>Promotional Price:</strong> ${item.promotionalUnitPrice}
+                          <strong>Subscription Price:</strong> ${item.promotionalUnitPrice}
                         </p>
                       )}
                       <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
@@ -2067,7 +2097,7 @@ export default function App() {
       <ScrollToTop />
       <div style={styles.pageWrapper}>
         <header style={styles.header}>
-          <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}><div style={styles.logo}>The Majorities Hair Solution</div></Link>
+          <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}><div style={styles.logo}>The Majorities</div></Link>
           <nav style={styles.nav}>
             <Link to="/" style={styles.navLink}>Home</Link>
             {isLoggedIn ? (

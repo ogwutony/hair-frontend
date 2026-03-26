@@ -5,9 +5,9 @@ jest.mock('@stripe/stripe-js', () => ({
   loadStripe: jest.fn(() => Promise.resolve(null)),
 }));
 
-test('renders The Majorities Hair Solution app without crashing', () => {
+test('renders The Majorities app without crashing', () => {
   render(<App />);
-  expect(screen.getAllByText(/The Majorities Hair Solution/i).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/The Majorities/i).length).toBeGreaterThan(0);
 });
 
 test('renders navigation with Home link', () => {

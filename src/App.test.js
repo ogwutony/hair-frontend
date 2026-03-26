@@ -154,7 +154,7 @@ const PartnerPage = () => {
  const handleImageChange = (e) => { if (e.target.files && e.target.files[0]) setImage(URL.createObjectURL(e.target.files[0])); };
  return (
    <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
-     <h2>Partner with The Majority</h2>
+     <h2>Partner with The Majorities</h2>
      <form onSubmit={(e) => { e.preventDefault(); alert("Partner Application Submitted!"); }}>
        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px' }}>
          <div>
@@ -220,7 +220,7 @@ const LegislaturePage = () => {
  };
  return (
    <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
-     <h2 style={{ textAlign: 'center', marginBottom: '40px' }}>The Majority's Legislature</h2>
+     <h2 style={{ textAlign: 'center', marginBottom: '40px' }}>The Majorities' Legislature</h2>
      {submissions.map(sub => (
        <div key={sub.id} style={styles.legislatureCard}>
          <span style={styles.typeTag}>{sub.type}</span>
@@ -328,14 +328,14 @@ export default function App() {
    <Router>
      <div style={styles.pageWrapper}>
        <header style={styles.header}>
-         <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}><div style={styles.logo}>The Majority Hair Solution</div></Link>
+         <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}><div style={styles.logo}>The Majorities Hair Solutions</div></Link>
          <nav style={styles.nav}>
            <Link to="/" style={styles.navLink}>Home</Link>
            {isLoggedIn && (
              <>
                <Link to="/recommend" style={styles.navLink}>Recommend products</Link>
                <Link to="/partner" style={styles.navLink}>Partner</Link>
-               <Link to="/legislature" style={styles.navLink}>The Majority's Legislature</Link>
+               <Link to="/legislature" style={styles.navLink}>The Majorities' Legislature</Link>
                <Link to="/orders" style={styles.navLink}>Orders</Link>
              </>
            )}

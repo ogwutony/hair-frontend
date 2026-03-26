@@ -797,7 +797,7 @@ const LoginPage = ({ onLogin }) => {
   return (
     <div style={styles.authContainer}>
       <div style={{ ...styles.authCard, maxWidth: '420px' }}>
-        <h1 style={{ fontSize: '22px', fontWeight: '700', marginBottom: '4px', letterSpacing: '-0.5px' }}>The Majority</h1>
+        <h1 style={{ fontSize: '22px', fontWeight: '700', marginBottom: '4px', letterSpacing: '-0.5px' }}>The Majorities</h1>
         <p style={{ fontSize: '13px', color: '#888', marginBottom: '24px' }}>Sign in to your account</p>
         {socialError && <div style={{ background: '#fff0f0', color: '#c00', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '16px', textAlign: 'left' }}>{socialError}</div>}
         <button onClick={handleGoogleLogin} style={{ ...styles.socialButton, backgroundColor: '#fff', color: '#222', border: '1px solid #ddd' }}>
@@ -895,6 +895,14 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
   const [clientSecret, setClientSecret] = useState("");
   const [price, setPrice] = useState(0);
   const [purchaseType, setPurchaseType] = useState(null); // "one-time" or "subscription"
+  const MOBILE_BREAKPOINT = 768;
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= MOBILE_BREAKPOINT);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= MOBILE_BREAKPOINT);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   const handleSelect = (slot, item) => {
     setFocusedItem(item);
@@ -957,8 +965,8 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
   );
   
   return (
-    <div style={styles.layout}>
-      <div style={styles.left}>
+    <div style={{ ...styles.layout, flexDirection: isMobile ? 'column' : 'row', padding: isMobile ? '20px 16px' : '20px 60px' }}>
+      <div style={{ ...styles.left, width: isMobile ? '100%' : '70%', paddingRight: isMobile ? 0 : '40px' }}>
         {renderRow("Pick Shampoo 1", "shampoo1", "shampoos")}
         {renderRow("Pick Shampoo 2", "shampoo2", "shampoos")}
         {renderRow("Pick Conditioner 1", "conditioner1", "conditioners")}
@@ -966,7 +974,7 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
         {renderRow("Pick Oil 1", "oil1", "oils")}
         {renderRow("Pick Oil 2", "oil2", "oils")}
       </div>
-      <aside style={styles.right}>
+      <aside style={{ ...styles.right, width: isMobile ? '100%' : '30%', position: isMobile ? 'static' : 'sticky', top: isMobile ? 'auto' : '20px', boxSizing: 'border-box' }}>
         <div style={{ minHeight: '100px', marginBottom: '15px' }}>
           {focusedItem ? (<div><h3>{focusedItem.name}</h3><p style={{ fontSize: '13px', color: '#666' }}>{focusedItem.desc}</p></div>) : <p style={{color: '#888'}}>Select a product</p>}
         </div>
@@ -1064,7 +1072,7 @@ const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken
         <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
           <div style={{ fontSize: '40px', marginBottom: '16px' }}>❤</div>
           <h2 style={{ marginBottom: '10px' }}>Recommendation Submitted!</h2>
-          <p style={{ color: '#666', marginBottom: '20px' }}>Your product recommendation has been sent to The Majority's Duma Commerce section for community review and voting.</p>
+          <p style={{ color: '#666', marginBottom: '20px' }}>Your product recommendation has been sent to The Majorities' Duma Commerce section for community review and voting.</p>
           {rankTitle && <RankBadge rankTitle={rankTitle} />}
           <div style={{ marginTop: '20px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
             <button style={styles.authButton} onClick={() => navigate("/duma")}>View the Duma</button>
@@ -1079,7 +1087,7 @@ const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken
     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
       <h2>Submit Product Recommendation</h2>
       <p style={{ color: '#666', fontSize: '14px', marginBottom: '30px' }}>
-        Submit high-quality, verified hair care products to <strong>The Majority's Duma Commerce</strong> section for community review and voting.
+        Submit high-quality, verified hair care products to <strong>The Majorities' Duma Commerce</strong> section for community review and voting.
       </p>
 
       {userEmail && rankTitle && <div style={{ marginBottom: '20px' }}><CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} /></div>}
@@ -1276,7 +1284,7 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
         <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
           <div style={{ fontSize: '40px', marginBottom: '16px' }}>👍</div>
           <h2>Partnership Application Submitted!</h2>
-          <p style={{ color: '#666' }}>Your partnership application has been sent to The Majority's Duma for review.</p>
+          <p style={{ color: '#666' }}>Your partnership application has been sent to The Majorities' Duma for review.</p>
           <button style={{ ...styles.authButton, marginTop: '20px', width: 'auto', padding: '12px 24px' }} onClick={() => navigate("/duma")}>View the Duma</button>
         </div>
       </div>
@@ -1285,9 +1293,9 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
 
   return (
     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
-      <h2>Partner with The Majority</h2>
+      <h2>Partner with The Majorities</h2>
       <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
-        Apply to become a partner with Majority Hair Solutions and reach our community through The Majority's marketplace.
+        Apply to become a partner with Majority Hair Solutions and reach our community through The Majorities' marketplace.
       </p>
       {userEmail && rankTitle && (
         <div style={{ marginBottom: '20px' }}>
@@ -1395,16 +1403,16 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
           
           <div style={{ backgroundColor: '#f5f5f5', padding: '16px', borderRadius: '8px', marginTop: '16px', marginBottom: '14px' }}>
             <p style={{ fontSize: '13px', color: '#333', margin: '0 0 10px 0', lineHeight: '1.6' }}>
-              <strong>Commission Structure:</strong> The Majority takes a <strong>25%</strong> commission on all partner charges to customers.
+              <strong>Commission Structure:</strong> The Majorities take a <strong>25%</strong> commission on all partner charges to customers.
             </p>
             {formData.standardUnitPrice && (
               <p style={{ fontSize: '12px', color: '#2980b9', margin: 0, fontWeight: '600', backgroundColor: '#e3f2fd', padding: '8px', borderRadius: '4px' }}>
-                👍 Standard: At ${formData.standardUnitPrice}, you'd earn ~${(parseFloat(formData.standardUnitPrice) * 0.75).toFixed(2)} per unit (75%), with The Majority taking ~${(parseFloat(formData.standardUnitPrice) * 0.25).toFixed(2)} (25%)
+                👍 Standard: At ${formData.standardUnitPrice}, you'd earn ~${(parseFloat(formData.standardUnitPrice) * 0.75).toFixed(2)} per unit (75%), with The Majorities taking ~${(parseFloat(formData.standardUnitPrice) * 0.25).toFixed(2)} (25%)
               </p>
             )}
             {formData.promotionalUnitPrice && (
               <p style={{ fontSize: '12px', color: '#27ae60', margin: '8px 0 0 0', fontWeight: '600', backgroundColor: '#e8f8f5', padding: '8px', borderRadius: '4px' }}>
-                👍 Promotional: At ${formData.promotionalUnitPrice}, you'd earn ~${(parseFloat(formData.promotionalUnitPrice) * 0.75).toFixed(2)} per unit (75%), with The Majority taking ~${(parseFloat(formData.promotionalUnitPrice) * 0.25).toFixed(2)} (25%)
+                👍 Promotional: At ${formData.promotionalUnitPrice}, you'd earn ~${(parseFloat(formData.promotionalUnitPrice) * 0.75).toFixed(2)} per unit (75%), with The Majorities taking ~${(parseFloat(formData.promotionalUnitPrice) * 0.25).toFixed(2)} (25%)
               </p>
             )}
           </div>
@@ -1524,7 +1532,7 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
           <div style={{ fontSize: '40px', marginBottom: '16px' }}>👍</div>
           <h2 style={{ marginBottom: '10px' }}>Perspective Shared!</h2>
           <p style={{ color: '#666', marginBottom: '20px' }}>
-            Your response has been submitted to The Majority's Culture section and appears in the Duma for community voting.
+            Your response has been submitted to The Majorities' Culture section and appears in the Duma for community voting.
           </p>
           <p style={{ fontSize: '12px', color: '#888' }}>You earned 1 point!</p>
           {rankTitle && <RankBadge rankTitle={rankTitle} />}
@@ -1655,8 +1663,8 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '30px' }}>
         <div>
-          <h2 style={{ marginBottom: '6px' }}>The Majority's Duma</h2>
-          <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>Community recommendations, partnerships, and cultural contributions ❤ vote to shape The Majority.</p>
+          <h2 style={{ marginBottom: '6px' }}>The Majorities' Duma</h2>
+          <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>Community recommendations, partnerships, and cultural contributions ❤ vote to shape The Majorities.</p>
         </div>
         {userEmail && rankTitle && <div style={{ textAlign: 'right', minWidth: '250px' }}><CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} /></div>}
       </div>
@@ -1798,7 +1806,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                         </p>
                       )}
                       <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                        <strong>Commission:</strong> The Majority takes 25% | Partner receives 75%
+                        <strong>Commission:</strong> The Majorities take 25% | Partner receives 75%
                       </p>
                       <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
                         <strong>Tier:</strong> {item.tier}
@@ -2054,7 +2062,7 @@ export default function App() {
       <ScrollToTop />
       <div style={styles.pageWrapper}>
         <header style={styles.header}>
-          <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}><div style={styles.logo}>The Majority Hair Solution</div></Link>
+          <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}><div style={styles.logo}>The Majorities Hair Solution</div></Link>
           <nav style={styles.nav}>
             <Link to="/" style={styles.navLink}>Home</Link>
             {isLoggedIn ? (

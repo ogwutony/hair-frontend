@@ -990,8 +990,8 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
             <div style={{ borderTop: '2px solid #222', paddingTop: '15px' }}>
               {!clientSecret ? (
                 <>
-                  <button style={styles.checkoutBtn} onClick={() => initializePayment(30, "one-time")}>Checkout One-Time ($30.00)</button>
-                  <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => initializePayment(25, "subscription")}>Subscribe ($25.00/mo)</button>
+                  <button style={styles.checkoutBtn} onClick={() => window.location.href = 'https://buy.stripe.com/bJeeVeaVo260dny4p1c7u02'}>Checkout One-Time ($30.00)</button>
+                  <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => window.location.href = 'https://buy.stripe.com/6oUdRa1kO7qkdnyaNpc7u04'}>Subscribe ($24.00/mo)</button>
                 </>
               ) : (
                 <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>

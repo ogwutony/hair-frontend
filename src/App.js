@@ -162,7 +162,7 @@ const paymentElementOptions = {
 
 const productsData = {
   shampoos: [
-    { name: "Hydrate Shampoo", desc: "Deep moisture for daily cleansing." },
+    { name: "Hydrating Shampoo", desc: "Deep moisture for daily cleansing." },
     { name: "Repair Shampoo", desc: "Strengthens damaged hair." },
     { name: "Clarify Shampoo", desc: "Removes buildup and residue." },
     { name: "Balance Shampoo", desc: "Restores scalp balance." }
@@ -178,6 +178,24 @@ const productsData = {
     { name: "Scalp Oil", desc: "Soothes dry scalp." },
     { name: "Light Oil", desc: "Weightless daily oil." },
     { name: "Nourish Oil", desc: "Deep nourishment." }
+  ],
+  faceScrubs: [
+    { name: "Exfoliating Scrub", desc: "Removes dead skin cells." },
+    { name: "Gentle Scrub", desc: "Mild daily exfoliation." },
+    { name: "Brightening Scrub", desc: "Evens skin tone." },
+    { name: "Deep Clean Scrub", desc: "Unclogs pores deeply." }
+  ],
+  toners: [
+    { name: "Hydrating Toner", desc: "Replenishes moisture after cleansing." },
+    { name: "Clarifying Toner", desc: "Minimises pores and removes residue." },
+    { name: "Soothing Toner", desc: "Calms redness and irritation." },
+    { name: "Brightening Toner", desc: "Boosts radiance and even tone." }
+  ],
+  faceCreams: [
+    { name: "Moisturising Cream", desc: "All-day hydration barrier." },
+    { name: "Night Cream", desc: "Repairs skin while you sleep." },
+    { name: "SPF Day Cream", desc: "Protects against UV damage." },
+    { name: "Anti-Ageing Cream", desc: "Reduces fine lines and wrinkles." }
   ]
 };
 
@@ -891,11 +909,11 @@ const SignupPage = () => {
 // --- LANDING PAGE ---
 function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
   const navigate = useNavigate();
-  const [selection, setSelection] = useState({ shampoo1: null, shampoo2: null, conditioner1: null, conditioner2: null, oil1: null, oil2: null });
+  const [selection, setSelection] = useState([]);
   const [focusedItem, setFocusedItem] = useState(null);
   const [clientSecret, setClientSecret] = useState("");
-  const [price, setPrice] = useState(0);
-  const [purchaseType, setPurchaseType] = useState(null); // "one-time" or "subscription"
+  const [price] = useState(0);
+  const [purchaseType] = useState(null); // "one-time" or "subscription"
   const MOBILE_BREAKPOINT = 768;
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= MOBILE_BREAKPOINT);
 
@@ -909,12 +927,17 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
     return () => { clearTimeout(debounceTimer); window.removeEventListener('resize', handleResize); };
   }, []);
 
-  const handleSelect = (slot, item) => {
+  const handleSelect = (item) => {
     setFocusedItem(item);
-    setSelection(prev => ({ ...prev, [slot]: prev[slot]?.name === item.name ? null : item }));
+    setSelection(prev => {
+      const alreadySelected = prev.some(i => i.name === item.name);
+      if (alreadySelected) return prev.filter(i => i.name !== item.name);
+      if (prev.length >= 6) return prev;
+      return [...prev, item];
+    });
   };
   
-  const selectedItems = Object.values(selection).filter(Boolean);
+  const selectedItems = selection;
   const isSetComplete = selectedItems.length === 6;
   
   // Calculate points based on purchase type
@@ -931,19 +954,6 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
     return 0;
   };
   
-  const initializePayment = async (amt, type) => {
-    setPurchaseType(type);
-    setPrice(amt);
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/create-payment-intent`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: Math.round(amt * 100) }),
-      });
-      const data = await response.json();
-      if (data.clientSecret) setClientSecret(data.clientSecret);
-    } catch (err) { alert("Payment initialization failed."); }
-  };
   
   const onPurchaseSuccess = () => {
     const points = getPointsForPurchase(purchaseType);
@@ -952,14 +962,14 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
     navigate("/orders");
   };
   
-  const renderRow = (label, slot, category) => (
+  const renderRow = (label, category) => (
     <div style={styles.rowSection}>
       <h3 style={styles.rowLabel}>{label}</h3>
       <div style={styles.scrollRow}>
         {productsData[category].map(item => {
-          const isSelected = selection[slot]?.name === item.name;
+          const isSelected = selection.some(i => i.name === item.name);
           return (
-            <div key={item.name} onClick={() => handleSelect(slot, item)} style={{ ...styles.card, border: isSelected ? "2px solid #222" : "1px solid #eee" }}>
+            <div key={item.name} onClick={() => handleSelect(item)} style={{ ...styles.card, border: isSelected ? "2px solid #222" : "1px solid #eee" }}>
               <div style={styles.imagePlaceholder}>{item.name[0]}</div>
               <div style={styles.itemName}>{item.name}</div>
             </div>
@@ -972,12 +982,12 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
   return (
     <div style={{ ...styles.layout, flexDirection: isMobile ? 'column' : 'row', padding: isMobile ? '20px 16px' : '20px 60px' }}>
       <div style={{ ...styles.left, width: isMobile ? '100%' : '70%', paddingRight: isMobile ? 0 : '40px' }}>
-        {renderRow("Pick Shampoo 1", "shampoo1", "shampoos")}
-        {renderRow("Pick Shampoo 2", "shampoo2", "shampoos")}
-        {renderRow("Pick Conditioner 1", "conditioner1", "conditioners")}
-        {renderRow("Pick Conditioner 2", "conditioner2", "conditioners")}
-        {renderRow("Pick Oil 1", "oil1", "oils")}
-        {renderRow("Pick Oil 2", "oil2", "oils")}
+        {renderRow("Pick Shampoos", "shampoos")}
+        {renderRow("Pick Conditioners", "conditioners")}
+        {renderRow("Pick Oils", "oils")}
+        {renderRow("Pick Face Scrubs", "faceScrubs")}
+        {renderRow("Pick Toners", "toners")}
+        {renderRow("Pick Face Creams", "faceCreams")}
       </div>
       <aside style={{ ...styles.right, width: isMobile ? '100%' : '30%', position: isMobile ? 'static' : 'sticky', top: isMobile ? 'auto' : '20px', boxSizing: 'border-box' }}>
         <div style={{ minHeight: '100px', marginBottom: '15px' }}>
@@ -985,7 +995,15 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
         </div>
         <div style={styles.summaryContainer}>
           <h4 style={{ fontSize: '14px', borderBottom: '1px solid #eee', paddingBottom: '10px', marginTop: 0 }}>Your Custom Set ({selectedItems.length}/6)</h4>
-          <div style={{ margin: '10px 0' }}>{selectedItems.map((item, idx) => (<p key={idx} style={{ fontSize: '11px', margin: '4px 0' }}>{item.name}</p>))}</div>
+          <div style={{ margin: '10px 0' }}>
+            {(() => {
+              const counts = {};
+              selectedItems.forEach(item => { counts[item.name] = (counts[item.name] || 0) + 1; });
+              return Object.entries(counts).map(([name, count]) => (
+                <p key={name} style={{ fontSize: '11px', margin: '4px 0' }}>{name}{count > 1 ? ` x${count}` : ''}</p>
+              ));
+            })()}
+          </div>
           {isSetComplete ? (
             <div style={{ borderTop: '2px solid #222', paddingTop: '15px' }}>
               {!clientSecret ? (

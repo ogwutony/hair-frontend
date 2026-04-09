@@ -202,12 +202,15 @@ const productsData = {
 // --- PROFILE PAGE COMPONENT - Enhanced with Photo & Video Features ---
 const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate }) => {
   const [avatarUrl, setAvatarUrl] = useState(null);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarSaveStatus, setAvatarSaveStatus] = useState("idle"); // idle | saving | saved | error
   const [perspective, setPerspective] = useState({
     box1: { videoUrl: null, description: "", videoFile: null },
     box2: { videoUrl: null, description: "", videoFile: null },
     box3: { videoUrl: null, description: "", videoFile: null },
     box4: { videoUrl: null, description: "", videoFile: null }
   });
+  const [videoSaveStatus, setVideoSaveStatus] = useState({}); // { box1: "idle"|"saving"|"saved"|"error" }
   const [socialLinks, setSocialLinks] = useState({
     instagram: "",
     tiktok: "",
@@ -216,7 +219,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   const [editingBox, setEditingBox] = useState(null);
   const [saveStatus, setSaveStatus] = useState("");
   const [dumaSubmitStatus, setDumaSubmitStatus] = useState({});
-  const [socialSaveStatus, setSocialSaveStatus] = useState("idle");
+  const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", facebook: "idle" });
   const [anyVideoPushed, setAnyVideoPushed] = useState(false);
 
   useEffect(() => {
@@ -245,65 +248,26 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     setSocialLinks(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleSaveSocialLinks = async () => {
+  const handleSaveSocialLink = async (key) => {
     if (!authToken) return;
-    setSocialSaveStatus("saving");
+    setSocialSaveStatus(prev => ({ ...prev, [key]: "saving" }));
     try {
       const response = await fetch(`${BACKEND_URL}/api/profile`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify({ socialLinks })
+        body: JSON.stringify({ socialLinks: { [key]: socialLinks[key] } })
       });
       if (response.ok) {
-        setSocialSaveStatus("saved");
-        setTimeout(() => setSocialSaveStatus("idle"), 3000);
+        setSocialSaveStatus(prev => ({ ...prev, [key]: "saved" }));
       } else {
-        setSocialSaveStatus("error");
-        setTimeout(() => setSocialSaveStatus("idle"), 3000);
+        setSocialSaveStatus(prev => ({ ...prev, [key]: "error" }));
+        setTimeout(() => setSocialSaveStatus(prev => ({ ...prev, [key]: "idle" })), 3000);
       }
-    } catch (err) {
-      setSocialSaveStatus("error");
-      setTimeout(() => setSocialSaveStatus("idle"), 3000);
+    } catch {
+      setSocialSaveStatus(prev => ({ ...prev, [key]: "error" }));
+      setTimeout(() => setSocialSaveStatus(prev => ({ ...prev, [key]: "idle" })), 3000);
     }
   };
-
-  const autoSaveProfile = useCallback(async (updatedPerspective, updatedAvatar) => {
-    if (!authToken) return;
-    setSaveStatus("Auto-saving...");
-    try {
-      const videoPerspectives = {};
-      const perspectiveData = updatedPerspective || perspective;
-      for (const boxKey in perspectiveData) {
-        if (perspectiveData[boxKey].videoUrl) {
-          videoPerspectives[boxKey] = {
-            videoUrl: perspectiveData[boxKey].videoUrl,
-            description: perspectiveData[boxKey].description
-          };
-        }
-      }
-      const response = await fetch(`${BACKEND_URL}/api/profile`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`
-        },
-        body: JSON.stringify({
-          perspective: videoPerspectives,
-          avatar: updatedAvatar || avatarUrl
-        })
-      });
-      if (response.ok) {
-        setSaveStatus("Saved automatically!");
-        setTimeout(() => setSaveStatus(""), 2000);
-      } else {
-        setSaveStatus("Auto-save failed");
-        setTimeout(() => setSaveStatus(""), 3000);
-      }
-    } catch (err) {
-      setSaveStatus("Auto-save error");
-      setTimeout(() => setSaveStatus(""), 3000);
-    }
-  }, [authToken, perspective, avatarUrl]);
 
   const handleAvatarUpload = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -316,10 +280,45 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         alert('Image must be smaller than 5MB.');
         return;
       }
-      const newUrl = URL.createObjectURL(file);
-      setAvatarUrl(newUrl);
-      if (onAvatarUpdate) onAvatarUpdate(newUrl);
-      autoSaveProfile(null, newUrl);
+      if (avatarUrl && avatarUrl.startsWith('blob:')) URL.revokeObjectURL(avatarUrl);
+      const previewUrl = URL.createObjectURL(file);
+      setAvatarUrl(previewUrl);
+      setAvatarFile(file);
+      setAvatarSaveStatus("idle");
+    }
+  };
+
+  const handleSaveAvatar = async () => {
+    if (!avatarFile || !authToken) return;
+    setAvatarSaveStatus("saving");
+    try {
+      const formData = new FormData();
+      formData.append("file", avatarFile);
+      formData.append("type", "avatar");
+      const uploadRes = await fetch(`${BACKEND_URL}/api/media/upload`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${authToken}` },
+        body: formData
+      });
+      const uploadData = uploadRes.ok ? await uploadRes.json() : null;
+      const savedUrl = uploadData?.url || avatarUrl;
+      const profileRes = await fetch(`${BACKEND_URL}/api/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ avatar: savedUrl })
+      });
+      if (profileRes.ok) {
+        setAvatarUrl(savedUrl);
+        if (onAvatarUpdate) onAvatarUpdate(savedUrl);
+        setAvatarFile(null);
+        setAvatarSaveStatus("saved");
+      } else {
+        setAvatarSaveStatus("error");
+        setTimeout(() => setAvatarSaveStatus("idle"), 3000);
+      }
+    } catch {
+      setAvatarSaveStatus("error");
+      setTimeout(() => setAvatarSaveStatus("idle"), 3000);
     }
   };
 
@@ -343,14 +342,63 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
           alert('Video must be 60 seconds or less.');
           return;
         }
-        const updatedPerspective = {
-          ...perspective,
-          [boxKey]: { ...perspective[boxKey], videoUrl: objectUrl, videoFile: file }
-        };
-        setPerspective(updatedPerspective);
-        autoSaveProfile(updatedPerspective, null);
+        setPerspective(prev => {
+          if (prev[boxKey].videoUrl && prev[boxKey].videoUrl.startsWith('blob:')) {
+            URL.revokeObjectURL(prev[boxKey].videoUrl);
+          }
+          return { ...prev, [boxKey]: { ...prev[boxKey], videoUrl: objectUrl, videoFile: file } };
+        });
+        setVideoSaveStatus(prev => ({ ...prev, [boxKey]: "idle" }));
       };
       videoEl.src = objectUrl;
+    }
+  };
+
+  const handleSaveVideo = async (boxKey) => {
+    if (!perspective[boxKey].videoFile || !authToken) return;
+    setVideoSaveStatus(prev => ({ ...prev, [boxKey]: "saving" }));
+    try {
+      const formData = new FormData();
+      formData.append("file", perspective[boxKey].videoFile);
+      formData.append("type", "video");
+      formData.append("boxKey", boxKey);
+      const uploadRes = await fetch(`${BACKEND_URL}/api/media/upload`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${authToken}` },
+        body: formData
+      });
+      const uploadData = uploadRes.ok ? await uploadRes.json() : null;
+      const savedVideoUrl = uploadData?.url || perspective[boxKey].videoUrl;
+      const updatedPerspective = {
+        ...perspective,
+        [boxKey]: { ...perspective[boxKey], videoUrl: savedVideoUrl }
+      };
+      const videoPerspectives = {};
+      for (const key in updatedPerspective) {
+        if (updatedPerspective[key].videoUrl) {
+          videoPerspectives[key] = {
+            videoUrl: updatedPerspective[key].videoUrl,
+            description: updatedPerspective[key].description
+          };
+        }
+      }
+      const profileRes = await fetch(`${BACKEND_URL}/api/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ perspective: videoPerspectives })
+      });
+      if (profileRes.ok) {
+        setPerspective(updatedPerspective);
+        if (onAddPoints) onAddPoints(100);
+        setAnyVideoPushed(true);
+        setVideoSaveStatus(prev => ({ ...prev, [boxKey]: "saved" }));
+      } else {
+        setVideoSaveStatus(prev => ({ ...prev, [boxKey]: "error" }));
+        setTimeout(() => setVideoSaveStatus(prev => ({ ...prev, [boxKey]: "idle" })), 3000);
+      }
+    } catch {
+      setVideoSaveStatus(prev => ({ ...prev, [boxKey]: "error" }));
+      setTimeout(() => setVideoSaveStatus(prev => ({ ...prev, [boxKey]: "idle" })), 3000);
     }
   };
 
@@ -487,12 +535,30 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                 <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>No avatar uploaded yet</p>
               </div>
             )}
-            <label style={{ cursor: 'pointer', display: 'inline-block' }}>
-              <input type="file" accept="image/jpeg,image/png" onChange={handleAvatarUpload} style={{ display: 'none' }} />
-              <button type="button" style={{ ...styles.authButton, width: '200px' }} onClick={(e) => e.currentTarget.parentElement.querySelector('input').click()}>
-                Upload Avatar (JPG/PNG, max 5MB)
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <label style={{ cursor: 'pointer', display: 'inline-block' }}>
+                <input type="file" accept="image/jpeg,image/png" onChange={handleAvatarUpload} style={{ display: 'none' }} />
+                <button type="button" style={{ ...styles.authButton, width: '200px' }} onClick={(e) => e.currentTarget.parentElement.querySelector('input').click()}>
+                  Upload Avatar (JPG/PNG, max 5MB)
+                </button>
+              </label>
+              <button
+                type="button"
+                disabled={!avatarFile || avatarSaveStatus === "saving" || avatarSaveStatus === "saved"}
+                onClick={handleSaveAvatar}
+                style={(() => {
+                  const isDisabled = !avatarFile || avatarSaveStatus === "saving" || avatarSaveStatus === "saved";
+                  return {
+                    ...styles.authButton,
+                    width: '160px',
+                    backgroundColor: avatarSaveStatus === "saved" ? '#27ae60' : avatarSaveStatus === "error" ? '#e74c3c' : undefined,
+                    opacity: isDisabled ? 0.6 : 1,
+                    cursor: isDisabled ? 'not-allowed' : 'pointer'
+                  };
+                })()}>
+                {avatarSaveStatus === "saving" ? "Saving..." : avatarSaveStatus === "saved" ? "✓ Saved" : avatarSaveStatus === "error" ? "Failed — Retry" : "Save Profile Photo"}
               </button>
-            </label>
+            </div>
           </div>
         </div>
       </section>
@@ -538,6 +604,26 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                     onChange={(e) => handleDescriptionChange(box.key, e.target.value)}
                     style={{ ...styles.input, height: '80px', fontSize: '13px' }}
                   />
+                  {perspective[box.key].videoFile && (() => {
+                    const isVideoSaveDisabled = videoSaveStatus[box.key] === "saving" || videoSaveStatus[box.key] === "saved";
+                    return (
+                      <button
+                        disabled={isVideoSaveDisabled}
+                        onClick={() => handleSaveVideo(box.key)}
+                        style={{
+                          ...styles.authButton,
+                          width: '100%',
+                          fontSize: '12px',
+                          padding: '8px 12px',
+                          marginTop: '8px',
+                          backgroundColor: videoSaveStatus[box.key] === "saved" ? '#27ae60' : videoSaveStatus[box.key] === "error" ? '#e74c3c' : '#2c3e50',
+                          opacity: isVideoSaveDisabled ? 0.7 : 1,
+                          cursor: isVideoSaveDisabled ? 'not-allowed' : 'pointer'
+                        }}>
+                        {videoSaveStatus[box.key] === "saving" ? "Saving..." : videoSaveStatus[box.key] === "saved" ? "✓ Video Published" : videoSaveStatus[box.key] === "error" ? "Failed — Retry" : "Save & Publish (+100 pts)"}
+                      </button>
+                    );
+                  })()}
                   {perspective[box.key].videoUrl && (
                     <button
                       onClick={() => handleSendToDuma(box.key)}
@@ -553,6 +639,9 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                       <video src={perspective[box.key].videoUrl} style={{ width: '100%', borderRadius: '8px', maxHeight: '160px', marginBottom: '12px' }} controls />
                       {perspective[box.key].description && (
                         <p style={{ fontSize: '13px', color: '#666', margin: 0, marginBottom: '12px' }}>{perspective[box.key].description}</p>
+                      )}
+                      {videoSaveStatus[box.key] === "saved" && (
+                        <p style={{ fontSize: '12px', color: '#27ae60', fontWeight: '600', marginBottom: '6px' }}>✓ Video Published</p>
                       )}
                       <button
                         onClick={() => handleSendToDuma(box.key)}
@@ -583,8 +672,8 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         <div style={styles.dumaCard}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
             {[
-              { key: 'instagram', label: '\u{1F4F7} Instagram', placeholder: 'username' },
-              { key: 'tiktok', label: '\u{1F3B5} TikTok', placeholder: 'username' },
+              { key: 'instagram', label: '\u{1F4F7} Instagram', placeholder: 'instagram.com/yourprofile' },
+              { key: 'tiktok', label: '\u{1F3B5} TikTok', placeholder: 'tiktok.com/@yourprofile' },
               { key: 'facebook', label: 'Facebook', placeholder: 'facebook.com/yourprofile' },
             ].map(social => (
               <div key={social.key}>
@@ -595,23 +684,33 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                   type="text"
                   placeholder={social.placeholder}
                   value={socialLinks[social.key]}
-                  onChange={(e) => handleSocialChange(social.key, e.target.value)}
-                  style={{ ...styles.input, margin: 0 }} />
+                  onChange={(e) => {
+                    handleSocialChange(social.key, e.target.value);
+                    if (socialSaveStatus[social.key] === "saved") {
+                      setSocialSaveStatus(prev => ({ ...prev, [social.key]: "idle" }));
+                    }
+                  }}
+                  style={{ ...styles.input, margin: 0, marginBottom: '6px' }} />
+                <button
+                  onClick={() => handleSaveSocialLink(social.key)}
+                  disabled={socialSaveStatus[social.key] === "saving" || socialSaveStatus[social.key] === "saved" || !socialLinks[social.key]}
+                  style={(() => {
+                    const isSocialSaveDisabled = socialSaveStatus[social.key] === "saving" || socialSaveStatus[social.key] === "saved" || !socialLinks[social.key];
+                    return {
+                      ...styles.authButton,
+                      width: '100%',
+                      fontSize: '11px',
+                      padding: '6px 10px',
+                      backgroundColor: socialSaveStatus[social.key] === "saved" ? '#27ae60' : socialSaveStatus[social.key] === "error" ? '#e74c3c' : undefined,
+                      opacity: isSocialSaveDisabled ? 0.6 : 1,
+                      cursor: isSocialSaveDisabled ? 'not-allowed' : 'pointer'
+                    };
+                  })()}>
+                  {socialSaveStatus[social.key] === "saving" ? "Saving..." : socialSaveStatus[social.key] === "saved" ? "✓ Linked" : socialSaveStatus[social.key] === "error" ? "Failed — Retry" : "Save"}
+                </button>
               </div>
             ))}
           </div>
-          <button
-            onClick={handleSaveSocialLinks}
-            disabled={socialSaveStatus === "saving"}
-            style={{
-              ...styles.authButton,
-              marginTop: '15px',
-              width: '100%',
-              ...(socialSaveStatus === "saved" ? { backgroundColor: '#27ae60' } : {}),
-              ...(socialSaveStatus === "error" ? { backgroundColor: '#e74c3c' } : {}),
-            }}>
-            {socialSaveStatus === "saving" ? "Saving..." : socialSaveStatus === "saved" ? "\u2713 Saved" : socialSaveStatus === "error" ? "Failed \u2014 Try Again" : "Save Social Links"}
-          </button>
         </div>
       </section>
 

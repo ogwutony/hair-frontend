@@ -200,7 +200,7 @@ const productsData = {
 };
 
 // --- PROFILE PAGE COMPONENT - Enhanced with Photo & Video Features ---
-const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) => {
+const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate }) => {
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [perspective, setPerspective] = useState({
     box1: { videoUrl: null, description: "", videoFile: null },
@@ -216,9 +216,55 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
   const [editingBox, setEditingBox] = useState(null);
   const [saveStatus, setSaveStatus] = useState("");
   const [dumaSubmitStatus, setDumaSubmitStatus] = useState({});
+  const [socialSaveStatus, setSocialSaveStatus] = useState("idle");
+  const [anyVideoPushed, setAnyVideoPushed] = useState(false);
+
+  useEffect(() => {
+    if (!authToken) return;
+    fetch(`${BACKEND_URL}/api/profile`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    }).then(r => { if (!r.ok) throw new Error('Failed to fetch profile'); return r.json(); }).then(data => {
+      if (data.avatar) {
+        setAvatarUrl(data.avatar);
+        if (onAvatarUpdate) onAvatarUpdate(data.avatar);
+      }
+      if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
+      if (data.perspective) {
+        setPerspective(prev => {
+          const updated = { ...prev };
+          for (const key in data.perspective) {
+            if (updated[key]) updated[key] = { ...updated[key], ...data.perspective[key] };
+          }
+          return updated;
+        });
+      }
+    }).catch(() => {});
+  }, [authToken, onAvatarUpdate]);
 
   const handleSocialChange = (key, value) => {
     setSocialLinks(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSaveSocialLinks = async () => {
+    if (!authToken) return;
+    setSocialSaveStatus("saving");
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ socialLinks })
+      });
+      if (response.ok) {
+        setSocialSaveStatus("saved");
+        setTimeout(() => setSocialSaveStatus("idle"), 3000);
+      } else {
+        setSocialSaveStatus("error");
+        setTimeout(() => setSocialSaveStatus("idle"), 3000);
+      }
+    } catch (err) {
+      setSocialSaveStatus("error");
+      setTimeout(() => setSocialSaveStatus("idle"), 3000);
+    }
   };
 
   const autoSaveProfile = useCallback(async (updatedPerspective, updatedAvatar) => {
@@ -262,8 +308,8 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
   const handleAvatarUpload = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-        alert('Please upload a valid image (JPG, PNG, WEBP).');
+      if (!['image/jpeg', 'image/png'].includes(file.type)) {
+        alert('Please upload a JPG or PNG image only.');
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
@@ -272,6 +318,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
       }
       const newUrl = URL.createObjectURL(file);
       setAvatarUrl(newUrl);
+      if (onAvatarUpdate) onAvatarUpdate(newUrl);
       autoSaveProfile(null, newUrl);
     }
   };
@@ -287,13 +334,23 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
         alert('Video must be smaller than 100MB.');
         return;
       }
-      const newVideoUrl = URL.createObjectURL(file);
-      const updatedPerspective = {
-        ...perspective,
-        [boxKey]: { ...perspective[boxKey], videoUrl: newVideoUrl, videoFile: file }
+      const objectUrl = URL.createObjectURL(file);
+      const videoEl = document.createElement('video');
+      videoEl.preload = 'metadata';
+      videoEl.onloadedmetadata = () => {
+        if (videoEl.duration > 60) {
+          URL.revokeObjectURL(objectUrl);
+          alert('Video must be 60 seconds or less.');
+          return;
+        }
+        const updatedPerspective = {
+          ...perspective,
+          [boxKey]: { ...perspective[boxKey], videoUrl: objectUrl, videoFile: file }
+        };
+        setPerspective(updatedPerspective);
+        autoSaveProfile(updatedPerspective, null);
       };
-      setPerspective(updatedPerspective);
-      autoSaveProfile(updatedPerspective, null);
+      videoEl.src = objectUrl;
     }
   };
 
@@ -318,6 +375,8 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
       });
       if (response.ok) {
         setDumaSubmitStatus(prev => ({ ...prev, [boxKey]: "Sent to Duma!" }));
+        setAnyVideoPushed(true);
+        if (onAddPoints) onAddPoints(100);
         setTimeout(() => setDumaSubmitStatus(prev => ({ ...prev, [boxKey]: "" })), 3000);
       } else {
         setDumaSubmitStatus(prev => ({ ...prev, [boxKey]: "Submission failed" }));
@@ -383,6 +442,15 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
   const pointsToNextRank = getPointsToNextRank(rankScore || 1, rankTitle || 'Batky');
   const nextRankTitle = getNextRankTitle(rankTitle || 'Batky');
 
+  const handleSocialShare = (platform, username) => {
+    if (!username) {
+      alert(`Connect your ${platform} account first in Social Links above.`);
+      return;
+    }
+    const label = platform === 'Facebook' ? platform : `${platform} @${username}`;
+    alert(`Your perspective will be shared to ${label}.`);
+  };
+
   return (
     <div style={{ padding: '40px 60px', maxWidth: '1000px', margin: '0 auto' }}>
       {/* HEADER SECTION */}
@@ -420,7 +488,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
               </div>
             )}
             <label style={{ cursor: 'pointer', display: 'inline-block' }}>
-              <input type="file" accept="image/*" onChange={handleAvatarUpload} style={{ display: 'none' }} />
+              <input type="file" accept="image/jpeg,image/png" onChange={handleAvatarUpload} style={{ display: 'none' }} />
               <button type="button" style={{ ...styles.authButton, width: '200px' }} onClick={(e) => e.currentTarget.parentElement.querySelector('input').click()}>
                 Upload Avatar (JPG/PNG, max 5MB)
               </button>
@@ -532,8 +600,17 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
               </div>
             ))}
           </div>
-          <button onClick={handleSaveProfile} style={{ ...styles.authButton, marginTop: '15px', width: '100%' }}>
-            Save Social Links
+          <button
+            onClick={handleSaveSocialLinks}
+            disabled={socialSaveStatus === "saving"}
+            style={{
+              ...styles.authButton,
+              marginTop: '15px',
+              width: '100%',
+              ...(socialSaveStatus === "saved" ? { backgroundColor: '#27ae60' } : {}),
+              ...(socialSaveStatus === "error" ? { backgroundColor: '#e74c3c' } : {}),
+            }}>
+            {socialSaveStatus === "saving" ? "Saving..." : socialSaveStatus === "saved" ? "✓ Saved" : socialSaveStatus === "error" ? "Failed — Try Again" : "Save Social Links"}
           </button>
         </div>
       </section>
@@ -543,10 +620,28 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken }) 
         <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Share to Your Socials</h2>
         <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '30px' }}>
           <p style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>Push your latest Perspective video to your connected social accounts</p>
+          {!anyVideoPushed && (
+            <p style={{ fontSize: '13px', color: '#aaa', marginBottom: '16px', fontStyle: 'italic' }}>Save & publish a Culture video above to unlock sharing.</p>
+          )}
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button onClick={() => { if (socialLinks.instagram) { alert("Your perspective will be shared to Instagram @" + socialLinks.instagram); } else { alert("Connect your Instagram account first in Social Links above."); }}} style={{ ...styles.socialButton, maxWidth: '180px', background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)', color: '#fff', border: 'none' }}>Share to Instagram</button>
-            <button onClick={() => { if (socialLinks.tiktok) { alert("Your perspective will be shared to TikTok @" + socialLinks.tiktok); } else { alert("Connect your TikTok account first in Social Links above."); }}} style={{ ...styles.socialButton, maxWidth: '180px', background: '#000', color: '#fff', border: 'none' }}>Share to TikTok</button>
-            <button onClick={() => { if (socialLinks.facebook) { alert("Your perspective will be shared to Facebook."); } else { alert("Connect your Facebook account first in Social Links above."); }}} style={{ ...styles.socialButton, maxWidth: '180px', background: '#1877F2', color: '#fff', border: 'none' }}>Share to Facebook</button>
+            <button
+              disabled={!anyVideoPushed}
+              onClick={() => handleSocialShare('Instagram', socialLinks.instagram)}
+              style={{ ...styles.socialButton, maxWidth: '180px', background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)', color: '#fff', border: 'none', opacity: anyVideoPushed ? 1 : 0.4, cursor: anyVideoPushed ? 'pointer' : 'not-allowed' }}>
+              Share to Instagram
+            </button>
+            <button
+              disabled={!anyVideoPushed}
+              onClick={() => handleSocialShare('TikTok', socialLinks.tiktok)}
+              style={{ ...styles.socialButton, maxWidth: '180px', background: '#000', color: '#fff', border: 'none', opacity: anyVideoPushed ? 1 : 0.4, cursor: anyVideoPushed ? 'pointer' : 'not-allowed' }}>
+              Share to TikTok
+            </button>
+            <button
+              disabled={!anyVideoPushed}
+              onClick={() => handleSocialShare('Facebook', socialLinks.facebook)}
+              style={{ ...styles.socialButton, maxWidth: '180px', background: '#1877F2', color: '#fff', border: 'none', opacity: anyVideoPushed ? 1 : 0.4, cursor: anyVideoPushed ? 'pointer' : 'not-allowed' }}>
+              Share to Facebook
+            </button>
           </div>
           <p style={{ fontSize: '11px', color: '#aaa', marginTop: '12px' }}>Full API integration coming soon. Connect your accounts above to get started.</p>
         </div>
@@ -2044,6 +2139,7 @@ export default function App() {
   const [rankTitle, setRankTitle] = useState("bolshevik");
   const [rankScore, setRankScore] = useState(1);
   const [savedSets, setSavedSets] = useState([]);
+  const [userAvatar, setUserAvatar] = useState("");
   const [dumaItems, setDumaItems] = useState([{ id: 1, type: "Partner", company: "EcoHair Labs", product: "Silk Serum", desc: "Organic serum for hair.", section: "Commerce", submitterRank: "bolshevik" }]);
   const [following, setFollowing] = useState([]);
   const [networkGrowth, setNetworkGrowth] = useState(0);
@@ -2155,7 +2251,7 @@ export default function App() {
           <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} />} />
           <Route path="/perspectives" element={<PerspectivesPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} following={following} onFollowUser={followUser} onUnfollowUser={unfollowUser} onAddPoints={addPoints} />} />
           <Route path="/legislature" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} />} />
-          <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} />} />
+          <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={setUserAvatar} />} />
           <Route path="/orders" element={<div style={{ padding: '60px', textAlign: 'center' }}><h2>Payment Received!</h2><p>Your custom hair set is being prepared. Check your Profile to see your formula.</p><Link to="/profile">Go to Profile</Link></div>} />
         </Routes>
       </div>

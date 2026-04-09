@@ -396,10 +396,10 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   };
 
   const boxes = [
-    { key: "box1", label: "Introduce yourself", icon: "" },
-    { key: "box2", label: "Tell us what you do", icon: "" },
-    { key: "box3", label: "What are your thoughts on what makes someone beautiful?", icon: "" },
-    { key: "box4", label: "Ideas about anything else", icon: "" }
+    { key: "box1", label: "Introduce yourself", icon: "\u{1F3AC}" },
+    { key: "box2", label: "Tell us what you do", icon: "\u{1F3AC}" },
+    { key: "box3", label: "What are your thoughts on what makes someone beautiful?", icon: "\u{1F3AC}" },
+    { key: "box4", label: "Ideas about anything else", icon: "\u{1F3AC}" }
   ];
 
   const handleSaveProfile = async () => {
@@ -483,7 +483,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
               </div>
             ) : (
               <div style={{ padding: '30px', textAlign: 'center' }}>
-                <span style={{ fontSize: '48px', marginBottom: '12px', display: 'block' }}></span>
+                <span style={{ fontSize: '48px', marginBottom: '12px', display: 'block' }}>{"\u{1F464}"}</span>
                 <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>No avatar uploaded yet</p>
               </div>
             )}
@@ -583,8 +583,8 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         <div style={styles.dumaCard}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
             {[
-              { key: 'instagram', label: 'Instagram', placeholder: 'username' },
-              { key: 'tiktok', label: 'TikTok', placeholder: 'username' },
+              { key: 'instagram', label: '\u{1F4F7} Instagram', placeholder: 'username' },
+              { key: 'tiktok', label: '\u{1F3B5} TikTok', placeholder: 'username' },
               { key: 'facebook', label: 'Facebook', placeholder: 'facebook.com/yourprofile' },
             ].map(social => (
               <div key={social.key}>
@@ -610,7 +610,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
               ...(socialSaveStatus === "saved" ? { backgroundColor: '#27ae60' } : {}),
               ...(socialSaveStatus === "error" ? { backgroundColor: '#e74c3c' } : {}),
             }}>
-            {socialSaveStatus === "saving" ? "Saving..." : socialSaveStatus === "saved" ? "✓ Saved" : socialSaveStatus === "error" ? "Failed — Try Again" : "Save Social Links"}
+            {socialSaveStatus === "saving" ? "Saving..." : socialSaveStatus === "saved" ? "\u2713 Saved" : socialSaveStatus === "error" ? "Failed \u2014 Try Again" : "Save Social Links"}
           </button>
         </div>
       </section>

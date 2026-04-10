@@ -7,11 +7,24 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const axios = require('axios');
 const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
 require('dotenv').config();
 
 // Validate critical environment variables
 if (!process.env.STRIPE_SECRET_KEY) {
   console.warn("⚠️ WARNING: STRIPE_SECRET_KEY is not defined in .env");
+}
+
+// Cloudinary Configuration
+if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+  });
+  console.log("✅ Cloudinary configured");
+} else {
+  console.warn("⚠️ WARNING: Cloudinary credentials missing (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET)");
 }
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -29,8 +42,8 @@ const allowedOrigins = [
   'http://localhost:3000' // For local development
 ];
 
-// Pattern to allow Vercel preview deployment URLs for this project (team: tonys-projects-36fa64d2)
-const vercelPreviewPattern = /^https:\/\/majority-hair(-frontend)?-[a-z0-9]+-tonys-projects-36fa64d2\.vercel\.app$/;
+// Pattern to allow any Vercel preview deployment URL for this project
+const vercelPreviewPattern = /^https:\/\/majority-hair-frontend-[a-z0-9-]+\.vercel\.app$/;
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -193,6 +206,7 @@ const userSchema = new mongoose.Schema({
   rank_score:       { type: Number, default: 1 },   // BigInt-scale (up to 10,000,000)
   rank_title:       { type: String, default: 'bolshevik' },
   rank_rewards_sent: { type: [String], default: [] }, // Track which ranks already rewarded
+  avatarUrl:        { type: String, default: null },  // Profile picture URL (Cloudinary)
   
   // Profile perspectives (4-box layout)
   perspective: {
@@ -633,7 +647,25 @@ app.post('/api/create-payment-intent', async (req, res) => {
 app.get('/api/duma', async (req, res) => {
   try {
     const items = await DumaItem.find().sort({ createdAt: -1 });
-    res.json(items);
+    
+    // Enrich items with submitter social links and avatar
+    const emails = [...new Set(items.map(item => item.submittedBy).filter(Boolean))];
+    const users = await User.find({ email: { $in: emails } }, 'email socialLinks avatarUrl');
+    const userMap = {};
+    users.forEach(u => {
+      userMap[u.email] = { socialLinks: u.socialLinks, avatarUrl: u.avatarUrl };
+    });
+    
+    const enrichedItems = items.map(item => {
+      const obj = item.toObject();
+      if (obj.submittedBy && userMap[obj.submittedBy]) {
+        obj.submitterSocialLinks = userMap[obj.submittedBy].socialLinks || null;
+        obj.submitterAvatar = userMap[obj.submittedBy].avatarUrl || null;
+      }
+      return obj;
+    });
+    
+    res.json(enrichedItems);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -737,6 +769,7 @@ app.get('/api/profile', authMiddleware, async (req, res) => {
       email: user.email,
       rank_title: user.rank_title || getRankTitle(user.rank_score || 1),
       rank_score: user.rank_score || 1,
+      avatar: user.avatarUrl || null,
       perspective: user.perspective || {
         box1: { content: "", mediaUrls: [], videoUrl: null },
         box2: { content: "", mediaUrls: [], videoUrl: null },
@@ -754,9 +787,14 @@ app.get('/api/profile', authMiddleware, async (req, res) => {
 // PUT /api/profile - Update user profile perspectives
 app.put('/api/profile', authMiddleware, async (req, res) => {
   try {
-    const { perspective, socialLinks } = req.body;
+    const { perspective, socialLinks, avatar } = req.body;
     
     const updateData = {};
+    
+    // Update avatar URL if provided
+    if (avatar) {
+      updateData.avatarUrl = avatar;
+    }
     
     // Update perspective if provided
     if (perspective) {
@@ -775,6 +813,7 @@ app.put('/api/profile', authMiddleware, async (req, res) => {
     
     const user = await User.findByIdAndUpdate(req.user._id, updateData, { new: true });
     res.json({ success: true, message: 'Profile updated successfully', profile: {
+      avatar: user.avatarUrl,
       perspective: user.perspective,
       socialLinks: user.socialLinks
     }});
@@ -825,8 +864,34 @@ app.post('/api/media/upload', authMiddleware, upload.single('file'), async (req,
       return res.status(400).json({ error: 'Video must be under 50MB' });
     }
     
-    // TODO: Upload to S3/Cloudinary and get actual storageUrl
-    // For now: create placeholder URL
+    // Upload to Cloudinary
+    let storageUrl;
+    try {
+      const uploadResult = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            resource_type: isVideo ? 'video' : 'image',
+            folder: 'majority-hair',
+            transformation: isImage ? [{ quality: 'auto', fetch_format: 'auto' }] : undefined
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        uploadStream.end(file.buffer);
+      });
+      storageUrl = uploadResult.secure_url;
+
+      // If uploading an avatar, save the URL directly to the user record
+      if (req.body.type === 'avatar') {
+        await User.findByIdAndUpdate(req.user._id, { avatarUrl: storageUrl });
+      }
+    } catch (cloudinaryErr) {
+      console.error('Cloudinary upload error:', cloudinaryErr.message);
+      return res.status(500).json({ error: 'File upload to storage failed' });
+    }
+
     const media = await Media.create({
       userId: req.user._id,
       filename: file.originalname,
@@ -834,7 +899,7 @@ app.post('/api/media/upload', authMiddleware, upload.single('file'), async (req,
       mimetype: file.mimetype,
       size: file.size,
       type: isImage ? 'image' : 'video',
-      storageUrl: `${process.env.CDN_URL || 'https://cdn.majority-hair.com'}/media/${Date.now()}-${file.originalname}`,
+      storageUrl,
       uploadedAt: new Date()
     });
     
@@ -843,6 +908,7 @@ app.post('/api/media/upload', authMiddleware, upload.single('file'), async (req,
     
     res.json({
       _id: media._id,
+      url: media.storageUrl,
       filename: media.filename,
       storageUrl: media.storageUrl,
       type: media.type,

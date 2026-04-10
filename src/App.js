@@ -113,7 +113,7 @@ const RankBadge = ({ rankTitle, score }) => {
 };
 
 // --- CREDENTIAL HEADER COMPONENT ---
-const CredentialHeader = ({ email, rankTitle, rankScore }) => {
+const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks }) => {
   const initial = (rankTitle || 'B')[0].toUpperCase();
   const color = getRankColor(rankTitle || 'bolshevik');
   const isGenSec = rankTitle === "General Secretary";
@@ -123,7 +123,7 @@ const CredentialHeader = ({ email, rankTitle, rankScore }) => {
         width: '50px',
         height: '50px',
         borderRadius: '50%',
-        backgroundColor: color,
+        backgroundColor: avatarUrl ? 'transparent' : color,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -131,9 +131,12 @@ const CredentialHeader = ({ email, rankTitle, rankScore }) => {
         fontWeight: '700',
         color: '#fff',
         flexShrink: 0,
-        ...(isGenSec ? { boxShadow: '0 0 12px rgba(255,215,0,0.8)' } : {})
+        overflow: 'hidden',
+        ...(isGenSec && !avatarUrl ? { boxShadow: '0 0 12px rgba(255,215,0,0.8)' } : {})
       }}>
-        {initial}
+        {avatarUrl
+          ? <img src={avatarUrl} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : initial}
       </div>
       <div>
         <div style={{ fontSize: '13px', fontWeight: '600', color: '#222' }}>{email}</div>
@@ -141,6 +144,37 @@ const CredentialHeader = ({ email, rankTitle, rankScore }) => {
         <span style={{ fontSize: '11px', color: '#aaa', marginLeft: '6px' }}>
           {(rankScore || 1).toLocaleString()} pts
         </span>
+        {socialLinks && (
+          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+            {socialLinks.instagram ? (
+              <a
+                href={socialLinks.instagram.startsWith('http') ? socialLinks.instagram : `https://${socialLinks.instagram}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ textDecoration: 'none', fontSize: '15px' }}
+                title="Instagram"
+              >{"\u{1F4F7}"}</a>
+            ) : null}
+            {socialLinks.tiktok ? (
+              <a
+                href={socialLinks.tiktok.startsWith('http') ? socialLinks.tiktok : `https://${socialLinks.tiktok}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ textDecoration: 'none', fontSize: '15px' }}
+                title="TikTok"
+              >{"\u{1F3B5}"}</a>
+            ) : null}
+            {socialLinks.facebook ? (
+              <a
+                href={socialLinks.facebook.startsWith('http') ? socialLinks.facebook : `https://${socialLinks.facebook}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ textDecoration: 'none', fontSize: '11px', color: '#1877F2', fontWeight: '600' }}
+                title="Facebook"
+              >Facebook</a>
+            ) : null}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -204,6 +238,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarSaveStatus, setAvatarSaveStatus] = useState("idle"); // idle | saving | saved | error
+  const [hadExistingAvatar, setHadExistingAvatar] = useState(false);
   const [perspective, setPerspective] = useState({
     box1: { videoUrl: null, description: "", videoFile: null },
     box2: { videoUrl: null, description: "", videoFile: null },
@@ -229,6 +264,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     }).then(r => { if (!r.ok) throw new Error('Failed to fetch profile'); return r.json(); }).then(data => {
       if (data.avatar) {
         setAvatarUrl(data.avatar);
+        setHadExistingAvatar(true);
         if (onAvatarUpdate) onAvatarUpdate(data.avatar);
       }
       if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
@@ -312,6 +348,11 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         if (onAvatarUpdate) onAvatarUpdate(savedUrl);
         setAvatarFile(null);
         setAvatarSaveStatus("saved");
+        // Award 25 points the first time a profile photo is saved
+        if (!hadExistingAvatar && onAddPoints) {
+          onAddPoints(25);
+          setHadExistingAvatar(true);
+        }
       } else {
         setAvatarSaveStatus("error");
         setTimeout(() => setAvatarSaveStatus("idle"), 3000);
@@ -1934,7 +1975,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                   <span style={styles.typeTag}>Perspective</span>
                   {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
                 </div>
-                {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'bolshevik'} rankScore={null} />}
+                {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'bolshevik'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
                 <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
                 <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6', marginBottom: '14px' }}>{item.response || item.reason || item.desc}</p>
                 
@@ -1996,7 +2037,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                   <span style={styles.typeTag}>{item.type}</span>
                   {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
                 </div>
-                {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'bolshevik'} rankScore={null} />}
+                {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'bolshevik'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
                 
                 {item.type === "Partner" ? (
                   <>
@@ -2219,7 +2260,7 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
                 <span style={styles.typeTag}>Perspective</span>
                 {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
               </div>
-              {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'bolshevik'} rankScore={null} />}
+              {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'bolshevik'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
               <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
               <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6' }}>{item.response || item.reason || item.desc}</p>
             </div>

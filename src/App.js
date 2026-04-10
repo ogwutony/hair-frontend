@@ -345,6 +345,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         const data = await response.json();
         setAvatarUrl(data.url);
         if (onAvatarUpdate) onAvatarUpdate(data.url);
+        setAvatarFile(null);
         setAvatarSaveStatus("saved");
         if (!hadExistingAvatar && onAddPoints) {
           onAddPoints(25);
@@ -352,9 +353,11 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         }
       } else {
         setAvatarSaveStatus("error");
+        setTimeout(() => setAvatarSaveStatus("idle"), 3000);
       }
     } catch (err) {
       setAvatarSaveStatus("error");
+      setTimeout(() => setAvatarSaveStatus("idle"), 3000);
     }
   };
 

@@ -119,7 +119,7 @@ const safeSocialUrl = (raw) => {
   return `https://${raw}`;
 };
 
-const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks }) => {
+const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks = {} }) => {
   const initial = (rankTitle || 'B')[0].toUpperCase();
   const color = getRankColor(rankTitle || 'bolshevik');
   const isGenSec = rankTitle === "General Secretary";
@@ -336,25 +336,17 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     try {
       const formData = new FormData();
       formData.append("file", avatarFile);
-      formData.append("type", "avatar");
-      const uploadRes = await fetch(`${BACKEND_URL}/api/media/upload`, {
+      const response = await fetch(`${BACKEND_URL}/api/media/upload`, {
         method: "POST",
         headers: { Authorization: `Bearer ${authToken}` },
         body: formData
       });
-      const uploadData = uploadRes.ok ? await uploadRes.json() : null;
-      const savedUrl = uploadData?.url || avatarUrl;
-      const profileRes = await fetch(`${BACKEND_URL}/api/profile`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify({ avatar: savedUrl })
-      });
-      if (profileRes.ok) {
-        setAvatarUrl(savedUrl);
-        if (onAvatarUpdate) onAvatarUpdate(savedUrl);
+      if (response.ok) {
+        const data = await response.json();
+        setAvatarUrl(data.url);
+        if (onAvatarUpdate) onAvatarUpdate(data.url);
         setAvatarFile(null);
         setAvatarSaveStatus("saved");
-        // Award 25 points the first time a profile photo is saved
         if (!hadExistingAvatar && onAddPoints) {
           onAddPoints(25);
           setHadExistingAvatar(true);
@@ -363,7 +355,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         setAvatarSaveStatus("error");
         setTimeout(() => setAvatarSaveStatus("idle"), 3000);
       }
-    } catch {
+    } catch (err) {
       setAvatarSaveStatus("error");
       setTimeout(() => setAvatarSaveStatus("idle"), 3000);
     }

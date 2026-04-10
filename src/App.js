@@ -113,6 +113,12 @@ const RankBadge = ({ rankTitle, score }) => {
 };
 
 // --- CREDENTIAL HEADER COMPONENT ---
+const safeSocialUrl = (raw) => {
+  if (!raw) return null;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return `https://${raw}`;
+};
+
 const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks }) => {
   const initial = (rankTitle || 'B')[0].toUpperCase();
   const color = getRankColor(rankTitle || 'bolshevik');
@@ -148,7 +154,7 @@ const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks 
           <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
             {socialLinks.instagram ? (
               <a
-                href={socialLinks.instagram.startsWith('http') ? socialLinks.instagram : `https://${socialLinks.instagram}`}
+                href={safeSocialUrl(socialLinks.instagram)}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ textDecoration: 'none', fontSize: '15px' }}
@@ -157,7 +163,7 @@ const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks 
             ) : null}
             {socialLinks.tiktok ? (
               <a
-                href={socialLinks.tiktok.startsWith('http') ? socialLinks.tiktok : `https://${socialLinks.tiktok}`}
+                href={safeSocialUrl(socialLinks.tiktok)}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ textDecoration: 'none', fontSize: '15px' }}
@@ -166,7 +172,7 @@ const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks 
             ) : null}
             {socialLinks.facebook ? (
               <a
-                href={socialLinks.facebook.startsWith('http') ? socialLinks.facebook : `https://${socialLinks.facebook}`}
+                href={safeSocialUrl(socialLinks.facebook)}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ textDecoration: 'none', fontSize: '11px', color: '#1877F2', fontWeight: '600' }}

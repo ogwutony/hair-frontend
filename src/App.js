@@ -610,7 +610,10 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                   src={avatarUrl}
                   alt="Avatar Preview"
                   title="Click to change avatar"
+                  role="button"
+                  tabIndex={avatarSaveStatus === "saving" ? -1 : 0}
                   onClick={() => avatarSaveStatus !== "saving" && avatarInputRef.current && avatarInputRef.current.click()}
+                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && avatarSaveStatus !== "saving" && avatarInputRef.current && avatarInputRef.current.click()}
                   style={{ width: '150px', height: '150px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px', cursor: avatarSaveStatus === "saving" ? 'default' : 'pointer', opacity: avatarSaveStatus === "saving" ? 0.6 : 1 }}
                 />
                 {avatarSaveStatus === "saving" && (
@@ -625,7 +628,12 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                 )}
               </div>
             ) : (
-              <div style={{ padding: '30px', textAlign: 'center', cursor: avatarSaveStatus === "saving" ? 'default' : 'pointer' }} onClick={() => avatarSaveStatus !== "saving" && avatarInputRef.current && avatarInputRef.current.click()}>
+              <div
+                role="button"
+                tabIndex={avatarSaveStatus === "saving" ? -1 : 0}
+                style={{ padding: '30px', textAlign: 'center', cursor: avatarSaveStatus === "saving" ? 'default' : 'pointer' }}
+                onClick={() => avatarSaveStatus !== "saving" && avatarInputRef.current && avatarInputRef.current.click()}
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && avatarSaveStatus !== "saving" && avatarInputRef.current && avatarInputRef.current.click()}>
                 <span style={{ fontSize: '48px', marginBottom: '12px', display: 'block' }}>{avatarSaveStatus === "saving" ? "⏳" : "\u{1F464}"}</span>
                 <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>
                   {avatarSaveStatus === "saving" ? "Uploading…" : "No avatar uploaded yet — click to upload"}
@@ -1808,7 +1816,7 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
 
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/duma`)
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error('Failed to fetch duma'); return r.json(); })
       .then(data => {
         if (!Array.isArray(data)) return;
         const seen = new Set();

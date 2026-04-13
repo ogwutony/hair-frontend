@@ -265,6 +265,11 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   const [anyVideoPushed, setAnyVideoPushed] = useState(false);
 
   useEffect(() => {
+    if (!avatarUrl || !avatarUrl.startsWith('blob:')) return;
+    return () => { URL.revokeObjectURL(avatarUrl); };
+  }, [avatarUrl]);
+
+  useEffect(() => {
     if (!authToken) return;
     fetch(`${BACKEND_URL}/api/profile`, {
       headers: { Authorization: `Bearer ${authToken}` }
@@ -326,14 +331,13 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       return;
     }
     // Show local preview immediately
-    if (avatarUrl && avatarUrl.startsWith('blob:')) URL.revokeObjectURL(avatarUrl);
     const previewUrl = URL.createObjectURL(file);
     setAvatarUrl(previewUrl);
+    setAvatarFile(file); // Store the file for the "Save" button
     setAvatarSaveStatus("saving"); // triggers "Uploading…" overlay
 
     if (!authToken) {
       // Not logged in — keep local preview only
-      setAvatarFile(file);
       setAvatarSaveStatus("idle");
       return;
     }

@@ -1772,7 +1772,7 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
         });
         setCommunitySocials(socials);
       })
-      .catch(() => {});
+      .catch(err => console.error("Failed to load community socials:", err));
   }, []);
 
   const prompts = [

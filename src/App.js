@@ -245,6 +245,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarSaveStatus, setAvatarSaveStatus] = useState("idle"); // idle | saving | saved | error
   const [hadExistingAvatar, setHadExistingAvatar] = useState(false);
+  const avatarInputRef = React.useRef(null);
   const [perspective, setPerspective] = useState({
     box1: { videoUrl: null, description: "", videoFile: null },
     box2: { videoUrl: null, description: "", videoFile: null },
@@ -311,22 +312,61 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     }
   };
 
-  const handleAvatarUpload = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (!['image/jpeg', 'image/png'].includes(file.type)) {
-        alert('Please upload a JPG or PNG image only.');
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Image must be smaller than 5MB.');
-        return;
-      }
-      if (avatarUrl && avatarUrl.startsWith('blob:')) URL.revokeObjectURL(avatarUrl);
-      const previewUrl = URL.createObjectURL(file);
-      setAvatarUrl(previewUrl);
+  const handleAvatarUpload = async (e) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    const file = e.target.files[0];
+    // Reset input so the same file can be re-selected if needed
+    e.target.value = "";
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      alert('Please upload a JPG or PNG image only.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image must be smaller than 5MB.');
+      return;
+    }
+    // Show local preview immediately
+    if (avatarUrl && avatarUrl.startsWith('blob:')) URL.revokeObjectURL(avatarUrl);
+    const previewUrl = URL.createObjectURL(file);
+    setAvatarUrl(previewUrl);
+    setAvatarSaveStatus("saving"); // triggers "Uploading…" overlay
+
+    if (!authToken) {
+      // Not logged in — keep local preview only
       setAvatarFile(file);
       setAvatarSaveStatus("idle");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch(`${BACKEND_URL}/api/media/upload`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${authToken}` },
+        body: formData
+      });
+      if (response.ok) {
+        const data = await response.json();
+        URL.revokeObjectURL(previewUrl);
+        setAvatarUrl(data.url);
+        if (onAvatarUpdate) onAvatarUpdate(data.url);
+        setAvatarFile(null);
+        setAvatarSaveStatus("saved");
+        if (!hadExistingAvatar && onAddPoints) {
+          onAddPoints(25);
+          setHadExistingAvatar(true);
+        }
+        setTimeout(() => setAvatarSaveStatus("idle"), 2000);
+      } else {
+        setAvatarFile(file);
+        setAvatarSaveStatus("error");
+        setTimeout(() => setAvatarSaveStatus("idle"), 3000);
+      }
+    } catch (err) {
+      setAvatarFile(file);
+      setAvatarSaveStatus("error");
+      setTimeout(() => setAvatarSaveStatus("idle"), 3000);
     }
   };
 
@@ -351,6 +391,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
           onAddPoints(25);
           setHadExistingAvatar(true);
         }
+        setTimeout(() => setAvatarSaveStatus("idle"), 2000);
       } else {
         setAvatarSaveStatus("error");
         setTimeout(() => setAvatarSaveStatus("idle"), 3000);
@@ -542,7 +583,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     <div style={{ padding: '40px 60px', maxWidth: '1000px', margin: '0 auto' }}>
       {/* HEADER SECTION */}
       <div style={{ marginBottom: '50px' }}>
-        <h1 style={{ fontSize: '32px', marginBottom: '8px', fontWeight: '700' }}>Welcome Comrade</h1>
+        <h1 style={{ fontSize: '32px', marginBottom: '8px', fontWeight: '700' }}>Welcome</h1>
         {rankTitle && (
           <div style={{ marginTop: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
@@ -564,39 +605,64 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         <div style={styles.uploadBox}>
           <div style={{ textAlign: 'center' }}>
             {avatarUrl ? (
-              <div style={{ marginBottom: '16px' }}>
-                <img src={avatarUrl} alt="Avatar Preview" style={{ width: '150px', height: '150px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px' }} />
-                <p style={{ fontSize: '13px', color: '#666' }}>Avatar preview</p>
+              <div style={{ marginBottom: '16px', position: 'relative', display: 'inline-block' }}>
+                <img
+                  src={avatarUrl}
+                  alt="Avatar Preview"
+                  title="Click to change avatar"
+                  role="button"
+                  tabIndex={avatarSaveStatus === "saving" ? -1 : 0}
+                  onClick={() => avatarSaveStatus !== "saving" && avatarInputRef.current && avatarInputRef.current.click()}
+                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && avatarSaveStatus !== "saving" && avatarInputRef.current && avatarInputRef.current.click()}
+                  style={{ width: '150px', height: '150px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px', cursor: avatarSaveStatus === "saving" ? 'default' : 'pointer', opacity: avatarSaveStatus === "saving" ? 0.6 : 1 }}
+                />
+                {avatarSaveStatus === "saving" && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '150px', height: '150px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ color: '#fff', fontSize: '13px', fontWeight: '600' }}>Uploading…</span>
+                  </div>
+                )}
+                {avatarSaveStatus !== "saving" && (
+                  <p style={{ fontSize: '13px', color: '#666' }}>
+                    {avatarSaveStatus === "saved" ? "✓ Uploaded" : avatarSaveStatus === "error" ? "Upload failed — click to retry" : "Click avatar to change"}
+                  </p>
+                )}
               </div>
             ) : (
-              <div style={{ padding: '30px', textAlign: 'center' }}>
-                <span style={{ fontSize: '48px', marginBottom: '12px', display: 'block' }}>{"\u{1F464}"}</span>
-                <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>No avatar uploaded yet</p>
+              <div
+                role="button"
+                tabIndex={avatarSaveStatus === "saving" ? -1 : 0}
+                style={{ padding: '30px', textAlign: 'center', cursor: avatarSaveStatus === "saving" ? 'default' : 'pointer' }}
+                onClick={() => avatarSaveStatus !== "saving" && avatarInputRef.current && avatarInputRef.current.click()}
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && avatarSaveStatus !== "saving" && avatarInputRef.current && avatarInputRef.current.click()}>
+                <span style={{ fontSize: '48px', marginBottom: '12px', display: 'block' }}>{avatarSaveStatus === "saving" ? "⏳" : "\u{1F464}"}</span>
+                <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>
+                  {avatarSaveStatus === "saving" ? "Uploading…" : "No avatar uploaded yet — click to upload"}
+                </p>
               </div>
             )}
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <label style={{ cursor: 'pointer', display: 'inline-block' }}>
-                <input type="file" accept="image/jpeg,image/png" onChange={handleAvatarUpload} style={{ display: 'none' }} />
-                <button type="button" style={{ ...styles.authButton, width: '200px' }} onClick={(e) => e.currentTarget.parentElement.querySelector('input').click()}>
-                  Upload Avatar (JPG/PNG, max 5MB)
+                <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png" onChange={handleAvatarUpload} style={{ display: 'none' }} />
+                <button
+                  type="button"
+                  disabled={avatarSaveStatus === "saving"}
+                  style={{ ...styles.authButton, width: '200px', opacity: avatarSaveStatus === "saving" ? 0.6 : 1, cursor: avatarSaveStatus === "saving" ? 'not-allowed' : 'pointer' }}
+                  onClick={() => avatarSaveStatus !== "saving" && avatarInputRef.current && avatarInputRef.current.click()}>
+                  {avatarSaveStatus === "saving" ? "Uploading…" : "Upload Avatar (JPG/PNG, max 5MB)"}
                 </button>
               </label>
-              <button
-                type="button"
-                disabled={!avatarFile || avatarSaveStatus === "saving" || avatarSaveStatus === "saved"}
-                onClick={handleSaveAvatar}
-                style={(() => {
-                  const isDisabled = !avatarFile || avatarSaveStatus === "saving" || avatarSaveStatus === "saved";
-                  return {
+              {avatarFile && avatarSaveStatus !== "saving" && (
+                <button
+                  type="button"
+                  onClick={handleSaveAvatar}
+                  style={{
                     ...styles.authButton,
                     width: '160px',
-                    backgroundColor: avatarSaveStatus === "saved" ? '#27ae60' : avatarSaveStatus === "error" ? '#e74c3c' : undefined,
-                    opacity: isDisabled ? 0.6 : 1,
-                    cursor: isDisabled ? 'not-allowed' : 'pointer'
-                  };
-                })()}>
-                {avatarSaveStatus === "saving" ? "Saving..." : avatarSaveStatus === "saved" ? "✓ Saved" : avatarSaveStatus === "error" ? "Failed — Retry" : "Save Profile Photo"}
-              </button>
+                    backgroundColor: avatarSaveStatus === "error" ? '#e74c3c' : undefined
+                  }}>
+                  {avatarSaveStatus === "error" ? "Failed — Retry" : "Save Profile Photo"}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1241,8 +1307,8 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
             <div style={{ borderTop: '2px solid #222', paddingTop: '15px' }}>
               {!clientSecret ? (
                 <>
-                  <button style={styles.checkoutBtn} onClick={() => window.location.href = 'https://buy.stripe.com/bJeeVeaVo260dny4p1c7u02'}>Checkout One-Time ($30.00)</button>
-                  <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => window.location.href = 'https://buy.stripe.com/6oUdRa1kO7qkdnyaNpc7u04'}>Subscribe ($24.00/mo)</button>
+                  <button style={styles.checkoutBtn} onClick={() => window.location.href = 'https://buy.stripe.com/bJeeVeaVo260dny4p1c7u02'}>Checkout One-Time ($6.00)</button>
+                  <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => window.location.href = 'https://buy.stripe.com/6oUdRa1kO7qkdnyaNpc7u04'}>Subscribe ($5.00/mo)</button>
                 </>
               ) : (
                 <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
@@ -1746,6 +1812,27 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
   const [response, setResponse] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [communitySocials, setCommunitySocials] = useState([]);
+
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/api/duma`)
+      .then(r => { if (!r.ok) throw new Error('Failed to fetch duma'); return r.json(); })
+      .then(data => {
+        if (!Array.isArray(data)) return;
+        const seen = new Set();
+        const socials = [];
+        data.forEach(item => {
+          const email = item.submittedBy;
+          const links = item.submitterSocialLinks;
+          if (email && links && !seen.has(email) && (links.instagram || links.tiktok || links.facebook)) {
+            seen.add(email);
+            socials.push({ email, links, avatar: item.submitterAvatar || null, rank: item.submitterRank || 'bolshevik' });
+          }
+        });
+        setCommunitySocials(socials);
+      })
+      .catch(err => console.error("Failed to load community socials:", err));
+  }, []);
 
   const prompts = [
     { id: 1, text: "Introduce yourself." },
@@ -1886,6 +1973,52 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
 
         <button type="submit" style={styles.authButton}>Submit to the Duma (+1 point)</button>
       </form>
+
+      {/* COMMUNITY SOCIAL FEED */}
+      <section style={{ marginTop: '50px' }}>
+        <h2 style={{ fontSize: '20px', marginBottom: '8px', fontWeight: '600' }}>Community Social Links</h2>
+        <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Connect with other members of The Majorities.</p>
+        {communitySocials.length === 0 ? (
+          <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888', padding: '30px' }}>
+            No social links shared yet. Be the first — add yours in your Profile settings!
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
+            {communitySocials.map(member => (
+              <div key={member.email} style={{ ...styles.dumaCard, padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {member.avatar ? (
+                    <img src={member.avatar} alt="avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>👤</div>
+                  )}
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#222' }}>{member.email.split('@')[0]}</div>
+                    <RankBadge rankTitle={member.rank} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {member.links.instagram && (
+                    <a href={safeSocialUrl(member.links.instagram)} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#c13584', textDecoration: 'none', fontWeight: '500' }}>
+                      📸 Instagram
+                    </a>
+                  )}
+                  {member.links.tiktok && (
+                    <a href={safeSocialUrl(member.links.tiktok)} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#222', textDecoration: 'none', fontWeight: '500' }}>
+                      🎵 TikTok
+                    </a>
+                  )}
+                  {member.links.facebook && (
+                    <a href={safeSocialUrl(member.links.facebook)} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#1877F2', textDecoration: 'none', fontWeight: '500' }}>
+                      👍 Facebook
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 };

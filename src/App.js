@@ -312,22 +312,61 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     }
   };
 
-  const handleAvatarUpload = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (!['image/jpeg', 'image/png'].includes(file.type)) {
-        alert('Please upload a JPG or PNG image only.');
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Image must be smaller than 5MB.');
-        return;
-      }
-      if (avatarUrl && avatarUrl.startsWith('blob:')) URL.revokeObjectURL(avatarUrl);
-      const previewUrl = URL.createObjectURL(file);
-      setAvatarUrl(previewUrl);
+  const handleAvatarUpload = async (e) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    const file = e.target.files[0];
+    // Reset input so the same file can be re-selected if needed
+    e.target.value = "";
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      alert('Please upload a JPG or PNG image only.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image must be smaller than 5MB.');
+      return;
+    }
+    // Show local preview immediately
+    if (avatarUrl && avatarUrl.startsWith('blob:')) URL.revokeObjectURL(avatarUrl);
+    const previewUrl = URL.createObjectURL(file);
+    setAvatarUrl(previewUrl);
+    setAvatarSaveStatus("saving"); // triggers "Uploading…" overlay
+
+    if (!authToken) {
+      // Not logged in — keep local preview only
       setAvatarFile(file);
       setAvatarSaveStatus("idle");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch(`${BACKEND_URL}/api/media/upload`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${authToken}` },
+        body: formData
+      });
+      if (response.ok) {
+        const data = await response.json();
+        URL.revokeObjectURL(previewUrl);
+        setAvatarUrl(data.url);
+        if (onAvatarUpdate) onAvatarUpdate(data.url);
+        setAvatarFile(null);
+        setAvatarSaveStatus("saved");
+        if (!hadExistingAvatar && onAddPoints) {
+          onAddPoints(25);
+          setHadExistingAvatar(true);
+        }
+        setTimeout(() => setAvatarSaveStatus("idle"), 2000);
+      } else {
+        setAvatarFile(file);
+        setAvatarSaveStatus("error");
+        setTimeout(() => setAvatarSaveStatus("idle"), 3000);
+      }
+    } catch (err) {
+      setAvatarFile(file);
+      setAvatarSaveStatus("error");
+      setTimeout(() => setAvatarSaveStatus("idle"), 3000);
     }
   };
 
@@ -352,6 +391,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
           onAddPoints(25);
           setHadExistingAvatar(true);
         }
+        setTimeout(() => setAvatarSaveStatus("idle"), 2000);
       } else {
         setAvatarSaveStatus("error");
         setTimeout(() => setAvatarSaveStatus("idle"), 3000);
@@ -565,45 +605,56 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         <div style={styles.uploadBox}>
           <div style={{ textAlign: 'center' }}>
             {avatarUrl ? (
-              <div style={{ marginBottom: '16px' }}>
+              <div style={{ marginBottom: '16px', position: 'relative', display: 'inline-block' }}>
                 <img
                   src={avatarUrl}
                   alt="Avatar Preview"
                   title="Click to change avatar"
-                  onClick={() => avatarInputRef.current && avatarInputRef.current.click()}
-                  style={{ width: '150px', height: '150px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px', cursor: 'pointer' }}
+                  onClick={() => avatarSaveStatus !== "saving" && avatarInputRef.current && avatarInputRef.current.click()}
+                  style={{ width: '150px', height: '150px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px', cursor: avatarSaveStatus === "saving" ? 'default' : 'pointer', opacity: avatarSaveStatus === "saving" ? 0.6 : 1 }}
                 />
-                <p style={{ fontSize: '13px', color: '#666' }}>Click avatar to change</p>
+                {avatarSaveStatus === "saving" && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '150px', height: '150px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ color: '#fff', fontSize: '13px', fontWeight: '600' }}>Uploading…</span>
+                  </div>
+                )}
+                {avatarSaveStatus !== "saving" && (
+                  <p style={{ fontSize: '13px', color: '#666' }}>
+                    {avatarSaveStatus === "saved" ? "✓ Uploaded" : avatarSaveStatus === "error" ? "Upload failed — click to retry" : "Click avatar to change"}
+                  </p>
+                )}
               </div>
             ) : (
-              <div style={{ padding: '30px', textAlign: 'center', cursor: 'pointer' }} onClick={() => avatarInputRef.current && avatarInputRef.current.click()}>
-                <span style={{ fontSize: '48px', marginBottom: '12px', display: 'block' }}>{"\u{1F464}"}</span>
-                <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>No avatar uploaded yet — click to upload</p>
+              <div style={{ padding: '30px', textAlign: 'center', cursor: avatarSaveStatus === "saving" ? 'default' : 'pointer' }} onClick={() => avatarSaveStatus !== "saving" && avatarInputRef.current && avatarInputRef.current.click()}>
+                <span style={{ fontSize: '48px', marginBottom: '12px', display: 'block' }}>{avatarSaveStatus === "saving" ? "⏳" : "\u{1F464}"}</span>
+                <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>
+                  {avatarSaveStatus === "saving" ? "Uploading…" : "No avatar uploaded yet — click to upload"}
+                </p>
               </div>
             )}
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <label style={{ cursor: 'pointer', display: 'inline-block' }}>
                 <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png" onChange={handleAvatarUpload} style={{ display: 'none' }} />
-                <button type="button" style={{ ...styles.authButton, width: '200px' }} onClick={() => avatarInputRef.current && avatarInputRef.current.click()}>
-                  Upload Avatar (JPG/PNG, max 5MB)
+                <button
+                  type="button"
+                  disabled={avatarSaveStatus === "saving"}
+                  style={{ ...styles.authButton, width: '200px', opacity: avatarSaveStatus === "saving" ? 0.6 : 1, cursor: avatarSaveStatus === "saving" ? 'not-allowed' : 'pointer' }}
+                  onClick={() => avatarSaveStatus !== "saving" && avatarInputRef.current && avatarInputRef.current.click()}>
+                  {avatarSaveStatus === "saving" ? "Uploading…" : "Upload Avatar (JPG/PNG, max 5MB)"}
                 </button>
               </label>
-              <button
-                type="button"
-                disabled={!avatarFile || avatarSaveStatus === "saving" || avatarSaveStatus === "saved"}
-                onClick={handleSaveAvatar}
-                style={(() => {
-                  const isDisabled = !avatarFile || avatarSaveStatus === "saving" || avatarSaveStatus === "saved";
-                  return {
+              {avatarFile && avatarSaveStatus !== "saving" && (
+                <button
+                  type="button"
+                  onClick={handleSaveAvatar}
+                  style={{
                     ...styles.authButton,
                     width: '160px',
-                    backgroundColor: avatarSaveStatus === "saved" ? '#27ae60' : avatarSaveStatus === "error" ? '#e74c3c' : undefined,
-                    opacity: isDisabled ? 0.6 : 1,
-                    cursor: isDisabled ? 'not-allowed' : 'pointer'
-                  };
-                })()}>
-                {avatarSaveStatus === "saving" ? "Saving..." : avatarSaveStatus === "saved" ? "✓ Saved" : avatarSaveStatus === "error" ? "Failed — Retry" : "Save Profile Photo"}
-              </button>
+                    backgroundColor: avatarSaveStatus === "error" ? '#e74c3c' : undefined
+                  }}>
+                  {avatarSaveStatus === "error" ? "Failed — Retry" : "Save Profile Photo"}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1249,7 +1300,7 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
               {!clientSecret ? (
                 <>
                   <button style={styles.checkoutBtn} onClick={() => window.location.href = 'https://buy.stripe.com/bJeeVeaVo260dny4p1c7u02'}>Checkout One-Time ($6.00)</button>
-                  <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => window.location.href = 'https://buy.stripe.com/6oUdRa1kO7qkdnyaNpc7u04'}>Subscribe ($10.00/mo)</button>
+                  <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => window.location.href = 'https://buy.stripe.com/6oUdRa1kO7qkdnyaNpc7u04'}>Subscribe ($5.00/mo)</button>
                 </>
               ) : (
                 <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>

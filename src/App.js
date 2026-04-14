@@ -240,8 +240,8 @@ const productsData = {
 };
 
 // --- PROFILE PAGE COMPONENT - Enhanced with Photo & Video Features ---
-const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate }) => {
-  const [avatarUrl, setAvatarUrl] = useState(null);
+const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar }) => {
+  const [avatarUrl, setAvatarUrl] = useState(userAvatar || null);
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarSaveStatus, setAvatarSaveStatus] = useState("idle"); // idle | saving | saved | error
   const [hadExistingAvatar, setHadExistingAvatar] = useState(false);
@@ -307,6 +307,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       });
       if (response.ok) {
         setSocialSaveStatus(prev => ({ ...prev, [key]: "saved" }));
+        setTimeout(() => setSocialSaveStatus(prev => ({ ...prev, [key]: "idle" })), 3000);
       } else {
         setSocialSaveStatus(prev => ({ ...prev, [key]: "error" }));
         setTimeout(() => setSocialSaveStatus(prev => ({ ...prev, [key]: "idle" })), 3000);
@@ -352,16 +353,17 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       });
       if (response.ok) {
         const data = await response.json();
+        const cloudUrl = data.url || data.secure_url;
         URL.revokeObjectURL(previewUrl);
-        setAvatarUrl(data.url);
-        if (onAvatarUpdate) onAvatarUpdate(data.url);
+        setAvatarUrl(cloudUrl);
+        if (onAvatarUpdate) onAvatarUpdate(cloudUrl);
         setAvatarFile(null);
         setAvatarSaveStatus("saved");
         if (!hadExistingAvatar && onAddPoints) {
           onAddPoints(25);
           setHadExistingAvatar(true);
         }
-        setTimeout(() => setAvatarSaveStatus("idle"), 2000);
+        setTimeout(() => setAvatarSaveStatus("idle"), 3000);
       } else {
         setAvatarFile(file);
         setAvatarSaveStatus("error");
@@ -387,15 +389,16 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       });
       if (response.ok) {
         const data = await response.json();
-        setAvatarUrl(data.url);
-        if (onAvatarUpdate) onAvatarUpdate(data.url);
+        const cloudUrl = data.url || data.secure_url;
+        setAvatarUrl(cloudUrl);
+        if (onAvatarUpdate) onAvatarUpdate(cloudUrl);
         setAvatarFile(null);
         setAvatarSaveStatus("saved");
         if (!hadExistingAvatar && onAddPoints) {
           onAddPoints(25);
           setHadExistingAvatar(true);
         }
-        setTimeout(() => setAvatarSaveStatus("idle"), 2000);
+        setTimeout(() => setAvatarSaveStatus("idle"), 3000);
       } else {
         setAvatarSaveStatus("error");
         setTimeout(() => setAvatarSaveStatus("idle"), 3000);
@@ -502,7 +505,8 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         body: JSON.stringify({
           boxKey,
           videoUrl: perspective[boxKey].videoUrl,
-          description: perspective[boxKey].description
+          description: perspective[boxKey].description,
+          socialLinks
         })
       });
       if (response.ok) {
@@ -655,16 +659,18 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                   {avatarSaveStatus === "saving" ? "Uploading…" : "Upload Avatar (JPG/PNG, max 5MB)"}
                 </button>
               </label>
-              {avatarFile && avatarSaveStatus !== "saving" && (
+              {(avatarFile || avatarSaveStatus === "saved") && avatarSaveStatus !== "saving" && (
                 <button
                   type="button"
                   onClick={handleSaveAvatar}
+                  disabled={avatarSaveStatus === "saved"}
                   style={{
                     ...styles.authButton,
                     width: '160px',
-                    backgroundColor: avatarSaveStatus === "error" ? '#e74c3c' : undefined
+                    backgroundColor: avatarSaveStatus === "saved" ? '#27ae60' : avatarSaveStatus === "error" ? '#e74c3c' : undefined,
+                    cursor: avatarSaveStatus === "saved" ? 'default' : 'pointer'
                   }}>
-                  {avatarSaveStatus === "error" ? "Failed — Retry" : "Save Profile Photo"}
+                  {avatarSaveStatus === "saved" ? "✓ Saved" : avatarSaveStatus === "error" ? "Failed — Retry" : "Save Profile Photo"}
                 </button>
               )}
             </div>

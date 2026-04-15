@@ -372,14 +372,14 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const response = await fetch(`${BACKEND_URL}/api/media/upload`, {
+      const response = await fetch(`${BACKEND_URL}/api/users/upload-avatar`, {
         method: "POST",
         headers: { Authorization: `Bearer ${authToken}` },
         body: formData
       });
       if (response.ok) {
         const data = await response.json();
-        const cloudUrl = data.url || data.secure_url;
+        const cloudUrl = data.url || data.secure_url || data.profilePictureUrl || data.avatarUrl;
         URL.revokeObjectURL(previewUrl);
         setAvatarUrl(cloudUrl);
         if (onAvatarUpdate) onAvatarUpdate(cloudUrl);
@@ -408,14 +408,14 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     try {
       const formData = new FormData();
       formData.append("file", avatarFile);
-      const response = await fetch(`${BACKEND_URL}/api/media/upload`, {
+      const response = await fetch(`${BACKEND_URL}/api/users/upload-avatar`, {
         method: "POST",
         headers: { Authorization: `Bearer ${authToken}` },
         body: formData
       });
       if (response.ok) {
         const data = await response.json();
-        const cloudUrl = data.url || data.secure_url;
+        const cloudUrl = data.url || data.secure_url || data.profilePictureUrl || data.avatarUrl;
         setAvatarUrl(cloudUrl);
         if (onAvatarUpdate) onAvatarUpdate(cloudUrl);
         setAvatarFile(null);

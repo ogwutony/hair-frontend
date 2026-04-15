@@ -14,58 +14,66 @@ const stripePromise = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY
 // --- 2. BACKEND CONFIGURATION ---
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://hair-backend-2.onrender.com";
 
-// --- 3. RANK SYSTEM (40-Tier Dedovshchina Hierarchy) ---
+// --- 3. RANK SYSTEM (50-Tier Hierarchy) ---
 const RANK_TIERS = [
-  { title: "Knight Bear",       min: 20000000 },
-  { title: "Magistral",         min: 18000000 },
-  { title: "Demobbed",          min: 16000000 },
-  { title: "Dedovshchina",       min: 14000000 },
-  { title: "Gold Bear",         min: 12000000 },
-  { title: "Green Elephant",    min: 10800000 },
-  { title: "Smears",            min: 9720000  },
-  { title: "Boiler",            min: 8748000  },
-  { title: "Pheasants",         min: 7873200  },
-  { title: "Bold Carp",         min: 7085880  },
-  { title: "Sliver Bear",       min: 6377292  },
-  { title: "Scoop",             min: 5739563  },
-  { title: "Skull",             min: 5165607  },
-  { title: "Mammoth",           min: 4649046  },
-  { title: "Goldfinches",       min: 4184142  },
-  { title: "Walruses",          min: 3765728  },
-  { title: "Young",             min: 3389155  },
-  { title: "Crucian Carp",      min: 3050239  },
-  { title: "Crows",             min: 2745215  },
-  { title: "Gromov",            min: 2470694  },
-  { title: "Laces",             min: 2223625  },
-  { title: "Pomose",            min: 2001263  },
-  { title: "Chyzhi",            min: 1801137  },
-  { title: "Shchygli",          min: 1621023  },
-  { title: "Chekist",           min: 1458921  },
-  { title: "Check",             min: 1313029  },
-  { title: "Sparrow",           min: 1181726  },
-  { title: "Hedgehog",          min: 1063554  },
-  { title: "Baby",              min: 957199   },
-  { title: "Batky",             min: 861479   },
-  { title: "Vasky",             min: 775331   },
-  { title: "Geese",             min: 697798   },
-  { title: "Salabon",           min: 628018   },
-  { title: "Beaver",            min: 565216   },
-  { title: "Salagi",            min: 508694   },
-  { title: "Small Elephant",    min: 457825   },
-  { title: "Quarantines Spirit",min: 412042   },
-  { title: "Disembodied Spirit",min: 370838   },
-  { title: "Drishchy",          min: 333754   },
-  { title: "Smell",             min: 1        },
+  // --- EXECUTIVE COMMAND (20M - 50M+) ---
+  { title: "General Secretary",                         min: 50000000 },
+  { title: "Politburo Member",                          min: 45000000 },
+  { title: "Politburo Candidate Member",                min: 40000000 },
+  { title: "Secretary of the Central Committee",        min: 36000000 },
+  { title: "Member of the Central Committee",           min: 32000000 },
+  { title: "Candidate Member of the Central Committee", min: 29000000 },
+  { title: "Head of a Central Committee Department",    min: 26000000 },
+  { title: "First Secretary of a Republic",             min: 24000000 },
+  { title: "First Secretary of the Obkom",              min: 22000000 },
+  { title: "First Secretary of the Raikom",             min: 20000000 },
+
+  // --- HEROIC ORDERS & LABOR TITLES (2M - 18.5M) ---
+  { title: "Hero of Socialist Labor",                   min: 18500000 },
+  { title: "Hero of the Majorities",                    min: 17000000 },
+  { title: "Order of The Majorities",                   min: 15500000 },
+  { title: "Order of the October Revolution",           min: 14000000 },
+  { title: "Order of the Red Banner of Labor",          min: 12500000 },
+  { title: "Order of Friendship of Peoples",            min: 11000000 },
+  { title: "Order of the Badge of Honor",               min: 9500000  },
+  { title: "Order of Maternal Glory",                   min: 8000000  },
+  { title: "Order of Labor Glory",                      min: 6500000  },
+  { title: "Labour Valour",                             min: 5500000  },
+  { title: "Distinguished Labour",                      min: 4500000  },
+  { title: "Veteran of Labour",                         min: 3500000  },
+  { title: "the Salvation of the Drowning",             min: 2000000  },
+
+  // --- MYTHOLOGICAL & DEDOVSHCHINA HIERARCHY ---
+  { title: "Knight Bear",       min: 1800000 },
+  { title: "Magistral",         min: 1600000 },
+  { title: "Demobbed",          min: 1400000 },
+  { title: "Dedovshchina",      min: 1200000 },
+  { title: "Gold Bear",         min: 1000000 },
+  { title: "Green Elephant",    min: 800000  },
+  { title: "Perun",             min: 600000  },
+  { title: "Svarozhits",        min: 400000  },
+  { title: "Veles",             min: 200000  },
+  { title: "Dazhbog",           min: 100000  },
+  { title: "Sliver Bear",       min: 50000   },
+  { title: "Scoop",             min: 25000   },
+  { title: "Dola",              min: 10000   },
+  { title: "Mammoth",           min: 5000    },
+  { title: "Goldfinches",       min: 2500    },
+  { title: "Walruses",          min: 1000    },
+  { title: "Rugiaevit",         min: 500     },
+  { title: "Crucian Carp",      min: 250     },
+  { title: "Crows",             min: 100     },
+  { title: "Comrade",           min: 1       },
 ];
 
 const getRankTitle = (score) => {
   for (const tier of RANK_TIERS) {
     if (score >= tier.min) return tier.title;
   }
-  return "bolshevik";
+  return "Comrade";
 };
 
-const isPolitburoOrHigher = (score) => score >= 12000000;
+const isPolitburoOrHigher = (score) => score >= 45000000;
 
 // --- CALCULATE POINTS TO NEXT RANK ---
 const getPointsToNextRank = (currentScore, currentRankTitle) => {
@@ -82,10 +90,18 @@ const getNextRankTitle = (currentRankTitle) => {
 };
 
 const getRankColor = (rankTitle) => {
-  const topTier = ["Knight Bear", "Magistral", "Demobbed"];
-  const goldTier = ["Dedovshchina", "Gold Bear", "Green Elephant"];
-  const silverTier = ["Sliver Bear", "Bold Carp", "Scoop"];
-  if (topTier.includes(rankTitle)) return '#FFD700';
+  const goldTier = [
+    "General Secretary", "Politburo Member", "Politburo Candidate Member",
+    "Secretary of the Central Committee", "Member of the Central Committee",
+    "Candidate Member of the Central Committee", "Head of a Central Committee Department",
+    "First Secretary of a Republic", "First Secretary of the Obkom", "First Secretary of the Raikom",
+    "Hero of Socialist Labor", "Hero of the Majorities", "Order of The Majorities",
+    "Order of the October Revolution", "Order of the Red Banner of Labor",
+    "Order of Friendship of Peoples", "Order of the Badge of Honor", "Order of Maternal Glory",
+    "Order of Labor Glory", "Labour Valour", "Distinguished Labour", "Veteran of Labour",
+    "the Salvation of the Drowning", "Knight Bear", "Magistral", "Demobbed", "Dedovshchina", "Gold Bear"
+  ];
+  const silverTier = ["Green Elephant", "Perun", "Svarozhits", "Veles", "Dazhbog", "Sliver Bear", "Scoop"];
   if (goldTier.includes(rankTitle)) return '#FFD700';
   if (silverTier.includes(rankTitle)) return '#C0C0C0';
   return '#888';
@@ -95,16 +111,22 @@ const getRankColor = (rankTitle) => {
 const RankBadge = ({ rankTitle, score }) => {
   const color = getRankColor(rankTitle);
   const isGenSec = rankTitle === "General Secretary";
+  const isLongTitle = rankTitle && rankTitle.length > 20;
   return (
     <span style={{
-      fontSize: '11px',
+      fontSize: isLongTitle ? '9px' : '11px',
       fontWeight: '700',
       color: color,
       padding: '2px 8px',
       borderRadius: '12px',
       border: `1px solid ${color}`,
       textTransform: 'uppercase',
-      letterSpacing: '0.5px',
+      letterSpacing: isLongTitle ? '0px' : '0.5px',
+      whiteSpace: 'normal',
+      wordBreak: 'break-word',
+      display: 'inline-block',
+      maxWidth: '200px',
+      lineHeight: '1.3',
       ...(isGenSec ? styles.generalSecretaryBadge : {})
     }}>
       {rankTitle}
@@ -120,11 +142,11 @@ const safeSocialUrl = (raw) => {
 };
 
 const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks = {} }) => {
-  const initial = (rankTitle || 'B')[0].toUpperCase();
-  const color = getRankColor(rankTitle || 'bolshevik');
+  const initial = (rankTitle || 'C')[0].toUpperCase();
+  const color = getRankColor(rankTitle || 'Comrade');
   const isGenSec = rankTitle === "General Secretary";
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
       <div style={{
         width: '50px',
         height: '50px',
@@ -144,12 +166,16 @@ const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks 
           ? <img src={avatarUrl} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : initial}
       </div>
-      <div>
-        <div style={{ fontSize: '13px', fontWeight: '600', color: '#222' }}>{email}</div>
-        <RankBadge rankTitle={rankTitle || 'bolshevik'} />
-        <span style={{ fontSize: '11px', color: '#aaa', marginLeft: '6px' }}>
-          {(rankScore || 1).toLocaleString()} pts
-        </span>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontSize: '13px', fontWeight: '600', color: '#222', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{email}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+          <RankBadge rankTitle={rankTitle || 'Comrade'} />
+          {rankScore != null && (
+            <span style={{ fontSize: '11px', color: '#aaa' }}>
+              {(rankScore || 1).toLocaleString()} pts
+            </span>
+          )}
+        </div>
         {socialLinks && (
           <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
             {socialLinks.instagram ? (
@@ -575,8 +601,8 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     }
   };
 
-  const pointsToNextRank = getPointsToNextRank(rankScore || 1, rankTitle || 'Batky');
-  const nextRankTitle = getNextRankTitle(rankTitle || 'Batky');
+  const pointsToNextRank = getPointsToNextRank(rankScore || 1, rankTitle || 'Comrade');
+  const nextRankTitle = getNextRankTitle(rankTitle || 'Comrade');
 
   const handleSocialShare = (platform, username) => {
     if (!username) {
@@ -694,19 +720,25 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
               </div>
               <h4 style={{ fontSize: '13px', fontWeight: '600', marginBottom: '12px', color: '#222' }}>{box.label}</h4>
               {editingBox === box.key ? (
-                <div style={{ marginBottom: '12px' }}>
+                <div style={{ marginBottom: '12px', position: 'relative' }}>
+                  {/* PUBLISHING OVERLAY */}
+                  {videoSaveStatus[box.key] === "saving" && (
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ color: '#fff', fontSize: '14px', fontWeight: '700' }}>Publishing…</span>
+                    </div>
+                  )}
                   {/* VIDEO UPLOAD */}
                   {perspective[box.key].videoUrl ? (
                     <div style={{ marginBottom: '12px' }}>
                       <video src={perspective[box.key].videoUrl} style={{ width: '100%', borderRadius: '8px', maxHeight: '200px', marginBottom: '12px' }} controls />
-                      <label style={{ cursor: 'pointer', display: 'block', fontSize: '12px', color: '#2980b9', fontWeight: '600' }}>
-                        <input type="file" accept="video/mp4,video/quicktime" onChange={(e) => handleVideoUpload(box.key, e)} style={{ display: 'none' }} />
+                      <label style={{ cursor: videoSaveStatus[box.key] === "saving" ? 'default' : 'pointer', display: 'block', fontSize: '12px', color: '#2980b9', fontWeight: '600', pointerEvents: videoSaveStatus[box.key] === "saving" ? 'none' : 'auto' }}>
+                        <input type="file" accept="video/mp4,video/quicktime" onChange={(e) => handleVideoUpload(box.key, e)} style={{ display: 'none' }} disabled={videoSaveStatus[box.key] === "saving"} />
                         Replace Video
                       </label>
                     </div>
                   ) : (
-                    <label style={{ cursor: 'pointer', display: 'block', marginBottom: '12px', padding: '20px', textAlign: 'center', border: '2px dashed #ddd', borderRadius: '8px', background: '#fafafa' }}>
-                      <input type="file" accept="video/mp4,video/quicktime" onChange={(e) => handleVideoUpload(box.key, e)} style={{ display: 'none' }} />
+                    <label style={{ cursor: videoSaveStatus[box.key] === "saving" ? 'default' : 'pointer', display: 'block', marginBottom: '12px', padding: '20px', textAlign: 'center', border: '2px dashed #ddd', borderRadius: '8px', background: '#fafafa', pointerEvents: videoSaveStatus[box.key] === "saving" ? 'none' : 'auto' }}>
+                      <input type="file" accept="video/mp4,video/quicktime" onChange={(e) => handleVideoUpload(box.key, e)} style={{ display: 'none' }} disabled={videoSaveStatus[box.key] === "saving"} />
                       <span style={{ fontSize: '24px', display: 'block', marginBottom: '6px' }}></span>
                       <span style={{ fontSize: '13px', color: '#666', fontWeight: '600' }}>Click to upload video (MP4/MOV)</span>
                       <span style={{ fontSize: '11px', color: '#999', display: 'block', marginTop: '4px' }}>Max 60s, 100MB</span>
@@ -735,14 +767,15 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                           opacity: isVideoSaveDisabled ? 0.7 : 1,
                           cursor: isVideoSaveDisabled ? 'not-allowed' : 'pointer'
                         }}>
-                        {videoSaveStatus[box.key] === "saving" ? "Saving..." : videoSaveStatus[box.key] === "saved" ? "✓ Video Published" : videoSaveStatus[box.key] === "error" ? "Failed — Retry" : "Save & Publish (+100 pts)"}
+                        {videoSaveStatus[box.key] === "saving" ? "Publishing..." : videoSaveStatus[box.key] === "saved" ? "✓ Video Published" : videoSaveStatus[box.key] === "error" ? "Failed — Retry" : "Save & Publish (+100 pts)"}
                       </button>
                     );
                   })()}
                   {perspective[box.key].videoUrl && (
                     <button
+                      disabled={videoSaveStatus[box.key] === "saving"}
                       onClick={() => handleSendToDuma(box.key)}
-                      style={{ ...styles.authButton, width: '100%', fontSize: '12px', padding: '8px 12px', background: '#8e44ad', marginTop: '8px' }}>
+                      style={{ ...styles.authButton, width: '100%', fontSize: '12px', padding: '8px 12px', background: '#8e44ad', marginTop: '8px', opacity: videoSaveStatus[box.key] === "saving" ? 0.5 : 1, cursor: videoSaveStatus[box.key] === "saving" ? 'not-allowed' : 'pointer' }}>
                       {dumaSubmitStatus[box.key] || "Send to Duma Culture for Voting"}
                     </button>
                   )}
@@ -1389,10 +1422,10 @@ const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken
         const data = await res.json();
         if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); setIsLoading(false); return; }
       }
-      addDumaItem({ ...formData, id: Date.now(), type: "Product Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'bolshevik', section: "Commerce" });
+      addDumaItem({ ...formData, id: Date.now(), type: "Product Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'Comrade', section: "Commerce" });
       setSubmitted(true);
     } catch (err) {
-      addDumaItem({ ...formData, id: Date.now(), type: "Product Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'bolshevik', section: "Commerce" });
+      addDumaItem({ ...formData, id: Date.now(), type: "Product Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'Comrade', section: "Commerce" });
       setSubmitted(true);
     }
     setIsLoading(false);
@@ -1602,7 +1635,7 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
         id: Date.now(),
         type: "Partner",
         submittedBy: userEmail,
-        submitterRank: rankTitle || 'bolshevik',
+        submitterRank: rankTitle || 'Comrade',
         hasPhoto: !!formData.photoFile,
         hasVideo: !!formData.videoFile
       });
@@ -1613,7 +1646,7 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
         id: Date.now(),
         type: "Partner",
         submittedBy: userEmail,
-        submitterRank: rankTitle || 'bolshevik',
+        submitterRank: rankTitle || 'Comrade',
         hasPhoto: !!formData.photoFile,
         hasVideo: !!formData.videoFile
       });
@@ -1836,7 +1869,7 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
           const links = item.submitterSocialLinks;
           if (email && links && !seen.has(email) && (links.instagram || links.tiktok || links.facebook)) {
             seen.add(email);
-            socials.push({ email, links, avatar: item.submitterAvatar || null, rank: item.submitterRank || 'bolshevik' });
+            socials.push({ email, links, avatar: item.submitterAvatar || null, rank: item.submitterRank || 'Comrade' });
           }
         });
         setCommunitySocials(socials);
@@ -1883,7 +1916,7 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
         prompt: selectedPrompt,
         response: response,
         submittedBy: userEmail,
-        submitterRank: rankTitle || 'bolshevik',
+        submitterRank: rankTitle || 'Comrade',
         votes: { yes: 0 }
       });
 
@@ -1902,7 +1935,7 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
         prompt: selectedPrompt,
         response: response,
         submittedBy: userEmail,
-        submitterRank: rankTitle || 'bolshevik',
+        submitterRank: rankTitle || 'Comrade',
         votes: { yes: 0 }
       });
       if (onAddPoints) onAddPoints(1);
@@ -2116,7 +2149,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                   <span style={styles.typeTag}>Perspective</span>
                   {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
                 </div>
-                {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'bolshevik'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
+                {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
                 <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
                 <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6', marginBottom: '14px' }}>{item.response || item.reason || item.desc}</p>
                 
@@ -2178,7 +2211,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                   <span style={styles.typeTag}>{item.type}</span>
                   {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
                 </div>
-                {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'bolshevik'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
+                {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
                 
                 {item.type === "Partner" ? (
                   <>
@@ -2342,7 +2375,7 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
       <div style={{ marginBottom: '30px' }}>
         <h2 style={{ marginBottom: '6px' }}>My Perspectives</h2>
         <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
-          Follow people from The Duma to see their perspectives in your personalized feed. Earn +10 points for each person you follow!
+          Follow people from The Duma to see their perspectives in your personalized feed. Earn +1 point for each person you follow!
         </p>
       </div>
 
@@ -2401,7 +2434,7 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
                 <span style={styles.typeTag}>Perspective</span>
                 {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
               </div>
-              {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'bolshevik'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
+              {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
               <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
               <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6' }}>{item.response || item.reason || item.desc}</p>
             </div>
@@ -2417,32 +2450,38 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [authToken, setAuthToken] = useState("");
-  const [rankTitle, setRankTitle] = useState("bolshevik");
+  const [rankTitle, setRankTitle] = useState("Comrade");
   const [rankScore, setRankScore] = useState(1);
   const [savedSets, setSavedSets] = useState([]);
   const [userAvatar, setUserAvatar] = useState("");
-  const [dumaItems, setDumaItems] = useState([{ id: 1, type: "Partner", company: "EcoHair Labs", product: "Silk Serum", desc: "Organic serum for hair.", section: "Commerce", submitterRank: "bolshevik" }]);
+  const [dumaItems, setDumaItems] = useState([{ id: 1, type: "Partner", company: "EcoHair Labs", product: "Silk Serum", desc: "Organic serum for hair.", section: "Commerce", submitterRank: "Comrade" }]);
   const [following, setFollowing] = useState([]);
-  const [networkGrowth, setNetworkGrowth] = useState(0);
   useEffect(() => {
     const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
     const email = localStorage.getItem("userEmail") || sessionStorage.getItem("userEmail");
     const storedSets = localStorage.getItem("savedSets");
     if (storedSets) { try { setSavedSets(JSON.parse(storedSets)); } catch (e) {} }
+    const storedAvatar = localStorage.getItem("userAvatar") || sessionStorage.getItem("userAvatar");
+    if (storedAvatar) setUserAvatar(storedAvatar);
     if (token) {
       fetch(`${BACKEND_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(data => {
-        if (data.email) { setIsLoggedIn(true); setUserEmail(data.email); setAuthToken(token); setRankTitle(data.rank_title || 'bolshevik'); setRankScore(data.rank_score || 1); } else { localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); }
+        if (data.email) { setIsLoggedIn(true); setUserEmail(data.email); setAuthToken(token); setRankTitle(data.rank_title || 'Comrade'); setRankScore(data.rank_score || 1); } else { localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); }
       }).catch(() => { if (email) { setIsLoggedIn(true); setUserEmail(email); setAuthToken(token); const storedRank = localStorage.getItem("rankTitle") || sessionStorage.getItem("rankTitle"); const storedScore = parseInt(localStorage.getItem("rankScore") || sessionStorage.getItem("rankScore") || "1"); if (storedRank) setRankTitle(storedRank); setRankScore(storedScore); } });
     }
   }, []);
   const handleLoginSuccess = (email, token, rememberMe, rank, score) => {
-    setIsLoggedIn(true); setUserEmail(email); setAuthToken(token); const resolvedRank = rank || 'bolshevik'; const resolvedScore = score || 1; setRankTitle(resolvedRank); setRankScore(resolvedScore);
+    setIsLoggedIn(true); setUserEmail(email); setAuthToken(token); const resolvedRank = rank || 'Comrade'; const resolvedScore = score || 1; setRankTitle(resolvedRank); setRankScore(resolvedScore);
     const storage = rememberMe ? localStorage : sessionStorage; storage.setItem("authToken", token); storage.setItem("userEmail", email); storage.setItem("rankTitle", resolvedRank); storage.setItem("rankScore", String(resolvedScore));
   };
   const handleLogout = () => {
-    setIsLoggedIn(false); setUserEmail(""); setAuthToken(""); setRankTitle("bolshevik"); setRankScore(1);
-    localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); localStorage.removeItem("rankTitle"); localStorage.removeItem("rankScore");
-    sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); sessionStorage.removeItem("rankTitle"); sessionStorage.removeItem("rankScore");
+    setIsLoggedIn(false); setUserEmail(""); setAuthToken(""); setRankTitle("Comrade"); setRankScore(1); setUserAvatar("");
+    localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); localStorage.removeItem("rankTitle"); localStorage.removeItem("rankScore"); localStorage.removeItem("userAvatar");
+    sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); sessionStorage.removeItem("rankTitle"); sessionStorage.removeItem("rankScore"); sessionStorage.removeItem("userAvatar");
+  };
+  const handleAvatarUpdate = (url) => {
+    setUserAvatar(url);
+    const storage = localStorage.getItem("authToken") ? localStorage : sessionStorage;
+    if (url) { storage.setItem("userAvatar", url); } else { storage.removeItem("userAvatar"); }
   };
   const saveSetToProfile = (items) => { const newSet = { items, date: new Date().toLocaleDateString() }; const updatedSets = [newSet, ...savedSets]; setSavedSets(updatedSets); localStorage.setItem("savedSets", JSON.stringify(updatedSets)); };
   const addDumaItem = (item) => setDumaItems(prev => [item, ...prev]);
@@ -2465,29 +2504,24 @@ export default function App() {
     });
   }, [authToken]);
 
-  const followUser = (personEmail) => {
+  const followUser = useCallback((personEmail) => {
     if (!following.includes(personEmail)) {
       setFollowing(prev => [...prev, personEmail]);
-      addPoints(10); // +10 points for following
+      addPoints(1); // +1 point for following someone
+      // Notify backend to award +4 points to the person being followed
+      if (authToken) {
+        fetch(`${BACKEND_URL}/api/profile/follow`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+          body: JSON.stringify({ followedEmail: personEmail })
+        }).catch(err => console.error("Error notifying follow:", err));
+      }
     }
-  };
+  }, [following, addPoints, authToken]);
 
   const unfollowUser = (personEmail) => {
     setFollowing(prev => prev.filter(p => p !== personEmail));
   };
-
-  useEffect(() => {
-    const newNetworkGrowth = following.filter(person => {
-      // This would check if person follows someone, but for now we'll count based on following list size
-      return true;
-    }).length;
-    
-    if (newNetworkGrowth > networkGrowth) {
-      const newConnections = newNetworkGrowth - networkGrowth;
-      addPoints(newConnections * 10);
-      setNetworkGrowth(newNetworkGrowth);
-    }
-  }, [following, networkGrowth, addPoints]);
 
   return (
     <Router>
@@ -2532,7 +2566,7 @@ export default function App() {
           <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} />} />
           <Route path="/perspectives" element={<PerspectivesPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} following={following} onFollowUser={followUser} onUnfollowUser={unfollowUser} onAddPoints={addPoints} />} />
           <Route path="/legislature" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} />} />
-          <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={setUserAvatar} />} />
+          <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={handleAvatarUpdate} />} />
           <Route path="/orders" element={<div style={{ padding: '60px', textAlign: 'center' }}><h2>Payment Received!</h2><p>Your custom hair set is being prepared. Check your Profile to see your formula.</p><Link to="/profile">Go to Profile</Link></div>} />
         </Routes>
       </div>
@@ -2568,4 +2602,5 @@ const styles = {
   typeTag: { background: '#222', color: '#fff', padding: '4px 10px', borderRadius: '20px', fontSize: '10px' },
   perspectiveBox: { backgroundColor: '#fff', border: '1px solid #eee', borderRadius: '16px', padding: '20px', marginBottom: '20px', position: 'relative' },
   socialButton: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '12px', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', marginBottom: '10px', transition: 'opacity 0.2s', boxSizing: 'border-box' },
+  generalSecretaryBadge: { boxShadow: '0 0 8px rgba(255,215,0,0.7)', background: 'linear-gradient(90deg,#b8860b,#ffd700,#b8860b)', color: '#fff', border: 'none' },
 };

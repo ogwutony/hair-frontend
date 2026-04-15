@@ -1858,7 +1858,7 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
   const [communitySocials, setCommunitySocials] = useState([]);
 
   useEffect(() => {
-    fetch(`${BACKEND_URL}/api/duma`)
+    fetch(`${BACKEND_URL}/api/duma?deduplicate=true`)
       .then(r => { if (!r.ok) throw new Error('Failed to fetch duma'); return r.json(); })
       .then(data => {
         if (!Array.isArray(data)) return;
@@ -2077,7 +2077,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
   const [activeSection, setActiveSection] = useState("Culture");
   
   useEffect(() => { 
-    fetch(`${BACKEND_URL}/api/duma`).then(r => r.json()).then(data => { 
+    fetch(`${BACKEND_URL}/api/duma?deduplicate=true`).then(r => r.json()).then(data => { 
       if (Array.isArray(data) && data.length > 0) setDumaItems([...data, ...items]); 
     }).catch(() => {}); 
   }, [items]);

@@ -90,17 +90,18 @@ const getNextRankTitle = (currentRankTitle) => {
 };
 
 const getRankColor = (rankTitle) => {
-  const platinumTier = ["General Secretary", "Politburo Member", "Politburo Candidate Member",
+  const goldTier = [
+    "General Secretary", "Politburo Member", "Politburo Candidate Member",
     "Secretary of the Central Committee", "Member of the Central Committee",
     "Candidate Member of the Central Committee", "Head of a Central Committee Department",
-    "First Secretary of a Republic", "First Secretary of the Obkom", "First Secretary of the Raikom"];
-  const goldTier = ["Hero of Socialist Labor", "Hero of the Majorities", "Order of The Majorities",
+    "First Secretary of a Republic", "First Secretary of the Obkom", "First Secretary of the Raikom",
+    "Hero of Socialist Labor", "Hero of the Majorities", "Order of The Majorities",
     "Order of the October Revolution", "Order of the Red Banner of Labor",
     "Order of Friendship of Peoples", "Order of the Badge of Honor", "Order of Maternal Glory",
     "Order of Labor Glory", "Labour Valour", "Distinguished Labour", "Veteran of Labour",
-    "the Salvation of the Drowning", "Knight Bear", "Magistral", "Demobbed", "Dedovshchina", "Gold Bear"];
+    "the Salvation of the Drowning", "Knight Bear", "Magistral", "Demobbed", "Dedovshchina", "Gold Bear"
+  ];
   const silverTier = ["Green Elephant", "Perun", "Svarozhits", "Veles", "Dazhbog", "Sliver Bear", "Scoop"];
-  if (platinumTier.includes(rankTitle)) return '#FFD700';
   if (goldTier.includes(rankTitle)) return '#FFD700';
   if (silverTier.includes(rankTitle)) return '#C0C0C0';
   return '#888';

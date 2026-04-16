@@ -289,10 +289,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", facebook: "idle" });
   const [anyVideoPushed, setAnyVideoPushed] = useState(false);
 
-  useEffect(() => {
-    if (!avatarUrl || !avatarUrl.startsWith('blob:')) return;
-    return () => { URL.revokeObjectURL(avatarUrl); };
-  }, [avatarUrl]);
+  const blobAvatarUrlRef = React.useRef(null);
 
   useEffect(() => {
     if (!authToken) return;
@@ -358,6 +355,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     }
     // Show local preview immediately
     const previewUrl = URL.createObjectURL(file);
+    blobAvatarUrlRef.current = previewUrl;
     setAvatarUrl(previewUrl);
     setAvatarSaveStatus("saving"); // triggers "Uploading…" overlay
 
@@ -378,6 +376,11 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       if (response.ok) {
         const data = await response.json();
         const cloudUrl = data.url || data.secure_url;
+        // Revoke the blob URL only after the cloud URL is ready to replace it
+        if (blobAvatarUrlRef.current) {
+          URL.revokeObjectURL(blobAvatarUrlRef.current);
+          blobAvatarUrlRef.current = null;
+        }
         setAvatarUrl(cloudUrl);
         if (onAvatarUpdate) onAvatarUpdate(cloudUrl);
         // Persist the new avatar URL to the user's profile record

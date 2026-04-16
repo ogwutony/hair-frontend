@@ -122,9 +122,9 @@ const RankBadge = ({ rankTitle, score }) => {
       border: `1px solid ${color}`,
       textTransform: 'uppercase',
       letterSpacing: isLongTitle ? '0px' : '0.5px',
-      whiteSpace: 'normal',
-      wordBreak: 'break-word',
-      display: 'inline-block',
+      whiteSpace: 'nowrap',
+      display: 'inline-flex',
+      alignItems: 'center',
       maxWidth: '200px',
       lineHeight: '1.3',
       ...(isGenSec ? styles.generalSecretaryBadge : {})
@@ -2431,12 +2431,12 @@ export default function App() {
     if (storedAvatar) setUserAvatar(storedAvatar);
     if (token) {
       fetch(`${BACKEND_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(data => {
-        if (data.email) { setIsLoggedIn(true); setUserEmail(data.email); setAuthToken(token); setRankTitle(data.rank_title || 'Comrade'); setRankScore(data.rank_score || 1); localStorage.removeItem("rankTitle"); localStorage.removeItem("rankScore"); sessionStorage.removeItem("rankTitle"); sessionStorage.removeItem("rankScore"); } else { localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); }
+        if (data.email) { setIsLoggedIn(true); setUserEmail(data.email); setAuthToken(token); const currentScore = data.rank_score || 1; setRankScore(currentScore); setRankTitle(getRankTitle(currentScore)); localStorage.removeItem("rankTitle"); localStorage.removeItem("rankScore"); sessionStorage.removeItem("rankTitle"); sessionStorage.removeItem("rankScore"); } else { localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); }
       }).catch(() => { if (email) { setIsLoggedIn(true); setUserEmail(email); setAuthToken(token); const storedRank = localStorage.getItem("rankTitle") || sessionStorage.getItem("rankTitle"); const storedScore = parseInt(localStorage.getItem("rankScore") || sessionStorage.getItem("rankScore") || "1"); if (storedRank) setRankTitle(storedRank); setRankScore(storedScore); } });
     }
   }, []);
   const handleLoginSuccess = (email, token, rememberMe, rank, score) => {
-    setIsLoggedIn(true); setUserEmail(email); setAuthToken(token); const resolvedRank = rank || 'Comrade'; const resolvedScore = score || 1; setRankTitle(resolvedRank); setRankScore(resolvedScore);
+    setIsLoggedIn(true); setUserEmail(email); setAuthToken(token); const resolvedScore = score || 1; const resolvedRank = getRankTitle(resolvedScore); setRankTitle(resolvedRank); setRankScore(resolvedScore);
     const storage = rememberMe ? localStorage : sessionStorage; storage.setItem("authToken", token); storage.setItem("userEmail", email); storage.setItem("rankTitle", resolvedRank); storage.setItem("rankScore", String(resolvedScore));
   };
   const handleLogout = () => {

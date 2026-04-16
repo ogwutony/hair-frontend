@@ -605,7 +605,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
             </div>
             {nextRankTitle && (
               <div style={{ fontSize: '12px', color: '#888', marginTop: '8px' }}>
-                <strong>{pointsToNextRank.toLocaleString()}</strong> battle points to your next rank ({nextRankTitle})
+                <strong>{pointsToNextRank.toLocaleString()}</strong> points to your next rank ({nextRankTitle})
               </div>
             )}
           </div>
@@ -2431,7 +2431,7 @@ export default function App() {
     if (storedAvatar) setUserAvatar(storedAvatar);
     if (token) {
       fetch(`${BACKEND_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(data => {
-        if (data.email) { setIsLoggedIn(true); setUserEmail(data.email); setAuthToken(token); setRankTitle(data.rank_title || 'Comrade'); setRankScore(data.rank_score || 1); } else { localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); }
+        if (data.email) { setIsLoggedIn(true); setUserEmail(data.email); setAuthToken(token); setRankTitle(data.rank_title || 'Comrade'); setRankScore(data.rank_score || 1); localStorage.removeItem("rankTitle"); localStorage.removeItem("rankScore"); sessionStorage.removeItem("rankTitle"); sessionStorage.removeItem("rankScore"); } else { localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); }
       }).catch(() => { if (email) { setIsLoggedIn(true); setUserEmail(email); setAuthToken(token); const storedRank = localStorage.getItem("rankTitle") || sessionStorage.getItem("rankTitle"); const storedScore = parseInt(localStorage.getItem("rankScore") || sessionStorage.getItem("rankScore") || "1"); if (storedRank) setRankTitle(storedRank); setRankScore(storedScore); } });
     }
   }, []);

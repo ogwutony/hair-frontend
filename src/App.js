@@ -382,11 +382,16 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         setAvatarUrl(cloudUrl);
         if (onAvatarUpdate) onAvatarUpdate(cloudUrl);
         // Persist the new avatar URL to the user's profile record
-        await fetch(`${BACKEND_URL}/api/profile`, {
+        const profileRes = await fetch(`${BACKEND_URL}/api/profile`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
           body: JSON.stringify({ avatar: cloudUrl })
         });
+        if (!profileRes.ok) {
+          setAvatarSaveStatus("error");
+          setTimeout(() => setAvatarSaveStatus("idle"), 3000);
+          return;
+        }
         setAvatarSaveStatus("saved");
         if (!hadExistingAvatar && onAddPoints) {
           onAddPoints(25);

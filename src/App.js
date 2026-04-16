@@ -605,7 +605,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
             </div>
             {nextRankTitle && (
               <div style={{ fontSize: '12px', color: '#888', marginTop: '8px' }}>
-                <strong>{pointsToNextRank.toLocaleString()}</strong> battle points to your next rank ({nextRankTitle})
+                <strong>{pointsToNextRank.toLocaleString()}</strong> points to your next rank ({nextRankTitle})
               </div>
             )}
           </div>

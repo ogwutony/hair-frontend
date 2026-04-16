@@ -268,7 +268,6 @@ const productsData = {
 // --- PROFILE PAGE COMPONENT - Enhanced with Photo & Video Features ---
 const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar }) => {
   const [avatarUrl, setAvatarUrl] = useState(userAvatar || null);
-  const [avatarFile, setAvatarFile] = useState(null);
   const [avatarSaveStatus, setAvatarSaveStatus] = useState("idle"); // idle | saving | saved | error
   const [hadExistingAvatar, setHadExistingAvatar] = useState(false);
   const avatarInputRef = React.useRef(null);
@@ -360,7 +359,6 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     // Show local preview immediately
     const previewUrl = URL.createObjectURL(file);
     setAvatarUrl(previewUrl);
-    setAvatarFile(file); // Store the file for the "Save" button
     setAvatarSaveStatus("saving"); // triggers "Uploading…" overlay
 
     if (!authToken) {
@@ -383,42 +381,17 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         URL.revokeObjectURL(previewUrl);
         setAvatarUrl(cloudUrl);
         if (onAvatarUpdate) onAvatarUpdate(cloudUrl);
-        setAvatarFile(null);
-        setAvatarSaveStatus("saved");
-        if (!hadExistingAvatar && onAddPoints) {
-          onAddPoints(25);
-          setHadExistingAvatar(true);
+        // Persist the new avatar URL to the user's profile record
+        const profileRes = await fetch(`${BACKEND_URL}/api/profile`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+          body: JSON.stringify({ avatar: cloudUrl })
+        });
+        if (!profileRes.ok) {
+          setAvatarSaveStatus("error");
+          setTimeout(() => setAvatarSaveStatus("idle"), 3000);
+          return;
         }
-        setTimeout(() => setAvatarSaveStatus("idle"), 3000);
-      } else {
-        setAvatarFile(file);
-        setAvatarSaveStatus("error");
-        setTimeout(() => setAvatarSaveStatus("idle"), 3000);
-      }
-    } catch (err) {
-      setAvatarFile(file);
-      setAvatarSaveStatus("error");
-      setTimeout(() => setAvatarSaveStatus("idle"), 3000);
-    }
-  };
-
-  const handleSaveAvatar = async () => {
-    if (!avatarFile || !authToken) return;
-    setAvatarSaveStatus("saving");
-    try {
-      const formData = new FormData();
-      formData.append("file", avatarFile);
-      const response = await fetch(`${BACKEND_URL}/api/media/upload`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${authToken}` },
-        body: formData
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const cloudUrl = data.url || data.secure_url;
-        setAvatarUrl(cloudUrl);
-        if (onAvatarUpdate) onAvatarUpdate(cloudUrl);
-        setAvatarFile(null);
         setAvatarSaveStatus("saved");
         if (!hadExistingAvatar && onAddPoints) {
           onAddPoints(25);
@@ -685,20 +658,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                   {avatarSaveStatus === "saving" ? "Uploading…" : "Upload Avatar (JPG/PNG, max 5MB)"}
                 </button>
               </label>
-              {(avatarFile || avatarSaveStatus === "saved") && avatarSaveStatus !== "saving" && (
-                <button
-                  type="button"
-                  onClick={handleSaveAvatar}
-                  disabled={avatarSaveStatus === "saved"}
-                  style={{
-                    ...styles.authButton,
-                    width: '160px',
-                    backgroundColor: avatarSaveStatus === "saved" ? '#27ae60' : avatarSaveStatus === "error" ? '#e74c3c' : undefined,
-                    cursor: avatarSaveStatus === "saved" ? 'default' : 'pointer'
-                  }}>
-                  {avatarSaveStatus === "saved" ? "✓ Saved" : avatarSaveStatus === "error" ? "Failed — Retry" : "Save Profile Photo"}
-                </button>
-              )}
+
             </div>
           </div>
         </div>

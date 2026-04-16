@@ -292,6 +292,15 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   const blobAvatarUrlRef = React.useRef(null);
 
   useEffect(() => {
+    return () => {
+      if (blobAvatarUrlRef.current) {
+        URL.revokeObjectURL(blobAvatarUrlRef.current);
+        blobAvatarUrlRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (!authToken) return;
     fetch(`${BACKEND_URL}/api/profile`, {
       headers: { Authorization: `Bearer ${authToken}` }
@@ -376,11 +385,6 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       if (response.ok) {
         const data = await response.json();
         const cloudUrl = data.url || data.secure_url;
-        // Revoke the blob URL only after the cloud URL is ready to replace it
-        if (blobAvatarUrlRef.current) {
-          URL.revokeObjectURL(blobAvatarUrlRef.current);
-          blobAvatarUrlRef.current = null;
-        }
         setAvatarUrl(cloudUrl);
         if (onAvatarUpdate) onAvatarUpdate(cloudUrl);
         // Persist the new avatar URL to the user's profile record

@@ -16,53 +16,48 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://hair-backend-2
 
 // --- 3. RANK SYSTEM (50-Tier Hierarchy) ---
 const RANK_TIERS = [
-  // --- EXECUTIVE COMMAND (20M - 50M+) ---
-  { title: "General Secretary",                         min: 50000000 },
-  { title: "Politburo Member",                          min: 45000000 },
-  { title: "Politburo Candidate Member",                min: 40000000 },
-  { title: "Secretary of the Central Committee",        min: 36000000 },
-  { title: "Member of the Central Committee",           min: 32000000 },
-  { title: "Candidate Member of the Central Committee", min: 29000000 },
-  { title: "Head of a Central Committee Department",    min: 26000000 },
-  { title: "First Secretary of a Republic",             min: 24000000 },
-  { title: "First Secretary of the Obkom",              min: 22000000 },
-  { title: "First Secretary of the Raikom",             min: 20000000 },
+  // --- EXECUTIVE COMMAND (5M Point Increments) ---
+  { title: "Servant of the People",                         min: 50000000 },
+  { title: "Servant of the Majorities",                     min: 45000000 },
+  { title: "General Secretary of The Majorities",           min: 40000000 },
+  { title: "Premier of The Majorities",                     min: 35000000 },
+  { title: "Chairman of the Standing Committee of the Majorities Duma", min: 30000000 },
+  { title: "Chairman of the National Committee of the Majorities Political Consultative", min: 25000000 },
+  { title: "Director of the General Office of the Majorities", min: 20000000 },
+  { title: "Secretary of the Central Commission for Discipline Inspection", min: 15000000 },
+  { title: "Politburo Member of The Majorities",            min: 10000000 },
+  { title: "Secretary of Majorities Committees of Provinces", min: 5000000  },
 
-  // --- HEROIC ORDERS & LABOR TITLES (2M - 18.5M) ---
-  { title: "Hero of Socialist Labor",                   min: 18500000 },
-  { title: "Hero of the Majorities",                    min: 17000000 },
-  { title: "Order of The Majorities",                   min: 15500000 },
-  { title: "Order of the October Revolution",           min: 14000000 },
-  { title: "Order of the Red Banner of Labor",          min: 12500000 },
-  { title: "Order of Friendship of Peoples",            min: 11000000 },
-  { title: "Order of the Badge of Honor",               min: 9500000  },
-  { title: "Order of Maternal Glory",                   min: 8000000  },
-  { title: "Order of Labor Glory",                      min: 6500000  },
-  { title: "Labour Valour",                             min: 5500000  },
-  { title: "Distinguished Labour",                      min: 4500000  },
-  { title: "Veteran of Labour",                         min: 3500000  },
-  { title: "the Salvation of the Drowning",             min: 2000000  },
+  // --- HEROIC ORDERS & LABOR TITLES ---
+  { title: "Hero of Socialist Labor",                   min: 4500000 },
+  { title: "Hero of the Majorities",                    min: 4000000 },
+  { title: "Order of The Majorities",                   min: 3500000 },
+  { title: "Order of the October Revolution",           min: 3000000 },
+  { title: "Order of the Red Banner of Labor",          min: 2500000 },
+  { title: "Order of Friendship of Peoples",            min: 2000000 },
+  { title: "Order of the Badge of Honor",               min: 1500000 },
+  { title: "the Salvation of the Drowning",             min: 1000000 },
 
-  // --- MYTHOLOGICAL & DEDOVSHCHINA HIERARCHY ---
-  { title: "Knight Bear",       min: 1800000 },
-  { title: "Magistral",         min: 1600000 },
-  { title: "Demobbed",          min: 1400000 },
-  { title: "Dedovshchina",      min: 1200000 },
-  { title: "Gold Bear",         min: 1000000 },
-  { title: "Green Elephant",    min: 800000  },
-  { title: "Perun",             min: 600000  },
-  { title: "Svarozhits",        min: 400000  },
-  { title: "Veles",             min: 200000  },
-  { title: "Dazhbog",           min: 100000  },
-  { title: "Sliver Bear",       min: 50000   },
-  { title: "Scoop",             min: 25000   },
-  { title: "Dola",              min: 10000   },
-  { title: "Mammoth",           min: 5000    },
-  { title: "Goldfinches",       min: 2500    },
-  { title: "Walruses",          min: 1000    },
+  // --- LOWER HIERARCHY (Russian Gods) ---
+  { title: "Perun",             min: 900000  },
+  { title: "Veles",             min: 800000  },
+  { title: "Svarog",            min: 700000  },
+  { title: "Mokosh",            min: 600000  },
+  { title: "Dazhbog",           min: 500000  },
+  { title: "Stribog",           min: 400000  },
+  { title: "Rod",               min: 300000  },
+  { title: "Yarilo",            min: 200000  },
+  { title: "Lada",              min: 100000  },
+  { title: "Morana",            min: 50000   },
+  { title: "Belobog",           min: 25000   },
+  { title: "Chernobog",         min: 10000   },
+  { title: "Leshiy",            min: 5000    },
+  { title: "Vodyanoy",          min: 2500    },
+  { title: "Domovoi",           min: 1500    },
+  { title: "Rusalka",           min: 1000    },
   { title: "Rugiaevit",         min: 500     },
-  { title: "Crucian Carp",      min: 250     },
-  { title: "Crows",             min: 100     },
+  { title: "Schout-bij-nacht",  min: 250     },
+  { title: "Crow",              min: 100     },
   { title: "Comrade",           min: 1       },
 ];
 
@@ -73,7 +68,7 @@ const getRankTitle = (score) => {
   return "Comrade";
 };
 
-const isPolitburoOrHigher = (score) => score >= 45000000;
+const isPolitburoOrHigher = (score) => score >= 10000000; // "Politburo Member of The Majorities" and above
 
 // --- CALCULATE POINTS TO NEXT RANK ---
 const getPointsToNextRank = (currentScore, currentRankTitle) => {
@@ -91,17 +86,18 @@ const getNextRankTitle = (currentRankTitle) => {
 
 const getRankColor = (rankTitle) => {
   const goldTier = [
-    "General Secretary", "Politburo Member", "Politburo Candidate Member",
-    "Secretary of the Central Committee", "Member of the Central Committee",
-    "Candidate Member of the Central Committee", "Head of a Central Committee Department",
-    "First Secretary of a Republic", "First Secretary of the Obkom", "First Secretary of the Raikom",
+    "Servant of the People", "Servant of the Majorities", "General Secretary of The Majorities",
+    "Premier of The Majorities", "Chairman of the Standing Committee of the Majorities Duma",
+    "Chairman of the National Committee of the Majorities Political Consultative",
+    "Director of the General Office of the Majorities",
+    "Secretary of the Central Commission for Discipline Inspection",
+    "Politburo Member of The Majorities", "Secretary of Majorities Committees of Provinces",
     "Hero of Socialist Labor", "Hero of the Majorities", "Order of The Majorities",
     "Order of the October Revolution", "Order of the Red Banner of Labor",
-    "Order of Friendship of Peoples", "Order of the Badge of Honor", "Order of Maternal Glory",
-    "Order of Labor Glory", "Labour Valour", "Distinguished Labour", "Veteran of Labour",
-    "the Salvation of the Drowning", "Knight Bear", "Magistral", "Demobbed", "Dedovshchina", "Gold Bear"
+    "Order of Friendship of Peoples", "Order of the Badge of Honor",
+    "the Salvation of the Drowning"
   ];
-  const silverTier = ["Green Elephant", "Perun", "Svarozhits", "Veles", "Dazhbog", "Sliver Bear", "Scoop"];
+  const silverTier = ["Perun", "Veles", "Svarog", "Mokosh", "Dazhbog", "Stribog", "Rod", "Yarilo"];
   if (goldTier.includes(rankTitle)) return '#FFD700';
   if (silverTier.includes(rankTitle)) return '#C0C0C0';
   return '#888';
@@ -110,7 +106,7 @@ const getRankColor = (rankTitle) => {
 // --- RANK BADGE COMPONENT ---
 const RankBadge = ({ rankTitle, score }) => {
   const color = getRankColor(rankTitle);
-  const isGenSec = rankTitle === "General Secretary";
+  const isTopRank = rankTitle === "Servant of the People";
   const isLongTitle = rankTitle && rankTitle.length > 20;
   return (
     <span style={{
@@ -127,7 +123,7 @@ const RankBadge = ({ rankTitle, score }) => {
       alignItems: 'center',
       maxWidth: '200px',
       lineHeight: '1.3',
-      ...(isGenSec ? styles.generalSecretaryBadge : {})
+      ...(isTopRank ? styles.generalSecretaryBadge : {})
     }}>
       {rankTitle}
     </span>
@@ -144,7 +140,7 @@ const safeSocialUrl = (raw) => {
 const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks = {} }) => {
   const initial = (rankTitle || 'C')[0].toUpperCase();
   const color = getRankColor(rankTitle || 'Comrade');
-  const isGenSec = rankTitle === "General Secretary";
+  const isTopRank = rankTitle === "Servant of the People";
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
       <div style={{
@@ -160,7 +156,7 @@ const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks 
         color: '#fff',
         flexShrink: 0,
         overflow: 'hidden',
-        ...(isGenSec && !avatarUrl ? { boxShadow: '0 0 12px rgba(255,215,0,0.8)' } : {})
+        ...(isTopRank && !avatarUrl ? { boxShadow: '0 0 12px rgba(255,215,0,0.8)' } : {})
       }}>
         {avatarUrl
           ? <img src={avatarUrl} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -266,7 +262,7 @@ const productsData = {
 };
 
 // --- PROFILE PAGE COMPONENT - Enhanced with Photo & Video Features ---
-const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar }) => {
+const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar, tokens }) => {
   const [avatarUrl, setAvatarUrl] = useState(userAvatar || null);
   const [avatarSaveStatus, setAvatarSaveStatus] = useState("idle"); // idle | saving | saved | error
   const [hadExistingAvatar, setHadExistingAvatar] = useState(false);
@@ -606,6 +602,11 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
             {nextRankTitle && (
               <div style={{ fontSize: '12px', color: '#888', marginTop: '8px' }}>
                 <strong>{pointsToNextRank.toLocaleString()}</strong> points to your next rank ({nextRankTitle})
+              </div>
+            )}
+            {tokens > 0 && (
+              <div style={{ fontSize: '12px', color: '#888', marginTop: '8px' }}>
+                🪙 <strong>{tokens}</strong> {tokens === 1 ? 'token' : 'tokens'} earned from rank-ups
               </div>
             )}
           </div>
@@ -2418,6 +2419,7 @@ export default function App() {
   const [authToken, setAuthToken] = useState("");
   const [rankTitle, setRankTitle] = useState("Comrade");
   const [rankScore, setRankScore] = useState(1);
+  const [tokens, setTokens] = useState(0);
   const [savedSets, setSavedSets] = useState([]);
   const [userAvatar, setUserAvatar] = useState("");
   const [dumaItems, setDumaItems] = useState([{ id: 1, type: "Partner", company: "EcoHair Labs", product: "Silk Serum", desc: "Organic serum for hair.", section: "Commerce", submitterRank: "Comrade" }]);
@@ -2454,7 +2456,15 @@ export default function App() {
   const addPoints = useCallback((points) => {
     setRankScore(prevScore => {
       const newScore = prevScore + points;
+      const oldRank = getRankTitle(prevScore);
       const newRank = getRankTitle(newScore);
+      if (newRank !== oldRank) {
+        const oldMin = RANK_TIERS.find(t => t.title === oldRank)?.min ?? 1;
+        const newMin = RANK_TIERS.find(t => t.title === newRank)?.min ?? 1;
+        if (newMin > oldMin) {
+          setTokens(prev => prev + 1);
+        }
+      }
       setRankTitle(newRank);
       const storage = localStorage.getItem("authToken") ? localStorage : sessionStorage;
       storage.setItem("rankScore", String(newScore));
@@ -2532,7 +2542,7 @@ export default function App() {
           <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} />} />
           <Route path="/perspectives" element={<PerspectivesPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} following={following} onFollowUser={followUser} onUnfollowUser={unfollowUser} onAddPoints={addPoints} />} />
           <Route path="/legislature" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} />} />
-          <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={handleAvatarUpdate} />} />
+          <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={handleAvatarUpdate} tokens={tokens} />} />
           <Route path="/orders" element={<div style={{ padding: '60px', textAlign: 'center' }}><h2>Payment Received!</h2><p>Your custom hair set is being prepared. Check your Profile to see your formula.</p><Link to="/profile">Go to Profile</Link></div>} />
         </Routes>
       </div>

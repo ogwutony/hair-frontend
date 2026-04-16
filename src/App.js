@@ -378,7 +378,6 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       if (response.ok) {
         const data = await response.json();
         const cloudUrl = data.url || data.secure_url;
-        URL.revokeObjectURL(previewUrl);
         setAvatarUrl(cloudUrl);
         if (onAvatarUpdate) onAvatarUpdate(cloudUrl);
         // Persist the new avatar URL to the user's profile record

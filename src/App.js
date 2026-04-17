@@ -1295,10 +1295,7 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
     if (type === "one-time") return 30;
     if (type === "subscription") {
       const subscriptionCount = (savedSets?.length || 0) + 1;
-      const pointMap = {
-        1: 576, 2: 1152, 3: 2304, 4: 4608, 5: 10000,
-        13: 13000, 15: 15000, 20: 20000
-      };
+      const pointMap = { 1: 576, 2: 1152, 3: 2304 }; // Recalibrated for 3 months
       return pointMap[subscriptionCount] || 576; // default 576 if not in special thresholds
     }
     return 0;
@@ -1359,7 +1356,8 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
               {!clientSecret ? (
                 <>
                   <button style={styles.checkoutBtn} onClick={() => window.location.href = 'https://buy.stripe.com/8x228sd3w8uo2IU9Jlc7u05'}>Checkout One-Time ($36)</button>
-                  <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => window.location.href = 'https://buy.stripe.com/eVq7sMe7AbGA6ZabRtc7u06'}>Subscribe 1 set for 12 Months ($30)</button>
+                  <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => window.location.href = 'https://buy.stripe.com/aFa9AU8Ng6mg2IU5t5c7u07'}>Subscribe 1 set per month for 3 months ($30)</button>
+                  <p style={{ fontSize: '11px', color: '#888', marginTop: '8px', textAlign: 'center' }}>All sales final. Custom sets can be updated with 7 days' notice before the next shipment.</p>
                 </>
               ) : (
                 <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>

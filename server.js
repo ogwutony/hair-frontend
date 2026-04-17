@@ -35,11 +35,13 @@ app.use(express.json());
 
 // CORS Configuration - Allows multiple origins
 const allowedOrigins = [
+  'https://themajorities.com', // ADD THIS LINE
+  'https://www.themajorities.com', // ADD THIS LINE
   'https://majorityhairsolutions.com',
   'https://www.majorityhairsolutions.com',
   'https://majority-hair-frontend.vercel.app',
   'https://majority-hair.vercel.app',
-  'http://localhost:3000' // For local development
+  'http://localhost:3000'
 ];
 
 // Pattern to allow any Vercel preview deployment URL for this project

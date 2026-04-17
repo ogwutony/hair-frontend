@@ -373,6 +373,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("type", "avatar");
       const response = await fetch(`${BACKEND_URL}/api/media/upload`, {
         method: "POST",
         headers: { Authorization: `Bearer ${authToken}` },
@@ -380,7 +381,12 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       });
       if (response.ok) {
         const data = await response.json();
-        const cloudUrl = data.url || data.secure_url;
+        const cloudUrl = data.storageUrl || data.url || data.secure_url;
+        // Revoke the temporary blob URL now that we have the permanent cloud URL
+        if (blobAvatarUrlRef.current) {
+          URL.revokeObjectURL(blobAvatarUrlRef.current);
+          blobAvatarUrlRef.current = null;
+        }
         setAvatarUrl(cloudUrl);
         if (onAvatarUpdate) onAvatarUpdate(cloudUrl);
         // Persist the new avatar URL to the user's profile record

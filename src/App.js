@@ -1325,7 +1325,7 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
               {!clientSecret ? (
                 <>
                   <button style={styles.checkoutBtn} onClick={() => window.location.href = 'https://buy.stripe.com/8x228sd3w8uo2IU9Jlc7u05'}>Checkout One-Time ($36)</button>
-                  <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => window.location.href = 'https://buy.stripe.com/eVq7sMe7AbGA6ZabRtc7u06'}>Subscribe $30/mo for 6mo</button>
+                  <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => window.location.href = 'https://buy.stripe.com/eVq7sMe7AbGA6ZabRtc7u06'}>Subscribe $30/mo for 12mo</button>
                 </>
               ) : (
                 <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>

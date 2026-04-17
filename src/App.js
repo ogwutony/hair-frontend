@@ -2328,7 +2328,7 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
       .then(data => {
         if (Array.isArray(data) && data.length > 0) setAllItems(data);
       })
-      .catch(() => {});
+      .catch(err => console.error("Failed to load perspectives:", err));
   }, []);
 
   useEffect(() => {

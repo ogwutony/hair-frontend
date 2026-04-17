@@ -142,16 +142,18 @@ const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks 
   const color = getRankColor(rankTitle || 'Comrade');
   const isTopRank = rankTitle === "Servant of the People";
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', background: '#fff', flexWrap: 'wrap', marginBottom: '12px' }}>
+      {/* Avatar */}
       <div style={{
-        width: '50px',
-        height: '50px',
+        width: '42px',
+        height: '42px',
         borderRadius: '50%',
+        border: '1.5px solid #1a1a1a',
         backgroundColor: avatarUrl ? 'transparent' : color,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: '18px',
+        fontSize: '16px',
         fontWeight: '700',
         color: '#fff',
         flexShrink: 0,
@@ -162,48 +164,80 @@ const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks 
           ? <img src={avatarUrl} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : initial}
       </div>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: '12px', fontWeight: '400', color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '4px' }}>{email}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <RankBadge rankTitle={rankTitle || 'Comrade'} />
-          {rankScore != null && (
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#888', padding: '3px 8px', borderRadius: '4px', border: '1px solid #ccc', display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap', lineHeight: '1.3' }}>
-              ★ {(rankScore || 1).toLocaleString()} pts
-            </span>
-          )}
-        </div>
-        {socialLinks && (
-          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-            {socialLinks.instagram ? (
-              <a
-                href={safeSocialUrl(socialLinks.instagram)}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ textDecoration: 'none', fontSize: '15px' }}
-                title="Instagram"
-              >{"\u{1F4F7}"}</a>
-            ) : null}
-            {socialLinks.tiktok ? (
-              <a
-                href={safeSocialUrl(socialLinks.tiktok)}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ textDecoration: 'none', fontSize: '15px' }}
-                title="TikTok"
-              >{"\u{1F3B5}"}</a>
-            ) : null}
-            {socialLinks.facebook ? (
-              <a
-                href={safeSocialUrl(socialLinks.facebook)}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ textDecoration: 'none', fontSize: '11px', color: '#1877F2', fontWeight: '600' }}
-                title="Facebook"
-              >Facebook</a>
-            ) : null}
-          </div>
-        )}
-      </div>
+      {/* Email */}
+      <span style={{ fontWeight: '600', fontSize: '14px', color: '#333', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '220px' }}>
+        {email}
+      </span>
+      {/* Rank badge */}
+      <span style={{
+        fontSize: rankTitle && rankTitle.length > 20 ? '9px' : '11px',
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        padding: '4px 10px',
+        borderRadius: '4px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        backgroundColor: '#000',
+        color: '#fff',
+        whiteSpace: 'nowrap',
+        letterSpacing: rankTitle && rankTitle.length > 20 ? '0px' : '0.5px',
+        lineHeight: '1.3',
+        ...(isTopRank ? styles.generalSecretaryBadge : {})
+      }}>
+        {rankTitle || 'Comrade'}
+      </span>
+      {/* Points badge */}
+      {rankScore != null && (
+        <span style={{
+          fontSize: '11px',
+          fontWeight: '700',
+          textTransform: 'uppercase',
+          padding: '4px 10px',
+          borderRadius: '4px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '3px',
+          backgroundColor: '#f5f5f5',
+          color: '#d4af37',
+          border: '1px solid #e0e0e0',
+          whiteSpace: 'nowrap',
+          lineHeight: '1.3'
+        }}>
+          ★ {(rankScore || 1).toLocaleString()} pts
+        </span>
+      )}
+      {/* Social links */}
+      {socialLinks && (
+        <>
+          {socialLinks.instagram ? (
+            <a
+              href={safeSocialUrl(socialLinks.instagram)}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ textDecoration: 'none', fontSize: '15px' }}
+              title="Instagram"
+            >{"\u{1F4F7}"}</a>
+          ) : null}
+          {socialLinks.tiktok ? (
+            <a
+              href={safeSocialUrl(socialLinks.tiktok)}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ textDecoration: 'none', fontSize: '15px' }}
+              title="TikTok"
+            >{"\u{1F3B5}"}</a>
+          ) : null}
+          {socialLinks.facebook ? (
+            <a
+              href={safeSocialUrl(socialLinks.facebook)}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ textDecoration: 'none', fontSize: '11px', color: '#1877F2', fontWeight: '600' }}
+              title="Facebook"
+            >Facebook</a>
+          ) : null}
+        </>
+      )}
     </div>
   );
 };

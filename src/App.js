@@ -138,7 +138,7 @@ const safeSocialUrl = (raw) => {
 };
 
 const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks = {} }) => {
-  const initial = (rankTitle || 'C')[0].toUpperCase();
+  const initial = (email || 'C')[0].toUpperCase();
   const color = getRankColor(rankTitle || 'Comrade');
   const isTopRank = rankTitle === "Servant of the People";
   return (
@@ -1342,7 +1342,7 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
 }
 
 // --- RECOMMEND PAGE ---
-const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }) => {
+const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, userAvatar }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ 
     name: "", 
@@ -1429,7 +1429,7 @@ const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken
         Submit high-quality, verified hair care products to <strong>The Majorities' Duma Commerce</strong> section for community review and voting.
       </p>
 
-      {userEmail && rankTitle && <div style={{ marginBottom: '20px' }}><CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} /></div>}
+      {userEmail && rankTitle && <div style={{ marginBottom: '20px' }}><CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} /></div>}
       {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
 
       <form style={styles.dumaCard} onSubmit={handleSubmit}>
@@ -1474,7 +1474,7 @@ const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken
   );
 };
 
-const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }) => {
+const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, userAvatar }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
@@ -1649,11 +1649,11 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken }
       </p>
       {userEmail && rankTitle && (
         <div style={{ marginBottom: '20px' }}>
-          <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} />
+          <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
         </div>
       )}
       {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
-      
+
       <form style={styles.dumaCard} onSubmit={handleSubmit}>
         
         {/* SECTION 1: CONTACT INFORMATION */}
@@ -1943,7 +1943,7 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
 
       {userEmail && rankTitle && (
         <div style={{ marginBottom: '30px' }}>
-          <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} />
+          <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
         </div>
       )}
 
@@ -2104,7 +2104,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
           <h2 style={{ marginBottom: '6px' }}>The Majorities' Duma</h2>
           <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>Community recommendations, partnerships, and cultural contributions - vote to shape The Majorities.</p>
         </div>
-        {userEmail && rankTitle && <div style={{ textAlign: 'right', minWidth: '250px' }}><CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} /></div>}
+        {userEmail && rankTitle && <div style={{ textAlign: 'right', minWidth: '250px' }}><CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} /></div>}
       </div>
       <div style={{ display: 'flex', gap: '10px', marginBottom: '30px', borderBottom: '2px solid #eee', paddingBottom: '15px' }}>
         <button onClick={() => setActiveSection("Culture")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Culture" ? '#222' : '#f5f5f5', color: activeSection === "Culture" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Culture ({culturalItems.length})</button>
@@ -2314,7 +2314,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
 };
 
 // --- PERSPECTIVES PAGE (Personalized Feed from Following) ---
-const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, following, onFollowUser, onUnfollowUser, onAddPoints }) => {
+const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, following, onFollowUser, onUnfollowUser, onAddPoints, userAvatar }) => {
   const [followingList, setFollowingList] = useState([]);
   const [selectedFollowing, setSelectedFollowing] = useState(following || []);
   const [filteredItems, setFilteredItems] = useState(items);
@@ -2355,7 +2355,7 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
 
       {userEmail && rankTitle && (
         <div style={{ marginBottom: '20px' }}>
-          <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} />
+          <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
         </div>
       )}
 
@@ -2543,11 +2543,11 @@ export default function App() {
           <Route path="/signup" element={<SignupPage onLogin={handleLoginSuccess} />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-          <Route path="/recommend" element={<RecommendPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} />} />
-          <Route path="/partner" element={<PartnerPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} />} />
+          <Route path="/recommend" element={<RecommendPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
+          <Route path="/partner" element={<PartnerPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
           <Route path="/culture" element={<CultureLabPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} />} />
           <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} />} />
-          <Route path="/perspectives" element={<PerspectivesPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} following={following} onFollowUser={followUser} onUnfollowUser={unfollowUser} onAddPoints={addPoints} />} />
+          <Route path="/perspectives" element={<PerspectivesPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} following={following} onFollowUser={followUser} onUnfollowUser={unfollowUser} onAddPoints={addPoints} userAvatar={userAvatar} />} />
           <Route path="/legislature" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} />} />
           <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={handleAvatarUpdate} tokens={tokens} />} />
           <Route path="/orders" element={<div style={{ padding: '60px', textAlign: 'center' }}><h2>Payment Received!</h2><p>Your custom hair set is being prepared. Check your Profile to see your formula.</p><Link to="/profile">Go to Profile</Link></div>} />

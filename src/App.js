@@ -382,13 +382,14 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       if (response.ok) {
         const data = await response.json();
         const cloudUrl = data.storageUrl || data.url || data.secure_url;
-        // Revoke the temporary blob URL now that we have the permanent cloud URL
+        // Replace blob with permanent cloud URL before revoking to prevent ERR_FILE_NOT_FOUND
+        setAvatarUrl(cloudUrl);
+        if (onAvatarUpdate) onAvatarUpdate(cloudUrl);
+        // Cleanup the temporary blob URL to prevent memory leaks
         if (blobAvatarUrlRef.current) {
           URL.revokeObjectURL(blobAvatarUrlRef.current);
           blobAvatarUrlRef.current = null;
         }
-        setAvatarUrl(cloudUrl);
-        if (onAvatarUpdate) onAvatarUpdate(cloudUrl);
         // Persist the new avatar URL to the user's profile record
         const profileRes = await fetch(`${BACKEND_URL}/api/profile`, {
           method: "PUT",

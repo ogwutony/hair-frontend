@@ -1357,7 +1357,7 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
                 <>
                   <button style={styles.checkoutBtn} onClick={() => window.location.href = 'https://buy.stripe.com/8x228sd3w8uo2IU9Jlc7u05'}>Checkout One-Time ($36)</button>
                   <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => window.location.href = 'https://buy.stripe.com/aFa9AU8Ng6mg2IU5t5c7u07'}>Subscribe 1 set per month for 3 months ($30)</button>
-                  <p style={{ fontSize: '11px', color: '#888', marginTop: '8px', textAlign: 'center' }}>All sales final. Custom sets can be updated with 7 days' notice before the next shipment.</p>
+
                 </>
               ) : (
                 <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>

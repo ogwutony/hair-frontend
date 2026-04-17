@@ -1891,6 +1891,7 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
         response: response,
         submittedBy: userEmail,
         submitterRank: rankTitle || 'Comrade',
+        submitterAvatar: userAvatar || null,
         votes: { yes: 0 }
       });
 
@@ -1910,6 +1911,7 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
         response: response,
         submittedBy: userEmail,
         submitterRank: rankTitle || 'Comrade',
+        submitterAvatar: userAvatar || null,
         votes: { yes: 0 }
       });
       if (onAddPoints) onAddPoints(1);
@@ -2317,13 +2319,23 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
 const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, following, onFollowUser, onUnfollowUser, onAddPoints, userAvatar }) => {
   const [followingList, setFollowingList] = useState([]);
   const [selectedFollowing, setSelectedFollowing] = useState(following || []);
-  const [filteredItems, setFilteredItems] = useState(items);
+  const [filteredItems, setFilteredItems] = useState([]);
+  const [allItems, setAllItems] = useState(items);
+
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/api/duma`)
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) setAllItems(data);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     // Extract unique submitters from Duma posts
-    const uniqueSubmitters = [...new Set(items.map(item => item.submittedBy))].filter(Boolean).filter(p => p !== userEmail);
+    const uniqueSubmitters = [...new Set(allItems.map(item => item.submittedBy))].filter(Boolean).filter(p => p !== userEmail);
     setFollowingList(uniqueSubmitters);
-  }, [items, userEmail]);
+  }, [allItems, userEmail]);
 
   const handleFollowingToggle = (person) => {
     if (selectedFollowing.includes(person)) {
@@ -2339,10 +2351,10 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
     if (selectedFollowing.length === 0) {
       setFilteredItems([]);
     } else {
-      const filtered = items.filter(item => selectedFollowing.includes(item.submittedBy));
+      const filtered = allItems.filter(item => selectedFollowing.includes(item.submittedBy));
       setFilteredItems(filtered);
     }
-  }, [selectedFollowing, items]);
+  }, [selectedFollowing, allItems]);
 
   return (
     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>

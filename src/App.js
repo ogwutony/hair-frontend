@@ -242,6 +242,19 @@ const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks 
   );
 };
 
+const GuestSubmissionPrompt = ({ message = "Please log in or create an account before submitting." }) => {
+  const navigate = useNavigate();
+  return (
+    <div style={{ ...styles.dumaCard, background: '#fff8e1', border: '1px solid #f1d78c', marginBottom: '20px' }}>
+      <p style={{ marginTop: 0, marginBottom: '14px', color: '#5f4b00', fontSize: '13px' }}>{message}</p>
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <button type="button" style={styles.authButton} onClick={() => navigate('/login')}>Log In</button>
+        <button type="button" style={{ ...styles.authButton, background: '#fff', color: '#222', border: '1px solid #222' }} onClick={() => navigate('/signup')}>Register</button>
+      </div>
+    </div>
+  );
+};
+
 // --- 3. UI HELPERS ---
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -1397,10 +1410,12 @@ const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken
   const [submitted, setSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showGuestPrompt, setShowGuestPrompt] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
+    setShowGuestPrompt(false);
 
     // Validation
     if (!formData.name || !formData.company || !formData.productType || !formData.websiteLink || !formData.whyRecommend) {
@@ -1421,22 +1436,26 @@ const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken
       return;
     }
 
+    if (!authToken) {
+      setShowGuestPrompt(true);
+      return;
+    }
+
     setIsLoading(true);
     try {
-      if (authToken) {
-        const submitData = new FormData();
-        submitData.append('name', formData.name);
-        submitData.append('company', formData.company);
-        submitData.append('productType', formData.productType);
-        submitData.append('websiteLink', formData.websiteLink);
-        submitData.append('whyRecommend', formData.whyRecommend);
-        if (formData.photo) submitData.append('photo', formData.photo);
-        if (formData.video) submitData.append('video', formData.video);
+      const submitData = new FormData();
+      submitData.append('name', formData.name);
+      submitData.append('company', formData.company);
+      submitData.append('productType', formData.productType);
+      submitData.append('websiteLink', formData.websiteLink);
+      submitData.append('whyRecommend', formData.whyRecommend);
+      if (formData.photo) submitData.append('photo', formData.photo);
+      if (formData.video) submitData.append('video', formData.video);
 
-        const res = await fetch(`${BACKEND_URL}/api/duma/recommend`, { method: 'POST', headers: { Authorization: `Bearer ${authToken}` }, body: submitData });
-        const data = await res.json();
-        if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); setIsLoading(false); return; }
-      }
+      const res = await fetch(`${BACKEND_URL}/api/duma/recommend`, { method: 'POST', headers: { Authorization: `Bearer ${authToken}` }, body: submitData });
+      const data = await res.json();
+      if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); setIsLoading(false); return; }
+
       addDumaItem({ ...formData, id: Date.now(), type: "Product Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'Comrade', section: "Commerce" });
       setSubmitted(true);
     } catch (err) {
@@ -1472,6 +1491,7 @@ const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken
 
       {userEmail && rankTitle && <div style={{ marginBottom: '20px' }}><CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} /></div>}
       {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
+      {showGuestPrompt && <GuestSubmissionPrompt message="Log in or register to submit this recommendation to The Duma." />}
 
       <form style={styles.dumaCard} onSubmit={handleSubmit}>
         <div style={{ marginBottom: '25px' }}>
@@ -1546,6 +1566,7 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, 
   const [submitted, setSubmitted] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [videoPreview, setVideoPreview] = useState(null);
+  const [showGuestPrompt, setShowGuestPrompt] = useState(false);
 
   const userScore = rankScore || 1;
   const canApplyPremium = isPolitburoOrHigher(userScore);
@@ -1569,6 +1590,7 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
+    setShowGuestPrompt(false);
 
     // Validation
     if (!formData.name || !formData.contactEmail || !formData.phoneNumber || !formData.ein) {
@@ -1613,43 +1635,46 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, 
       return;
     }
 
-    try {
-      if (authToken) {
-        const formDataObj = new FormData();
-        formDataObj.append('name', formData.name);
-        formDataObj.append('contactEmail', formData.contactEmail);
-        formDataObj.append('phoneNumber', formData.phoneNumber);
-        formDataObj.append('ein', formData.ein);
-        formDataObj.append('company', formData.company);
-        formDataObj.append('websiteOrSocial', formData.websiteOrSocial);
-        formDataObj.append('countryOfOrigin', formData.countryOfOrigin);
-        formDataObj.append('operatingCountry', formData.operatingCountry);
-        formDataObj.append('productType', formData.productType);
-        formDataObj.append('productDescription', formData.productDescription);
-        formDataObj.append('whyPartner', formData.whyPartner);
-        formDataObj.append('unitsOf34Oz', formData.unitsOf34Oz);
-        formDataObj.append('desiredOrderQuantity', formData.desiredOrderQuantity);
-        formDataObj.append('pricing5Gallon', formData.pricing5Gallon);
-        formDataObj.append('standardUnitPrice', formData.standardUnitPrice);
-        formDataObj.append('promotionalUnitPrice', formData.promotionalUnitPrice);
-        formDataObj.append('tier', formData.tier);
-        if (formData.photoFile) formDataObj.append('photo', formData.photoFile);
-        if (formData.videoFile) formDataObj.append('video', formData.videoFile);
+    if (!authToken) {
+      setShowGuestPrompt(true);
+      return;
+    }
 
-        const res = await fetch(`${BACKEND_URL}/api/duma/partner`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${authToken}` },
-          body: formDataObj
-        });
-        const data = await res.json();
-        if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); return; }
-      }
+    try {
+      const formDataObj = new FormData();
+      formDataObj.append('name', formData.name);
+      formDataObj.append('contactEmail', formData.contactEmail);
+      formDataObj.append('phoneNumber', formData.phoneNumber);
+      formDataObj.append('ein', formData.ein);
+      formDataObj.append('company', formData.company);
+      formDataObj.append('websiteOrSocial', formData.websiteOrSocial);
+      formDataObj.append('countryOfOrigin', formData.countryOfOrigin);
+      formDataObj.append('operatingCountry', formData.operatingCountry);
+      formDataObj.append('productType', formData.productType);
+      formDataObj.append('productDescription', formData.productDescription);
+      formDataObj.append('whyPartner', formData.whyPartner);
+      formDataObj.append('unitsOf34Oz', formData.unitsOf34Oz);
+      formDataObj.append('desiredOrderQuantity', formData.desiredOrderQuantity);
+      formDataObj.append('pricing5Gallon', formData.pricing5Gallon);
+      formDataObj.append('standardUnitPrice', formData.standardUnitPrice);
+      formDataObj.append('promotionalUnitPrice', formData.promotionalUnitPrice);
+      formDataObj.append('tier', formData.tier);
+      if (formData.photoFile) formDataObj.append('photo', formData.photoFile);
+      if (formData.videoFile) formDataObj.append('video', formData.videoFile);
+
+      const res = await fetch(`${BACKEND_URL}/api/duma/partner`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${authToken}` },
+        body: formDataObj
+      });
+      const data = await res.json();
+      if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); return; }
       
       addDumaItem({
         ...formData,
         id: Date.now(),
         type: "Partner",
-        submittedBy: userEmail,
+        submittedBy: userEmail || "anonymous",
         submitterRank: rankTitle || 'Comrade',
         hasPhoto: !!formData.photoFile,
         hasVideo: !!formData.videoFile
@@ -1660,7 +1685,7 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, 
         ...formData,
         id: Date.now(),
         type: "Partner",
-        submittedBy: userEmail,
+        submittedBy: userEmail || "anonymous",
         submitterRank: rankTitle || 'Comrade',
         hasPhoto: !!formData.photoFile,
         hasVideo: !!formData.videoFile
@@ -1694,6 +1719,7 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, 
         </div>
       )}
       {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
+      {showGuestPrompt && <GuestSubmissionPrompt message="Log in or register to submit this partnership application to The Duma." />}
 
       <form style={styles.dumaCard} onSubmit={handleSubmit}>
         
@@ -2645,10 +2671,10 @@ export default function App() {
           <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}><div style={styles.logo}>The Majorities</div></Link>
           <nav style={styles.nav}>
             <Link to="/" style={styles.navLink}>Home</Link>
+            <Link to="/recommend" style={styles.navLink}>Recommend</Link>
+            <Link to="/partner" style={styles.navLink}>Partner</Link>
             {isLoggedIn ? (
               <>
-                <Link to="/recommend" style={styles.navLink}>Recommend</Link>
-                <Link to="/partner" style={styles.navLink}>Partner</Link>
                 <Link to="/duma" style={styles.navLink}>The Duma</Link>
                 <Link to="/perspectives" style={styles.navLink}>Culture</Link>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: '1px solid #eee', paddingLeft: '15px' }}>

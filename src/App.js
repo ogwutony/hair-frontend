@@ -1144,7 +1144,7 @@ const LoginPage = ({ onLogin }) => {
     if (!clientId) { setSocialError("Google login is not configured."); return; }
     const redirectUri = window.location.origin + "/auth/google/callback";
     const scope = "openid email profile";
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}&prompt=select_account`;
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&prompt=select_account`;
     window.location.href = authUrl;
   };
 
@@ -1203,13 +1203,22 @@ const OAuthCallbackPage = ({ onLogin, provider }) => {
 
   useEffect(() => {
     const hash = location.hash.substring(1);
-    const params = new URLSearchParams(hash);
-    const accessToken = params.get("access_token");
-    const error = params.get("error");
+    const hashParams = new URLSearchParams(hash);
+    const queryParams = new URLSearchParams(location.search);
+    const accessToken = hashParams.get("access_token");
+    const code = queryParams.get("code");
+    const error = queryParams.get("error") || hashParams.get("error");
+
     if (error) { setStatus(provider + " authentication was cancelled."); setTimeout(() => navigate("/login"), 2500); return; }
-    if (!accessToken) { setStatus("Authentication failed. No token received."); setTimeout(() => navigate("/login"), 2500); return; }
+    if (provider === "google" && !code) { setStatus("Authentication failed. No authorization code received."); setTimeout(() => navigate("/login"), 2500); return; }
+    if (provider !== "google" && !accessToken) { setStatus("Authentication failed. No token received."); setTimeout(() => navigate("/login"), 2500); return; }
+
     const endpoint = provider === "instagram" ? "/api/auth/instagram" : "/api/auth/google";
-    fetch(BACKEND_URL + endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accessToken }) })
+    const body = provider === "google"
+      ? { code, redirectUri: window.location.origin + "/auth/google/callback" }
+      : { accessToken };
+
+    fetch(BACKEND_URL + endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       .then(r => r.json().then(data => ({ ok: r.ok, data })))
       .then(({ ok, data }) => {
         if (ok && data.token) { onLogin(data.email, data.token, true, data.rank_title, data.rank_score); navigate("/profile"); }
@@ -2129,7 +2138,8 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
   };
 
   const culturalItems = dumaItems.filter(item => item.section === "Cultural" || item.category === "Culture" || item.type === "Video" || item.type === "Culture");
-  const commerceItems = dumaItems.filter(item => item.section === "Commerce" || (item.type === "Recommendation" || item.type === "Partner"));
+  const recommendationItems = dumaItems.filter(item => item.type === "Product Recommendation" || item.type === "Recommendation");
+  const partnerItems = dumaItems.filter(item => item.type === "Partner");
   
   return (
     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
@@ -2142,7 +2152,8 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
       </div>
       <div style={{ display: 'flex', gap: '10px', marginBottom: '30px', borderBottom: '2px solid #eee', paddingBottom: '15px' }}>
         <button onClick={() => setActiveSection("Culture")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Culture" ? '#222' : '#f5f5f5', color: activeSection === "Culture" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Culture ({culturalItems.length})</button>
-        <button onClick={() => setActiveSection("Commerce")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Commerce" ? '#222' : '#f5f5f5', color: activeSection === "Commerce" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Commerce ({commerceItems.length})</button>
+        <button onClick={() => setActiveSection("Recommendations")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Recommendations" ? '#222' : '#f5f5f5', color: activeSection === "Recommendations" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Recommendations ({recommendationItems.length})</button>
+        <button onClick={() => setActiveSection("Partners")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Partners" ? '#222' : '#f5f5f5', color: activeSection === "Partners" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Partners ({partnerItems.length})</button>
         {authToken && <button onClick={() => window.location.href = '/culture'} style={{ padding: '8px 14px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', marginLeft: 'auto' }}>+ Share Your Perspective</button>}
       </div>
       
@@ -2208,89 +2219,20 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
         </div>
       )}
       
-      {activeSection === "Commerce" && (
+      {activeSection === "Recommendations" && (
         <div>
-          {commerceItems.length === 0 ? (
-            <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No submissions yet. Be the first to recommend a product or partnership!</div>
+          {recommendationItems.length === 0 ? (
+            <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No product recommendations yet. Be the first to recommend a product!</div>
           ) : (
-            commerceItems.map(item => (
+            recommendationItems.map(item => (
               <div key={item.id || item._id} style={styles.dumaCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                   <span style={styles.typeTag}>{item.type}</span>
                   {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
                 </div>
                 {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
-                
-                {item.type === "Partner" ? (
-                  <>
-                    <h3 style={{ marginTop: '12px', marginBottom: '12px' }}>{item.productType} - {item.company}</h3>
-                    
-                    {/* PRODUCT DETAILS */}
-                    <h4 style={{ marginBottom: '6px', fontSize: '13px', color: '#555', fontWeight: '700' }}>Product Details:</h4>
-                    <p style={{ color: '#666', fontSize: '13px', marginBottom: '6px', lineHeight: '1.5' }}>
-                      <strong>Type:</strong> {item.productType}
-                    </p>
-                    <p style={{ color: '#222', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>
-                      <strong>Description:</strong> {item.productDescription}
-                    </p>
-                    <p style={{ color: '#222', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>
-                      <strong>Partnership Rationale:</strong> {item.whyPartner}
-                    </p>
-                    
-                    {/* MEDIA */}
-                    {(item.hasPhoto || item.hasVideo) && (
-                      <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '12px', borderLeft: '4px solid #9b59b6' }}>
-                        <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Media:</h4>
-                        {item.hasPhoto && <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>Product photo included</p>}
-                        {item.hasVideo && <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>Product video included</p>}
-                      </div>
-                    )}
-                    
-                    {/* LOGISTICS */}
-                    <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '12px', borderLeft: '4px solid #27ae60' }}>
-                      <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Logistics & Requirements:</h4>
-                      <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                        <strong>Minimum Order:</strong> 500 units (3.4 oz)
-                      </p>
-                      {item.desiredOrderQuantity && (
-                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                          <strong>Desired Fulfillment:</strong> {item.desiredOrderQuantity} units
-                        </p>
-                      )}
-                      {item.pricing5Gallon && (
-                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                          <strong>5-Gallon Pricing:</strong> {item.pricing5Gallon}
-                        </p>
-                      )}
-                    </div>
-                    
-                    {/* REVENUE & PRICING */}
-                    <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #e67e22' }}>
-                      <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Revenue & Pricing:</h4>
-                      {item.standardUnitPrice && (
-                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                          <strong>One Time Price:</strong> ${item.standardUnitPrice}
-                        </p>
-                      )}
-                      {item.promotionalUnitPrice && (
-                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                          <strong>Subscription Price:</strong> ${item.promotionalUnitPrice}
-                        </p>
-                      )}
-                      <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                        <strong>Commission:</strong> The Majorities take 25% | Partner receives 75%
-                      </p>
-                      <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                        <strong>Tier:</strong> {item.tier}
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <h3 style={{ marginTop: '8px', marginBottom: '6px' }}>{item.name || item.product} by {item.company}</h3>
-                    <p style={{ color: '#666', fontSize: '14px', marginBottom: '14px' }}>{item.reason || item.desc}</p>
-                  </>
-                )}
+                <h3 style={{ marginTop: '8px', marginBottom: '6px' }}>{item.name || item.product} by {item.company}</h3>
+                <p style={{ color: '#666', fontSize: '14px', marginBottom: '14px' }}>{item.reason || item.desc}</p>
                 
                 {/* VOTING SECTION */}
                 {authToken && (
@@ -2329,6 +2271,148 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                           </div>
                         )}
                         
+                        {/* ADD COMMENT */}
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <input type="text" placeholder="Add a comment..." style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px' }} value={commentText[item.id || item._id] || ''} onChange={(e) => setCommentText(prev => ({ ...prev, [item.id || item._id]: e.target.value }))} />
+                          <button onClick={() => handleCommentSubmit(item.id || item._id)} style={{ padding: '8px 16px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Post</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {activeSection === "Partners" && (
+        <div>
+          {partnerItems.length === 0 ? (
+            <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No partner applications yet. Be the first to submit a partnership!</div>
+          ) : (
+            partnerItems.map(item => (
+              <div key={item.id || item._id} style={styles.dumaCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                  <span style={styles.typeTag}>{item.type}</span>
+                  {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
+                </div>
+                {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
+
+                <h3 style={{ marginTop: '12px', marginBottom: '12px' }}>{item.productType} - {item.company}</h3>
+
+                <h4 style={{ marginBottom: '6px', fontSize: '13px', color: '#555', fontWeight: '700' }}>Product Details:</h4>
+                <p style={{ color: '#666', fontSize: '13px', marginBottom: '6px', lineHeight: '1.5' }}>
+                  <strong>Type:</strong> {item.productType}
+                </p>
+                <p style={{ color: '#222', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>
+                  <strong>Description:</strong> {item.productDescription}
+                </p>
+                <p style={{ color: '#222', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>
+                  <strong>Partnership Rationale:</strong> {item.whyPartner}
+                </p>
+
+                {(item.hasPhoto || item.hasVideo) && (
+                  <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '12px', borderLeft: '4px solid #9b59b6' }}>
+                    <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Media:</h4>
+                    {item.hasPhoto && <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>Product photo included</p>}
+                    {item.hasVideo && <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>Product video included</p>}
+                  </div>
+                )}
+
+                <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '12px', borderLeft: '4px solid #27ae60' }}>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Business Logistics:</h4>
+                  <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                    <strong>EIN:</strong> {item.ein || 'N/A'}
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                    <strong>MOQ:</strong> 500 units (3.4 oz)
+                  </p>
+                  {item.desiredOrderQuantity && (
+                    <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                      <strong>Desired Fulfillment:</strong> {item.desiredOrderQuantity} units
+                    </p>
+                  )}
+                  {item.pricing5Gallon && (
+                    <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                      <strong>5-Gallon Pricing:</strong> {item.pricing5Gallon}
+                    </p>
+                  )}
+                </div>
+
+                <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #e67e22' }}>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Pricing Models:</h4>
+                  {item.standardUnitPrice && (
+                    <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                      <strong>One Time Price:</strong> ${item.standardUnitPrice}
+                    </p>
+                  )}
+                  {item.promotionalUnitPrice && (
+                    <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                      <strong>Subscription Price:</strong> ${item.promotionalUnitPrice}
+                    </p>
+                  )}
+                  <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                    <strong>Commission:</strong> The Majorities take 25% | Partner receives 75%
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                    <strong>Tier:</strong> {item.tier}
+                  </p>
+                </div>
+
+                <div style={{ backgroundColor: '#f9f9f9', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #34495e' }}>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Policy Checkboxes:</h4>
+                  <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                    <strong>Customer Reward Program:</strong> {item.customerRewardAgreed ? 'Agreed' : 'Not specified'}
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                    <strong>25% Commission Agreement:</strong> {item.commission25AgreedTo ? 'Agreed' : 'Not specified'}
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                    <strong>Shipping & Returns Policy:</strong> {item.shippingReturnsAgreed ? 'Agreed' : 'Not specified'}
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                    <strong>Ownership & Title Policy:</strong> {item.ownershipTitleAgreed ? 'Agreed' : 'Not specified'}
+                  </p>
+                </div>
+
+                {/* VOTING SECTION */}
+                {authToken && (
+                  <div>
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[item.id || item._id] === 'yes' ? 1 : 0.7 }}>Yes</button>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[item.id || item._id] === 'no' ? 1 : 0.7 }}>No</button>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[item.id || item._id] === 'abstain' ? 1 : 0.7 }}>Abstain</button>
+                    </div>
+
+                    {/* VOTE SCORES - VISIBLE ONLY AFTER VOTING */}
+                    {showScores[item.id || item._id] && (
+                      <div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
+                        <p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>Vote Results:</p>
+                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
+                          Yes: {item.votes?.yes || 0} | No: {item.votes?.no || 0} | Abstain: {item.votes?.abstain || 0}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* COMMENTS SECTION - VISIBLE AFTER VOTING */}
+                    {showComments[item.id || item._id] && (
+                      <div style={{ borderTop: '2px solid #eee', paddingTop: '12px' }}>
+                        <h4 style={{ fontSize: '13px', color: '#555', marginBottom: '12px', fontWeight: '700' }}>Comments:</h4>
+
+                        {/* EXISTING COMMENTS */}
+                        {comments[item.id || item._id]?.length > 0 && (
+                          <div style={{ marginBottom: '12px' }}>
+                            {comments[item.id || item._id].map((comment, idx) => (
+                              <div key={idx} style={{ backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', marginBottom: '8px', borderLeft: '3px solid #3498db' }}>
+                                <p style={{ fontSize: '11px', fontWeight: '600', color: '#222', margin: '0 0 4px 0' }}>{comment.author}</p>
+                                <p style={{ fontSize: '12px', color: '#666', margin: '0 0 4px 0' }}>{comment.text}</p>
+                                <p style={{ fontSize: '10px', color: '#aaa', margin: 0 }}>{comment.timestamp}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
                         {/* ADD COMMENT */}
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <input type="text" placeholder="Add a comment..." style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px' }} value={commentText[item.id || item._id] || ''} onChange={(e) => setCommentText(prev => ({ ...prev, [item.id || item._id]: e.target.value }))} />
@@ -2475,6 +2559,9 @@ export default function App() {
   const [userAvatar, setUserAvatar] = useState("");
   const [dumaItems, setDumaItems] = useState([{ id: 1, type: "Partner", company: "EcoHair Labs", product: "Silk Serum", desc: "Organic serum for hair.", section: "Commerce", submitterRank: "Comrade" }]);
   const [following, setFollowing] = useState([]);
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/api/health`, { method: "GET" }).catch(() => {});
+  }, []);
   useEffect(() => {
     const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
     const email = localStorage.getItem("userEmail") || sessionStorage.getItem("userEmail");

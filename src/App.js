@@ -271,40 +271,40 @@ const paymentElementOptions = {
 
 const productsData = {
   shampoos: [
-    { name: "Hydrating Shampoo", desc: "Deep moisture for daily cleansing." },
-    { name: "Repair Shampoo", desc: "Strengthens damaged hair." },
-    { name: "Clarify Shampoo", desc: "Removes buildup and residue." },
-    { name: "Balance Shampoo", desc: "Restores scalp balance." }
+    { 
+      name: "The Majorities Shampoo", 
+      desc: "Gently cleanses while supporting healthier, fuller-looking hair. Nourishes and strengthens strands with argan and hemp seed oils, while biotin, caffeine, and niacin help promote scalp health and hair growth, leaving hair softer, thicker, and more manageable." 
+    }
   ],
   conditioners: [
-    { name: "Smooth Conditioner", desc: "Softens and detangles." },
-    { name: "Moisture Conditioner", desc: "Long-lasting hydration." },
-    { name: "Strength Conditioner", desc: "Reinforces hair fibers." },
-    { name: "Shine Conditioner", desc: "Adds natural gloss." }
+    { 
+      name: "The Majorities Conditioner", 
+      desc: "Nourishing conditioner that helps soften, smooth, and detangle hair while restoring moisture and shine. Enriched with Provitamin B5 (Panthenol) and hydrolyzed proteins to strengthen strands, improve manageability, and provide deep hydration." 
+    }
   ],
   oils: [
-    { name: "Growth Oil", desc: "Supports healthy growth." },
-    { name: "Scalp Oil", desc: "Soothes dry scalp." },
-    { name: "Light Oil", desc: "Weightless daily oil." },
-    { name: "Nourish Oil", desc: "Deep nourishment." }
+    { 
+      name: "The Majorities Hair Oil", 
+      desc: "A nutrient-rich oil blend that helps support hair growth, strengthen roots, and reduce breakage. Deeply nourishes the scalp while improving shine, thickness, and overall hair health." 
+    }
   ],
   faceScrubs: [
-    { name: "Exfoliating Scrub", desc: "Removes dead skin cells." },
-    { name: "Gentle Scrub", desc: "Mild daily exfoliation." },
-    { name: "Brightening Scrub", desc: "Evens skin tone." },
-    { name: "Deep Clean Scrub", desc: "Unclogs pores deeply." }
+    { 
+      name: "The Majorities Face Scrub", 
+      desc: "Gentle exfoliating scrub removes dead skin cells while deeply hydrating and nourishing. Infused with aloe vera, natural sugars, and salts to smooth texture, unclog pores, and reveal a bright, glowing complexion." 
+    }
   ],
   toners: [
-    { name: "Hydrating Toner", desc: "Replenishes moisture after cleansing." },
-    { name: "Clarifying Toner", desc: "Minimises pores and removes residue." },
-    { name: "Soothing Toner", desc: "Calms redness and irritation." },
-    { name: "Brightening Toner", desc: "Boosts radiance and even tone." }
+    { 
+      name: "The Majorities Facial Toner", 
+      desc: "Gently tones and refreshes the skin while providing crucial hydration. It helps tighten pores, soothe irritation, and leave the complexion soft, balanced, and revitalized." 
+    }
   ],
   faceCreams: [
-    { name: "Moisturising Cream", desc: "All-day hydration barrier." },
-    { name: "Night Cream", desc: "Repairs skin while you sleep." },
-    { name: "SPF Day Cream", desc: "Protects against UV damage." },
-    { name: "Anti-Ageing Cream", desc: "Reduces fine lines and wrinkles." }
+    { 
+      name: "The Majorities Facial Moisturizer", 
+      desc: "Lightweight and hydrating lotion that softens and nourishes the skin while delivering antioxidants like vitamins C and E. Helps improve elasticity, soothe, and leave skin smooth and radiant." 
+    }
   ]
 };
 

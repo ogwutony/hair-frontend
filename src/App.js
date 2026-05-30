@@ -1360,7 +1360,12 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
       </div>
       <aside style={{ ...styles.right, width: isMobile ? '100%' : '30%', position: isMobile ? 'static' : 'sticky', top: isMobile ? 'auto' : '20px', boxSizing: 'border-box' }}>
         <div style={{ minHeight: '100px', marginBottom: '15px' }}>
-          {focusedItem ? (<div><h3>{focusedItem.name}</h3><p style={{ fontSize: '13px', color: '#666' }}>{focusedItem.desc}</p></div>) : <p style={{color: '#888'}}>Select a product</p>}
+          {focusedItem ? (
+            <div style={styles.focusedDescription}>
+              <h3>{focusedItem.name}</h3>
+              <p style={{ fontSize: '13px', color: '#666' }}>{focusedItem.desc}</p>
+            </div>
+          ) : <p style={{color: '#888'}}>Select a product</p>}
         </div>
         <div style={styles.summaryContainer}>
           <h4 style={{ fontSize: '14px', borderBottom: '1px solid #eee', paddingBottom: '10px', marginTop: 0 }}>Your Custom Set ({selectedItems.length}/6)</h4>
@@ -2904,15 +2909,16 @@ const styles = {
   nav: { display: "flex", gap: "25px", fontSize: "13px", alignItems: 'center' },
   navLink: { textDecoration: 'none', color: '#222', fontWeight: '500' },
   auth: { fontWeight: "600", textDecoration: 'none', color: '#222', cursor: 'pointer' },
-  layout: { display: "flex", padding: "20px 60px" },
+  layout: { display: "flex", padding: "20px 60px", alignItems: "flex-start" },
   left: { width: "70%", paddingRight: "40px" },
   right: { width: "30%", padding: "20px", borderRadius: "24px", backgroundColor: "#f9f9f9", height: "fit-content", position: 'sticky', top: '20px' },
+  focusedDescription: { maxHeight: "220px", overflowY: "auto" },
   rowSection: { marginBottom: "20px" },
   rowLabel: { fontSize: "14px", color: "#666", fontWeight: "600", marginBottom: "10px" },
-  scrollRow: { display: "flex", gap: "12px", overflowX: "auto", paddingBottom: '10px' },
-  card: { minWidth: "140px", padding: "10px", borderRadius: "16px", textAlign: "center", cursor: "pointer", backgroundColor: "#fff" },
-  imagePlaceholder: { width: '100%', height: '60px', backgroundColor: '#f0f0f0', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  itemName: { fontSize: "12px", marginTop: "6px" },
+  scrollRow: { display: "flex", gap: "16px", overflowX: "auto", paddingBottom: '10px', alignItems: "stretch" },
+  card: { minWidth: "160px", maxWidth: "160px", padding: "16px", borderRadius: "16px", textAlign: "center", cursor: "pointer", backgroundColor: "#fff", display: "flex", flexDirection: "column", justifyContent: "space-between", height: "auto" },
+  imagePlaceholder: { width: '100%', height: '100px', backgroundColor: '#f0f0f0', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: "10px" },
+  itemName: { fontSize: "13px", fontWeight: "600", marginTop: "6px", display: "-webkit-box", WebkitLineClamp: "2", WebkitBoxOrient: "vertical", overflow: "hidden" },
   summaryContainer: { backgroundColor: '#fff', padding: '15px', borderRadius: '20px', border: '1px solid #eee' },
   checkoutBtn: { width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #222', background: '#fff', cursor: 'pointer', marginBottom: '10px', fontWeight: '600' },
   authContainer: { display: 'flex', justifyContent: 'center', minHeight: '70vh', alignItems: 'center' },

@@ -285,7 +285,7 @@ const productsData = {
   oils: [
     { 
       name: "The Majorities Hair Oil", 
-      desc: "Transform dull, parched strands into sleek, high-gloss perfection with this ultra-lightweight botanical elixir. Just a few drops of this luxurious leave-on oil blend work to instantly seal split ends, smooth stubborn flyaways, and coat the hair cuticle in a brilliant, reflective shield. Packed with deeply conditioning Soybean, Castor, Safflower, and Sunflower seed oils, it provides heavy-duty nourishment with a weightless finish, while natural Peppermint Oil delivers an invigorating, tingling scalp refresh. Performance: Seals, conditions, and protects without leaving a heavy, greasy buildup. Sensory Profile: Refreshing, cooling, and awakening peppermint aroma. Ingredients: Glycine Soja (Soybean) Oil, Ricinus Communis (Castor) Seed Oil, Carthamus Tinctorius (Safflower) Seed Oil, Helianthus Annuus (Sunflower) Seed Oil, Mentha Piperita (Peppermint) Oil, Tocopheryl Acetate" 
+      desc: "Transform dull, parched strands into sleek, high-gloss perfection with this ultra-lightweight botanical elixir. Just a few drops of this luxurious leave-on oil blend work to instantly seal split ends, smooth stubborn flyaways, and coat the hair cuticle in a brilliant, reflective shield. Packed with deeply conditioning Soybean, Castor, Safflower, and Sunflower seed oils, it provides heavy-duty nourishment with a weightless finish, while natural Peppermint Oil delivers an invigorating, tingling scalp refresh. Performance: Seals, conditions, and protects without leaving a heavy, greasy buildup. Sensory Profile: Refreshing, cooling, and awakening peppermint aroma. Ingredients: Not provided in source text." 
     }
   ],
   faceScrubs: [

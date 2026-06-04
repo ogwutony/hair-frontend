@@ -273,37 +273,37 @@ const productsData = {
   shampoos: [
     { 
       name: "The Majorities Shampoo", 
-      desc: "Gently cleanses while supporting healthier, fuller-looking hair. Nourishes and strengthens strands with argan and hemp seed oils, while biotin, caffeine, and niacin help promote scalp health and hair growth, leaving hair softer, thicker, and more manageable." 
+      desc: "Reset and revive stressed hair with a salon-grade, deep-cleansing wash designed for all hair types. This high-foaming, rinse-off shampoo creates a rich, decadent lather that effortlessly lifts away stubborn scalp buildup, excess oils, and environmental pollutants without stripping away natural moisture. Powered by Provitamin B5 (Panthenol) and advanced anti-frizz shields, it tames static, boosts elasticity, and wraps your hair in a luminous, mirror-like shine. Hair Type: Perfect for daily use on natural or non-color treated hair. Scent Experience: Infused with a premium, long-lasting signature fragrance. Ingredients: Water, Sodium C14-16 Olefin Sulfonate, Cocamidopropyl Betaine, Ceteareth-60 Myristyl Glycol, Polysorbate 80, Lauramide DIPA, Polyquaternium-10, Polyquaternium-7, Panthenol, Fragrance, Caprylyl Glycol, Phenoxyethanol, Citric Acid, Tetrasodium Glutamate Diacetate, Blue 1" 
     }
   ],
   conditioners: [
     { 
       name: "The Majorities Conditioner", 
-      desc: "Nourishing conditioner that helps soften, smooth, and detangle hair while restoring moisture and shine. Enriched with Provitamin B5 (Panthenol) and hydrolyzed proteins to strengthen strands, improve manageability, and provide deep hydration." 
+      desc: "Rescue and restore chronically dry, brittle, or damaged hair with an intensive moisture therapy treatment. This ultra-rich, rinse-off conditioner melts into parched strands, delivering a powerful infusion of tropical Coconut Oil, liquid gold Argan Oil, and nourishing Olive Oil. It actively mends frayed cuticles, eliminates stubborn knots, and neutralizes static cling. Perfect for restoring natural bounce, strength, and resilience, it leaves hair effortlessly detangled, silky-smooth, and deeply repaired from root to tip. Hair Benefits: Ultimate detangling, breakage defense, and extreme cuticle smoothing. Ingredient Highlights: Pure Argan Oil, Coconut Oil, Olive Oil, and Provitamin B5. Ingredients: Water, Stearyl Alcohol, Cetyl Alcohol, Glycine Soja (Soybean) Oil, Brassicamidopropyl Dimethylamine, Polysorbate 80, Cocos Nucifera (Coconut) Oil, Argania Spinosa (Argan) Kernel Oil, Olea Europaea (Olive) Fruit Oil, Panthenol, Fragrance, Benzyl Alcohol, Benzoic Acid, Sorbic Acid, Citric Acid, Tetrasodium Glutamate Diacetate, Sodium Hydroxide, Blue 1" 
     }
   ],
   oils: [
     { 
       name: "The Majorities Hair Oil", 
-      desc: "A nutrient-rich oil blend that helps support hair growth, strengthen roots, and reduce breakage. Deeply nourishes the scalp while improving shine, thickness, and overall hair health." 
+      desc: "Transform dull, parched strands into sleek, high-gloss perfection with this ultra-lightweight botanical elixir. Just a few drops of this luxurious leave-on oil blend work to instantly seal split ends, smooth stubborn flyaways, and coat the hair cuticle in a brilliant, reflective shield. Packed with deeply conditioning Soybean, Castor, Safflower, and Sunflower seed oils, it provides heavy-duty nourishment with a weightless finish, while natural Peppermint Oil delivers an invigorating, tingling scalp refresh. Performance: Seals, conditions, and protects without leaving a heavy, greasy buildup. Sensory Profile: Refreshing, cooling, and awakening peppermint aroma. Ingredients: Glycine Soja (Soybean) Oil, Ricinus Communis (Castor) Seed Oil, Carthamus Tinctorius (Safflower) Seed Oil, Helianthus Annuus (Sunflower) Seed Oil, Mentha Piperita (Peppermint) Oil, Tocopheryl Acetate" 
     }
   ],
   faceScrubs: [
     { 
-      name: "The Majorities Face Scrub", 
-      desc: "Gentle exfoliating scrub removes dead skin cells while deeply hydrating and nourishing. Infused with aloe vera, natural sugars, and salts to smooth texture, unclog pores, and reveal a bright, glowing complexion." 
+      name: "The Majorities Facial Scrub", 
+      desc: "Unveil your smoothest, most radiant complexion yet with this dual-action facial polish. This creamy, rinse-off scrub combines micro-fine Bambusa Arundinacea (Bamboo) Stem Powder to gently buff away dulling, dead skin cells, while deep-cleansing Salicylic Acid (BHA) dissolves pore-clogging impurities and targets oil buildup. Cushioned with melting Jojoba Esters and soothing hydrators, it intensely purifies and refines skin texture without scratching or drying, leaving your face feeling completely renewed, clear, and soft. Target Concerns: Congestion, dullness, blemishes, and uneven skin texture. Formula Type: A conditioning, non-stripping physical and chemical exfoliant. Ingredients: Water, Glycerin, Stearic Acid, Cetyl Alcohol, Glyceryl Stearate, PEG-100 Stearate, Cetearyl Alcohol, Ceteareth-20, Bambusa Arundinacea Stem Powder, Polysorbate 80, Jojoba Esters, Tocopheryl Acetate, Acrylates/C10-30 Alkyl Acrylate Crosspolymer, Salicylic Acid, Fragrance, Caprylyl Glycol, Phenoxyethanol, Citric Acid, Tetrasodium Glutamate Diacetate, Blue 1" 
     }
   ],
   toners: [
     { 
-      name: "The Majorities Facial Toner", 
-      desc: "Gently tones and refreshes the skin while providing crucial hydration. It helps tighten pores, soothe irritation, and leave the complexion soft, balanced, and revitalized." 
+      name: "The Majorities Face Toner", 
+      desc: "Elevate your daily skincare routine with a clean, revitalizing splash of weightless hydration. This advanced leave-on toner balances oil production, tightens the appearance of pores, and instantly calms the skin. Infused with clarifying Hamamelis Virginiana (Witch Hazel) and deep-binding moisture catchers, it sweeps away residual impurities while leaving your complexion perfectly prepped, velvety smooth, and radiantly balanced. Skin Feel: Cool, refreshing, and instantly matte yet hydrated. Visual Appeal: Beautifully tinted, crystal-clear blue formula that pops on the shelf. Ingredients: Water, Hamamelis Virginiana (Witch Hazel) Water, SD Alcohol 40, Sodium PCA, Phenoxyethanol, Potassium Sorbate, Citric Acid, Blue 1" 
     }
   ],
   faceCreams: [
     { 
-      name: "The Majorities Facial Moisturizer", 
-      desc: "Lightweight and hydrating lotion that softens and nourishes the skin while delivering antioxidants like vitamins C and E. Helps improve elasticity, soothe, and leave skin smooth and radiant." 
+      name: "The Majorities Moisturizing Lotion", 
+      desc: "Wrap your skin in a comforting blanket of intense, barrier-repairing moisture. This ultra-nourishing daily body and hand lotion is formulated with a powerhouse blend of Ceramides, Hyaluronic Acid, and Vitamin E to instantly quench dehydrated skin. The fast-absorbing, non-greasy formula sinks in deep to lock out environmental dryness and rebuild your skin’s natural moisture barrier, leaving hands and body touchably plush, supple, and healthy-looking all day long. Application: A smooth, whipped leave-on lotion crafted for hands and body. Key Ingredients to Feature: Ceramides, Sodium Hyaluronate, Glycerin, and Vitamin E. Ingredients: Water, Caprylic/Capric Triglyceride, Glycerin, Cetearyl Alcohol, Propanediol, Palmitic Acid, Stearic Acid, Dimethicone, Sodium Hyaluronate, Distilled Monoglycerides, Ceteareth-20, Cetyl Esters, Cetyl Alcohol, Isocetyl Alcohol, Ceramide Np, Tocopherol, Carbomer, Fragrance, Caprylyl Glycol, Phenoxyethanol, Sodium Hydroxide, Tetrasodium Glutamate Diacetate" 
     }
   ]
 };

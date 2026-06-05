@@ -1600,8 +1600,8 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, 
     unitsOf34Oz: "500",
     desiredOrderQuantity: "",
     pricing5Gallon: "",
-    standardUnitPrice: "5",
-    promotionalUnitPrice: "4",
+    standardUnitPrice: "6",
+    promotionalUnitPrice: "5",
     commission25AgreedTo: false,
     customerRewardAgreed: false,
     shippingReturnsAgreed: false,
@@ -1850,18 +1850,18 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, 
             One Time Check out: Unit Price to Consumers *
           </label>
           <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', marginTop: 0 }}>
-            One Time unit price (Recommended: $5)
+            One Time unit price (Recommended: $6)
           </p>
-          <input required placeholder="e.g., $5.00" style={styles.input}
+          <input required placeholder="e.g., $6.00" style={styles.input}
             value={formData.standardUnitPrice} onChange={e => setFormData({...formData, standardUnitPrice: e.target.value})} />
           
           <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>
             Subscription Pricing: Unit Price for Promotions *
           </label>
           <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', marginTop: 0 }}>
-            Subscription unit price (Recommended: $4)
+            Subscription unit price (Recommended: $5)
           </p>
-          <input required placeholder="e.g., $4.00" style={styles.input}
+          <input required placeholder="e.g., $5.00" style={styles.input}
             value={formData.promotionalUnitPrice} onChange={e => setFormData({...formData, promotionalUnitPrice: e.target.value})} />
           
           <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '14px' }}>

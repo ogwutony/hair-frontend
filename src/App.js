@@ -1404,7 +1404,7 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
         {renderRow("Pick Oils", "oils")}
         {renderRow("Pick Face Scrubs", "faceScrubs")}
         {renderRow("Pick Toners", "toners")}
-        {renderRow("Pick Face Creams", "faceCreams")}
+        {renderRow("Pick Creams", "faceCreams")}
       </div>
       <aside style={{ ...styles.right, width: isMobile ? '100%' : '30%', position: isMobile ? 'static' : 'sticky', top: isMobile ? 'auto' : '20px', boxSizing: 'border-box' }}>
         <div style={{ minHeight: '100px', marginBottom: '15px' }}>

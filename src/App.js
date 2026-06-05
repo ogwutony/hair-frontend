@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation, useParams } from "react-router-dom";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+// --- 1. SHOPIFY CONFIGURATION ---
+const SHOP_DOMAIN = "c0bqfe-z2.myshopify.com";
 
-// --- 1. STRIPE INITIALIZATION ---
-const stripePromise = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY
-  ? loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY).catch(err => {
-      console.warn("Stripe failed to load:", err);
-      return null;
-    })
-  : Promise.resolve(null);
+const PRODUCT_VARIANT_MAP = {
+  "The Majorities Shampoo":             "47555331358898",
+  "The Majorities Conditioner":         "47555331555506",
+  "The Majorities Hair Oil":            "47555331752114",
+  "The Majorities Facial Scrub":        "47555331948722",
+  "The Majorities Face Toner":          "47555332145330",
+  "The Majorities Moisturizing Lotion": "47555332309170",
+};
+
+const SELLING_PLAN_ID = "1467875506";
 
 // --- 2. BACKEND CONFIGURATION ---
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://hair-backend-2.onrender.com";
@@ -260,13 +263,6 @@ const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
   return null;
-};
-
-// --- 5. STRIPE UI CONFIGURATION ---
-const appearance = { theme: 'flat', variables: { colorPrimaryText: '#262626' } };
-const paymentElementOptions = {
-  layout: { type: 'accordion', defaultCollapsed: false, radios: 'always', spacedAccordionItems: false },
-  business: { name: "Majority Hair Solutions" }
 };
 
 const productsData = {
@@ -993,35 +989,6 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   );
 };
 
-// --- STRIPE CHECKOUT COMPONENT ---
-const CheckoutForm = ({ totalPrice, onPurchaseSuccess }) => {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [errorMessage, setErrorMessage] = useState(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (!stripe || !elements) return;
-    setIsProcessing(true);
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: { return_url: `${window.location.origin}/orders` },
-      redirect: 'if_required'
-    });
-    if (error) { setErrorMessage(error.message); setIsProcessing(false); }
-    else { onPurchaseSuccess(); }
-  };
-  return (
-    <form onSubmit={handleSubmit}>
-      <PaymentElement options={paymentElementOptions} />
-      <button disabled={!stripe || isProcessing} style={{ ...styles.authButton, marginTop: '20px' }}>
-        {isProcessing ? "Processing..." : `Complete Purchase ($${totalPrice})`}
-      </button>
-      {errorMessage && <div style={{ color: 'red', marginTop: '10px', fontSize: '12px' }}>{errorMessage}</div>}
-    </form>
-  );
-};
-
 // --- FORGOT PASSWORD PAGE ---
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState("");
@@ -1328,12 +1295,8 @@ const SignupPage = () => {
 
 // --- LANDING PAGE ---
 function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
-  const navigate = useNavigate();
   const [selection, setSelection] = useState([]);
   const [focusedItem, setFocusedItem] = useState(null);
-  const [clientSecret, setClientSecret] = useState("");
-  const [price] = useState(0);
-  const [purchaseType] = useState(null); // "one-time" or "subscription"
   const MOBILE_BREAKPOINT = 768;
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= MOBILE_BREAKPOINT);
 
@@ -1360,23 +1323,27 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
   const selectedItems = selection;
   const isSetComplete = selectedItems.length === 6;
   
-  // Calculate points based on purchase type
-  const getPointsForPurchase = (type) => {
-    if (type === "one-time") return 30;
-    if (type === "subscription") {
-      const subscriptionCount = (savedSets?.length || 0) + 1;
-      const pointMap = { 1: 576, 2: 1152, 3: 2304 }; // Recalibrated for 3 months
-      return pointMap[subscriptionCount] || 576; // default 576 if not in special thresholds
-    }
-    return 0;
+  const handleOneTimeCheckout = () => {
+    if (!isSetComplete) return;
+    const lineItems = selectedItems
+      .map((item) => `${PRODUCT_VARIANT_MAP[item.name]}:1`)
+      .join(",");
+    const url =
+      `https://${SHOP_DOMAIN}/cart/${lineItems}` +
+      `?checkout[shipping_address][country]=US`;
+    window.location.href = url;
   };
-  
-  
-  const onPurchaseSuccess = () => {
-    const points = getPointsForPurchase(purchaseType);
-    if (onAddPoints) onAddPoints(points);
-    saveSetToProfile(selectedItems);
-    navigate("/orders");
+
+  const handleSubscriptionCheckout = () => {
+    if (!isSetComplete) return;
+    const lineItems = selectedItems
+      .map((item) => `${PRODUCT_VARIANT_MAP[item.name]}:1`)
+      .join(",");
+    const url =
+      `https://${SHOP_DOMAIN}/cart/${lineItems}` +
+      `?selling_plan=${SELLING_PLAN_ID}` +
+      `&checkout[shipping_address][country]=US`;
+    window.location.href = url;
   };
   
   const renderRow = (label, category) => (
@@ -1430,18 +1397,8 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
           </div>
           {isSetComplete ? (
             <div style={{ borderTop: '2px solid #222', paddingTop: '15px' }}>
-              {!clientSecret ? (
-                <>
-                  <button style={styles.checkoutBtn} onClick={() => window.location.href = 'https://buy.stripe.com/8x228sd3w8uo2IU9Jlc7u05'}>1 time Checkout ($36)</button>
-                  <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={() => window.location.href = 'https://buy.stripe.com/aFa9AU8Ng6mg2IU5t5c7u07'}>3 Month Subscription  1 set per month ($30)</button>
-
-                </>
-              ) : (
-                <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
-                  <CheckoutForm totalPrice={price} onPurchaseSuccess={onPurchaseSuccess} />
-                  <button onClick={() => setClientSecret("")} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '11px', marginTop: '10px' }}>Change Plan</button>
-                </Elements>
-              )}
+              <button style={styles.checkoutBtn} onClick={handleOneTimeCheckout}>1 time Checkout ($36)</button>
+              <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={handleSubscriptionCheckout}>3 Month Subscription  1 set per month ($30)</button>
             </div>
           ) : <p style={{ fontSize: '12px', color: '#888' }}>Select 6 products to checkout</p>}
         </div>

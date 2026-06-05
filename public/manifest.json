@@ -1,6 +1,6 @@
 {
-  "short_name": "The Majorities",
-  "name": "The Majorities Hair Solutions",
+  "short_name": "React App",
+  "name": "Create React App Sample",
   "icons": [
     {
       "src": "favicon.ico",

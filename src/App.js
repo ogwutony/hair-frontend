@@ -3,40 +3,16 @@ import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation,
 // --- 1. SHOPIFY CONFIGURATION ---
 const SHOP_DOMAIN = "c0bqfe-z2.myshopify.com";
 
-const DEFAULT_SELLING_PLAN_ID = "1467875506";
-
 const PRODUCT_VARIANT_MAP = {
-  "The Majorities Shampoo": {
-    merchandiseId: "47555331358898",
-    pricing: { oneTime: 6, subscription: 5 },
-    sellingPlanId: DEFAULT_SELLING_PLAN_ID
-  },
-  "The Majorities Conditioner": {
-    merchandiseId: "47555331555506",
-    pricing: { oneTime: 6, subscription: 5 },
-    sellingPlanId: DEFAULT_SELLING_PLAN_ID
-  },
-  "The Majorities Hair Oil": {
-    merchandiseId: "47555331752114",
-    pricing: { oneTime: 6, subscription: 5 },
-    sellingPlanId: DEFAULT_SELLING_PLAN_ID
-  },
-  "The Majorities Facial Scrub": {
-    merchandiseId: "47555331948722",
-    pricing: { oneTime: 6, subscription: 5 },
-    sellingPlanId: DEFAULT_SELLING_PLAN_ID
-  },
-  "The Majorities Face Toner": {
-    merchandiseId: "47555332145330",
-    pricing: { oneTime: 6, subscription: 5 },
-    sellingPlanId: DEFAULT_SELLING_PLAN_ID
-  },
-  "The Majorities Moisturizing Lotion": {
-    merchandiseId: "47555332309170",
-    pricing: { oneTime: 6, subscription: 5 },
-    sellingPlanId: DEFAULT_SELLING_PLAN_ID
-  }
+  "The Majorities Shampoo":             "47555331358898",
+  "The Majorities Conditioner":         "47555331555506",
+  "The Majorities Hair Oil":            "47555331752114",
+  "The Majorities Facial Scrub":        "47555331948722",
+  "The Majorities Face Toner":          "47555332145330",
+  "The Majorities Moisturizing Lotion": "47555332309170",
 };
+
+const SELLING_PLAN_ID = "1467875506";
 
 // --- 2. BACKEND CONFIGURATION ---
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://hair-backend-2.onrender.com";
@@ -109,81 +85,6 @@ const getNextRankTitle = (currentRankTitle) => {
   const currentIndex = RANK_TIERS.findIndex(r => r.title === currentRankTitle);
   if (currentIndex <= 0) return null;
   return RANK_TIERS[currentIndex - 1].title;
-};
-
-const getRankProgress = (currentScore, currentRankTitle) => {
-  const currentIndex = RANK_TIERS.findIndex(r => r.title === currentRankTitle);
-  const currentTier = RANK_TIERS[currentIndex] || RANK_TIERS[RANK_TIERS.length - 1];
-  const nextTier = currentIndex > 0 ? RANK_TIERS[currentIndex - 1] : null;
-  const currentMin = currentTier?.min || 1;
-  if (!nextTier) {
-    return { currentMin, nextMin: currentMin, progressPercent: 100 };
-  }
-
-  const span = Math.max(1, nextTier.min - currentMin);
-  const progressPercent = Math.min(100, Math.max(0, ((currentScore - currentMin) / span) * 100));
-  return {
-    currentMin,
-    nextMin: nextTier.min,
-    progressPercent
-  };
-};
-
-const formatCurrency = (value) => `$${Number(value || 0).toFixed(2)}`;
-
-const getProductCommerceConfig = (productName) => PRODUCT_VARIANT_MAP[productName] || {
-  merchandiseId: "",
-  pricing: { oneTime: 0, subscription: 0 },
-  sellingPlanId: null
-};
-
-const calculateSetTotals = (items = []) => items.reduce((totals, item) => {
-  const { pricing } = getProductCommerceConfig(item.name);
-  return {
-    oneTime: totals.oneTime + (pricing.oneTime || 0),
-    subscription: totals.subscription + (pricing.subscription || 0)
-  };
-}, { oneTime: 0, subscription: 0 });
-
-const submitShopifyCheckout = (items, purchaseType = "one-time") => {
-  if (!items.length) return;
-
-  if (purchaseType === "one-time") {
-    const lineItems = items
-      .map((item) => `${getProductCommerceConfig(item.name).merchandiseId}:1`)
-      .join(",");
-    window.location.href =
-      `https://${SHOP_DOMAIN}/cart/${lineItems}` +
-      `?checkout[shipping_address][country]=US`;
-    return;
-  }
-
-  const form = document.createElement("form");
-  form.method = "POST";
-  form.action = `https://${SHOP_DOMAIN}/cart/add`;
-  form.style.display = "none";
-
-  const appendHiddenInput = (name, value) => {
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = name;
-    input.value = value;
-    form.appendChild(input);
-  };
-
-  items.forEach((item, index) => {
-    const { merchandiseId, sellingPlanId } = getProductCommerceConfig(item.name);
-    appendHiddenInput(`items[${index}][id]`, merchandiseId);
-    appendHiddenInput(`items[${index}][quantity]`, "1");
-    if (sellingPlanId) {
-      appendHiddenInput(`items[${index}][selling_plan]`, sellingPlanId);
-    }
-  });
-
-  appendHiddenInput("return_to", "/checkout?checkout[shipping_address][country]=US");
-  document.body.appendChild(form);
-  form.submit();
-  document.body.removeChild(form);
 };
 
 const getRankColor = (rankTitle) => {
@@ -513,8 +414,6 @@ const SocialLinkField = ({ social, savedValue, saveStatus, onCommit, onSave, onR
 // --- PROFILE PAGE COMPONENT - Enhanced with Photo & Video Features ---
 const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar, tokens }) => {
   const [avatarUrl, setAvatarUrl] = useState(userAvatar || null);
-  const [backendRankScore, setBackendRankScore] = useState(rankScore || 1);
-  const [backendRankTitle, setBackendRankTitle] = useState(rankTitle || "Comrade");
   const [avatarSaveStatus, setAvatarSaveStatus] = useState("idle"); // idle | saving | saved | error
   const [hadExistingAvatar, setHadExistingAvatar] = useState(false);
   const avatarInputRef = React.useRef(null);
@@ -548,19 +447,10 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   }, []);
 
   useEffect(() => {
-    const resolvedScore = rankScore || 1;
-    setBackendRankScore(resolvedScore);
-    setBackendRankTitle(getRankTitle(resolvedScore));
-  }, [rankScore, rankTitle]);
-
-  useEffect(() => {
     if (!authToken) return;
     fetch(`${BACKEND_URL}/api/profile`, {
       headers: { Authorization: `Bearer ${authToken}` }
     }).then(r => { if (!r.ok) throw new Error('Failed to fetch profile'); return r.json(); }).then(data => {
-      const resolvedScore = data.rank_score || 1;
-      setBackendRankScore(resolvedScore);
-      setBackendRankTitle(getRankTitle(resolvedScore));
       if (data.avatar) {
         setAvatarUrl(data.avatar);
         setHadExistingAvatar(true);
@@ -847,11 +737,8 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     }
   };
 
-  const displayRankScore = backendRankScore || 1;
-  const displayRankTitle = backendRankTitle || 'Comrade';
-  const pointsToNextRank = getPointsToNextRank(displayRankScore, displayRankTitle);
-  const nextRankTitle = getNextRankTitle(displayRankTitle);
-  const { currentMin, nextMin, progressPercent } = getRankProgress(displayRankScore, displayRankTitle);
+  const pointsToNextRank = getPointsToNextRank(rankScore || 1, rankTitle || 'Comrade');
+  const nextRankTitle = getNextRankTitle(rankTitle || 'Comrade');
 
   const handleSocialShare = (platform, username) => {
     if (!username) {
@@ -867,31 +754,11 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       {/* HEADER SECTION */}
       <div style={{ marginBottom: '50px' }}>
         <h1 style={{ fontSize: '32px', marginBottom: '8px', fontWeight: '700' }}>Welcome</h1>
-        {displayRankTitle && (
+        {rankTitle && (
           <div style={{ marginTop: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-              <RankBadge rankTitle={displayRankTitle} />
-              <span style={{ fontSize: '13px', color: '#666' }}>{displayRankScore.toLocaleString()} points</span>
-            </div>
-            <div style={{ marginBottom: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '11px', color: '#666', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                <span>Rank progress</span>
-                <span>{progressPercent.toFixed(0)}%</span>
-              </div>
-              <div style={{ width: '100%', height: '10px', background: '#ececec', borderRadius: '999px', overflow: 'hidden' }}>
-                <div
-                  aria-label="Rank progress"
-                  role="progressbar"
-                  aria-valuemin={currentMin}
-                  aria-valuemax={nextMin}
-                  aria-valuenow={displayRankScore}
-                  style={{ width: `${progressPercent}%`, height: '100%', background: 'linear-gradient(90deg, #222 0%, #d4af37 100%)' }}
-                />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '11px', color: '#888', marginTop: '6px' }}>
-                <span>{currentMin.toLocaleString()} pts</span>
-                <span>{nextRankTitle ? `${nextMin.toLocaleString()} pts` : 'Top rank reached'}</span>
-              </div>
+              <RankBadge rankTitle={rankTitle} />
+              <span style={{ fontSize: '13px', color: '#666' }}>{(rankScore || 1).toLocaleString()} points</span>
             </div>
             {nextRankTitle && (
               <div style={{ fontSize: '12px', color: '#888', marginTop: '8px' }}>
@@ -1489,17 +1356,28 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
   
   const selectedItems = selection;
   const isSetComplete = selectedItems.length === 6;
-  const setTotals = calculateSetTotals(selectedItems);
-  const subscriptionSavings = Math.max(0, setTotals.oneTime - setTotals.subscription);
   
   const handleOneTimeCheckout = () => {
     if (!isSetComplete) return;
-    submitShopifyCheckout(selectedItems, "one-time");
+    const lineItems = selectedItems
+      .map((item) => `${PRODUCT_VARIANT_MAP[item.name]}:1`)
+      .join(",");
+    const url =
+      `https://${SHOP_DOMAIN}/cart/${lineItems}` +
+      `?checkout[shipping_address][country]=US`;
+    window.location.href = url;
   };
 
   const handleSubscriptionCheckout = () => {
     if (!isSetComplete) return;
-    submitShopifyCheckout(selectedItems, "subscription");
+    const lineItems = selectedItems
+      .map((item) => `${PRODUCT_VARIANT_MAP[item.name]}:1`)
+      .join(",");
+    const url =
+      `https://${SHOP_DOMAIN}/cart/${lineItems}` +
+      `?selling_plan=${SELLING_PLAN_ID}` +
+      `&checkout[shipping_address][country]=US`;
+    window.location.href = url;
   };
   
   const renderRow = (label, category) => (
@@ -1508,15 +1386,10 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
       <div style={styles.scrollRow}>
         {productsData[category].map(item => {
           const isSelected = selection.some(i => i.name === item.name);
-          const { pricing } = getProductCommerceConfig(item.name);
           return (
             <div key={item.name} onClick={() => handleSelect(item)} style={{ ...styles.card, border: isSelected ? "2px solid #222" : "1px solid #eee" }}>
               <div style={styles.imagePlaceholder}>{item.name[0]}</div>
               <div style={styles.itemName}>{item.name}</div>
-              <div style={{ fontSize: '11px', color: '#555', marginTop: '8px', lineHeight: '1.5' }}>
-                <div>One-time {formatCurrency(pricing.oneTime)}</div>
-                <div>Subscribe {formatCurrency(pricing.subscription)}</div>
-              </div>
             </div>
           );
         })}
@@ -1539,14 +1412,6 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
           {focusedItem ? (
             <div>
               <h3>{focusedItem.name}</h3>
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                <span style={{ fontSize: '12px', fontWeight: '600', color: '#333' }}>
-                  One-time {formatCurrency(getProductCommerceConfig(focusedItem.name).pricing.oneTime)}
-                </span>
-                <span style={{ fontSize: '12px', fontWeight: '600', color: '#2d6a4f' }}>
-                  Subscribe {formatCurrency(getProductCommerceConfig(focusedItem.name).pricing.subscription)}
-                </span>
-              </div>
               <div style={{ fontSize: '13px', color: '#666', lineHeight: '1.6' }}>
                 {focusedItem.desc}
               </div>
@@ -1560,21 +1425,14 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
               const counts = {};
               selectedItems.forEach(item => { counts[item.name] = (counts[item.name] || 0) + 1; });
               return Object.entries(counts).map(([name, count]) => (
-                <p key={name} style={{ fontSize: '11px', margin: '4px 0' }}>
-                  {name}{count > 1 ? ` x${count}` : ''} · {formatCurrency(getProductCommerceConfig(name).pricing.oneTime)} / {formatCurrency(getProductCommerceConfig(name).pricing.subscription)}
-                </p>
+                <p key={name} style={{ fontSize: '11px', margin: '4px 0' }}>{name}{count > 1 ? ` x${count}` : ''}</p>
               ));
             })()}
           </div>
           {isSetComplete ? (
             <div style={{ borderTop: '2px solid #222', paddingTop: '15px' }}>
-              <div style={{ fontSize: '12px', color: '#666', marginBottom: '12px', lineHeight: '1.6' }}>
-                <div>One-time total: <strong>{formatCurrency(setTotals.oneTime)}</strong></div>
-                <div>Subscription total: <strong>{formatCurrency(setTotals.subscription)} / month</strong></div>
-                <div>You save <strong>{formatCurrency(subscriptionSavings)}</strong> on each monthly set.</div>
-              </div>
-              <button style={styles.checkoutBtn} onClick={handleOneTimeCheckout}>1 time Checkout ({formatCurrency(setTotals.oneTime)})</button>
-              <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={handleSubscriptionCheckout}>Monthly Subscription Checkout ({formatCurrency(setTotals.subscription)} / month)</button>
+              <button style={styles.checkoutBtn} onClick={handleOneTimeCheckout}>1 time Checkout ($36)</button>
+              <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={handleSubscriptionCheckout}>3 Month Subscription  1 set per month ($30)</button>
             </div>
           ) : <p style={{ fontSize: '12px', color: '#888' }}>Select 6 products to checkout</p>}
         </div>

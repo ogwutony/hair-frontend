@@ -2,6 +2,7 @@
   "name": "hair-subscription",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://ogwutony.github.io/hair-frontend",
   "dependencies": {
     "@stripe/react-stripe-js": "^5.6.0",
     "@stripe/stripe-js": "^8.8.0",

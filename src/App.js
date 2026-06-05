@@ -451,6 +451,65 @@ const productsData = {
   ]
 };
 
+const SOCIAL_FIELDS = [
+  { key: 'instagram', label: '📷 Instagram', placeholder: 'instagram.com/yourprofile' },
+  { key: 'tiktok', label: '🎵 TikTok', placeholder: 'tiktok.com/@yourprofile' },
+  { key: 'facebook', label: 'Facebook', placeholder: 'facebook.com/yourprofile' },
+];
+
+const SocialLinkField = ({ social, savedValue, saveStatus, onCommit, onSave, onResetSavedStatus }) => {
+  const [draftValue, setDraftValue] = useState(savedValue || "");
+
+  useEffect(() => {
+    setDraftValue(savedValue || "");
+  }, [savedValue]);
+
+  const commitIfChanged = useCallback(() => {
+    if (draftValue !== (savedValue || "")) {
+      onCommit(social.key, draftValue);
+    }
+  }, [draftValue, onCommit, savedValue, social.key]);
+
+  const isSocialSaveDisabled = saveStatus === "saving" || saveStatus === "saved" || !draftValue;
+
+  return (
+    <div>
+      <label style={{ fontSize: '12px', fontWeight: '600', color: '#222', display: 'block', marginBottom: '6px' }}>
+        {social.label}
+      </label>
+      <input
+        type="text"
+        placeholder={social.placeholder}
+        value={draftValue}
+        onChange={(e) => {
+          setDraftValue(e.target.value);
+          if (saveStatus === "saved") {
+            onResetSavedStatus(social.key);
+          }
+        }}
+        onBlur={commitIfChanged}
+        style={{ ...styles.input, margin: 0, marginBottom: '6px' }} />
+      <button
+        onClick={() => {
+          commitIfChanged();
+          onSave(social.key, draftValue);
+        }}
+        disabled={isSocialSaveDisabled}
+        style={{
+          ...styles.authButton,
+          width: '100%',
+          fontSize: '11px',
+          padding: '6px 10px',
+          backgroundColor: saveStatus === "saved" ? '#27ae60' : saveStatus === "error" ? '#e74c3c' : undefined,
+          opacity: isSocialSaveDisabled ? 0.6 : 1,
+          cursor: isSocialSaveDisabled ? 'not-allowed' : 'pointer'
+        }}>
+        {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "✓ Linked" : saveStatus === "error" ? "Failed — Retry" : "Save"}
+      </button>
+    </div>
+  );
+};
+
 // --- PROFILE PAGE COMPONENT - Enhanced with Photo & Video Features ---
 const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar, tokens }) => {
   const [avatarUrl, setAvatarUrl] = useState(userAvatar || null);
@@ -524,14 +583,18 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     setSocialLinks(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleSaveSocialLink = async (key) => {
+  const handleSaveSocialLink = async (key, valueOverride) => {
     if (!authToken) return;
+    const resolvedValue = typeof valueOverride === "string" ? valueOverride : socialLinks[key];
+    if (typeof valueOverride === "string") {
+      setSocialLinks(prev => ({ ...prev, [key]: valueOverride }));
+    }
     setSocialSaveStatus(prev => ({ ...prev, [key]: "saving" }));
     try {
       const response = await fetch(`${BACKEND_URL}/api/profile`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify({ socialLinks: { [key]: socialLinks[key] } })
+        body: JSON.stringify({ socialLinks: { [key]: resolvedValue } })
       });
       if (response.ok) {
         setSocialSaveStatus(prev => ({ ...prev, [key]: "saved" }));
@@ -1017,44 +1080,15 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Connect Your Social Profiles</h2>
         <div style={styles.dumaCard}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
-            {[
-              { key: 'instagram', label: '\u{1F4F7} Instagram', placeholder: 'instagram.com/yourprofile' },
-              { key: 'tiktok', label: '\u{1F3B5} TikTok', placeholder: 'tiktok.com/@yourprofile' },
-              { key: 'facebook', label: 'Facebook', placeholder: 'facebook.com/yourprofile' },
-            ].map(social => (
-              <div key={social.key}>
-                <label style={{ fontSize: '12px', fontWeight: '600', color: '#222', display: 'block', marginBottom: '6px' }}>
-                  {social.label}
-                </label>
-                <input
-                  type="text"
-                  placeholder={social.placeholder}
-                  value={socialLinks[social.key]}
-                  onChange={(e) => {
-                    handleSocialChange(social.key, e.target.value);
-                    if (socialSaveStatus[social.key] === "saved") {
-                      setSocialSaveStatus(prev => ({ ...prev, [social.key]: "idle" }));
-                    }
-                  }}
-                  style={{ ...styles.input, margin: 0, marginBottom: '6px' }} />
-                <button
-                  onClick={() => handleSaveSocialLink(social.key)}
-                  disabled={socialSaveStatus[social.key] === "saving" || socialSaveStatus[social.key] === "saved" || !socialLinks[social.key]}
-                  style={(() => {
-                    const isSocialSaveDisabled = socialSaveStatus[social.key] === "saving" || socialSaveStatus[social.key] === "saved" || !socialLinks[social.key];
-                    return {
-                      ...styles.authButton,
-                      width: '100%',
-                      fontSize: '11px',
-                      padding: '6px 10px',
-                      backgroundColor: socialSaveStatus[social.key] === "saved" ? '#27ae60' : socialSaveStatus[social.key] === "error" ? '#e74c3c' : undefined,
-                      opacity: isSocialSaveDisabled ? 0.6 : 1,
-                      cursor: isSocialSaveDisabled ? 'not-allowed' : 'pointer'
-                    };
-                  })()}>
-                  {socialSaveStatus[social.key] === "saving" ? "Saving..." : socialSaveStatus[social.key] === "saved" ? "✓ Linked" : socialSaveStatus[social.key] === "error" ? "Failed — Retry" : "Save"}
-                </button>
-              </div>
+            {SOCIAL_FIELDS.map(social => (
+              <SocialLinkField
+                key={social.key}
+                social={social}
+                savedValue={socialLinks[social.key]}
+                saveStatus={socialSaveStatus[social.key]}
+                onCommit={handleSocialChange}
+                onSave={handleSaveSocialLink}
+                onResetSavedStatus={(key) => setSocialSaveStatus(prev => ({ ...prev, [key]: "idle" }))} />
             ))}
           </div>
         </div>

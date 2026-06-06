@@ -452,7 +452,7 @@ const productsData = {
 };
 
 const SOCIAL_FIELDS = [
-  { key: 'instagram', label: '📷 Instagram', placeholder: 'instagram.com/yourprofile' },
+  { key: 'instagram', label: '\u{1F4F7} Instagram', placeholder: 'instagram.com/yourprofile' },// SocialConnectButton component for OAuth connect/disconnectconst SocialConnectButton_unused = null; // See ProfilePage for SocialConnectButton inline{ key: 'instagram', label: '\u{1F4F7} Instagram', placeholder: 'instagram.com/yourprofile' },// SocialConnectButton component for OAuth connect/disconnect '📷 Instagram', placeholder: 'instagram.com/yourprofile' },
   { key: 'tiktok', label: '🎵 TikTok', placeholder: 'tiktok.com/@yourprofile' },
   { key: 'facebook', label: 'Facebook', placeholder: 'facebook.com/yourprofile' },
 ];
@@ -853,13 +853,13 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   const nextRankTitle = getNextRankTitle(displayRankTitle);
   const { currentMin, nextMin, progressPercent } = getRankProgress(displayRankScore, displayRankTitle);
 
-  const handleSocialShare = (platform, username) => {
+  const handleSocialShareReal = async (platform, videoUrl, caption = '') => {    if (!token) { alert('You must be logged in to share.'); return; } => {
     if (!username) {
       alert(`Connect your ${platform} account first in Social Links above.`);
       return;
     }
     const label = platform === 'Facebook' ? platform : `${platform} @${username}`;
-    alert(`Your perspective will be shared to ${label}.`);
+    handleSocialShareReal(platform, username);
   };
 
   return (
@@ -1354,7 +1354,7 @@ const LoginPage = ({ onLogin }) => {
   };
 
   const handleTikTokLogin = () => {
-    setSocialError("TikTok login coming soon.");
+    setSocialError("");    const clientKey = process.env.REACT_APP_TIKTOK_CLIENT_KEY;
   };
 
   return (
@@ -3065,7 +3065,7 @@ export default function App() {
           <Route path="/" element={<LandingPage saveSetToProfile={saveSetToProfile} onAddPoints={addPoints} savedSets={savedSets} />} />
           <Route path="/login" element={<LoginPage onLogin={handleLoginSuccess} />} />
           <Route path="/auth/google/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="google" />} />
-          <Route path="/auth/instagram/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="instagram" />} />
+          <Route path="/auth/instagram/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="instagram" />} />              <Route path="/oauth/callback/:provider" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="instagram" />} />
           <Route path="/auth/tiktok/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="tiktok" />} />
           <Route path="/signup" element={<SignupPage onLogin={handleLoginSuccess} />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />

@@ -28,3 +28,48 @@ code {
     font-size: 12px !important;
   }
 }
+
+.checkout-sidebar {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.custom-set-heading {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 12px;
+  margin-top: 0;
+}
+
+.custom-set-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #374151;
+  margin: 0 0 8px;
+}
+
+.price-breakdown-container {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.total-price-row {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 6px;
+}
+
+.savings-badge {
+  font-size: 13px;
+  color: #10b981;
+  font-weight: 500;
+  margin-bottom: 12px;
+}

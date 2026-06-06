@@ -358,42 +358,39 @@ const SOCIAL_FIELDS = [
   { key: 'facebook', label: 'Facebook', placeholder: 'facebook.com/yourprofile' },
 ];
 
-const SocialLinkField = ({ social, savedValue, saveStatus, onCommit, onSave, onResetSavedStatus }) => {
-  const [draftValue, setDraftValue] = useState(savedValue || "");
+const SocialInputRow = ({ socialKey, label, placeholder, initialValue, onSave, onChangeGlobal, saveStatus }) => {
+  const [localVal, setLocalVal] = React.useState(initialValue || "");
 
-  useEffect(() => {
-    setDraftValue(savedValue || "");
-  }, [savedValue]);
+  React.useEffect(() => {
+    setLocalVal(initialValue || "");
+  }, [initialValue]);
 
-  const commitIfChanged = useCallback(() => {
-    if (draftValue !== (savedValue || "")) {
-      onCommit(social.key, draftValue);
+  const commitIfChanged = () => {
+    if (localVal !== (initialValue || "")) {
+      onChangeGlobal(socialKey, localVal);
     }
-  }, [draftValue, onCommit, savedValue, social.key]);
+  };
 
-  const isSocialSaveDisabled = saveStatus === "saving" || saveStatus === "saved" || !draftValue;
+  const isSocialSaveDisabled = saveStatus === "saving" || saveStatus === "saved" || !localVal;
 
   return (
     <div>
       <label style={{ fontSize: '12px', fontWeight: '600', color: '#222', display: 'block', marginBottom: '6px' }}>
-        {social.label}
+        {label}
       </label>
       <input
         type="text"
-        placeholder={social.placeholder}
-        value={draftValue}
+        placeholder={placeholder}
+        value={localVal}
         onChange={(e) => {
-          setDraftValue(e.target.value);
-          if (saveStatus === "saved") {
-            onResetSavedStatus(social.key);
-          }
+          setLocalVal(e.target.value);
         }}
         onBlur={commitIfChanged}
         style={{ ...styles.input, margin: 0, marginBottom: '6px' }} />
       <button
         onClick={() => {
           commitIfChanged();
-          onSave(social.key, draftValue);
+          onSave(socialKey, localVal);
         }}
         disabled={isSocialSaveDisabled}
         style={{
@@ -948,14 +945,21 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         <div style={styles.dumaCard}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
             {SOCIAL_FIELDS.map(social => (
-              <SocialLinkField
+              <SocialInputRow
                 key={social.key}
-                social={social}
-                savedValue={socialLinks[social.key]}
+                socialKey={social.key}
+                label={social.label}
+                placeholder={social.placeholder}
+                initialValue={socialLinks[social.key]}
                 saveStatus={socialSaveStatus[social.key]}
-                onCommit={handleSocialChange}
+                onChangeGlobal={(key, value) => {
+                  handleSocialChange(key, value);
+                  if (socialSaveStatus[key] === "saved") {
+                    setSocialSaveStatus(prev => ({ ...prev, [key]: "idle" }));
+                  }
+                }}
                 onSave={handleSaveSocialLink}
-                onResetSavedStatus={(key) => setSocialSaveStatus(prev => ({ ...prev, [key]: "idle" }))} />
+              />
             ))}
           </div>
         </div>

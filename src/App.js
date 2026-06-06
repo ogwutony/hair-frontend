@@ -1411,7 +1411,7 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
         {renderRow("Pick Toners", "toners")}
         {renderRow("Pick Creams", "faceCreams")}
       </div>
-      <aside style={{ ...styles.right, width: isMobile ? '100%' : '30%', position: isMobile ? 'static' : 'sticky', top: isMobile ? 'auto' : '20px', boxSizing: 'border-box' }}>
+      <aside className="checkout-sidebar" style={{ ...styles.right, width: isMobile ? '100%' : '30%', position: isMobile ? 'static' : 'sticky', top: isMobile ? 'auto' : '20px', boxSizing: 'border-box' }}>
         <div style={{ minHeight: '100px', marginBottom: '15px' }}>
           {focusedItem ? (
             <div>
@@ -1423,18 +1423,24 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
           ) : <p style={{color: '#888'}}>Select a product</p>}
         </div>
         <div style={styles.summaryContainer}>
-          <h4 style={{ fontSize: '14px', borderBottom: '1px solid #eee', paddingBottom: '10px', marginTop: 0 }}>Your Custom Set ({selectedItems.length}/6)</h4>
+          <h4 className="custom-set-heading">Your Custom Set ({selectedItems.length}/6)</h4>
           <div style={{ margin: '10px 0' }}>
             {(() => {
               const counts = {};
               selectedItems.forEach(item => { counts[item.name] = (counts[item.name] || 0) + 1; });
               return Object.entries(counts).map(([name, count]) => (
-                <p key={name} style={{ fontSize: '11px', margin: '4px 0' }}>{name}{count > 1 ? ` x${count}` : ''}</p>
+                <p key={name} className="custom-set-item">
+                  <span>{name}</span>
+                  <span>{count > 1 ? `x${count}` : ''}</span>
+                </p>
               ));
             })()}
           </div>
           {isSetComplete ? (
-            <div style={{ borderTop: '2px solid #222', paddingTop: '15px' }}>
+            <div className="price-breakdown-container">
+              <div className="total-price-row">One-time total: $36</div>
+              <div className="total-price-row">Subscription total: $30</div>
+              <div className="savings-badge">You save $6 with subscription</div>
               <button style={styles.checkoutBtn} onClick={handleOneTimeCheckout}>1 time Checkout ($36)</button>
               <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={handleSubscriptionCheckout}>3 Month Subscription  1 set per month ($30)</button>
             </div>
@@ -2956,7 +2962,7 @@ const styles = {
   auth: { fontWeight: "600", textDecoration: 'none', color: '#222', cursor: 'pointer' },
   layout: { display: "flex", padding: "20px 60px" },
   left: { width: "70%", paddingRight: "40px" },
-  right: { width: "30%", padding: "20px", borderRadius: "24px", backgroundColor: "#f9f9f9", height: "fit-content", position: 'sticky', top: '20px' },
+  right: { width: "30%", height: "fit-content", position: 'sticky', top: '20px' },
   rowSection: { marginBottom: "20px" },
   rowLabel: { fontSize: "14px", color: "#666", fontWeight: "600", marginBottom: "10px" },
   scrollRow: { display: "flex", gap: "12px", overflowX: "auto", paddingBottom: '10px' },

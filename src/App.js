@@ -457,43 +457,32 @@ const SOCIAL_FIELDS = [
   { key: 'facebook', label: 'Facebook', placeholder: 'facebook.com/yourprofile' },
 ];
 
-const SocialLinkField = ({ social, savedValue, saveStatus, onCommit, onSave, onResetSavedStatus }) => {
-  const [draftValue, setDraftValue] = useState(savedValue || "");
+// Add this helper component to manage local, non-lagging text entry
+const SocialInputRow = ({ socialKey, label, placeholder, initialValue, onSave, onChangeGlobal, saveStatus }) => {
+  const [localVal, setLocalVal] = React.useState(initialValue || "");
 
-  useEffect(() => {
-    setDraftValue(savedValue || "");
-  }, [savedValue]);
+  React.useEffect(() => {
+    setLocalVal(initialValue || "");
+  }, [initialValue]);
 
-  const commitIfChanged = useCallback(() => {
-    if (draftValue !== (savedValue || "")) {
-      onCommit(social.key, draftValue);
-    }
-  }, [draftValue, onCommit, savedValue, social.key]);
-
-  const isSocialSaveDisabled = saveStatus === "saving" || saveStatus === "saved" || !draftValue;
+  const isSocialSaveDisabled = saveStatus === "saving" || saveStatus === "saved" || !localVal;
 
   return (
     <div>
       <label style={{ fontSize: '12px', fontWeight: '600', color: '#222', display: 'block', marginBottom: '6px' }}>
-        {social.label}
+        {label}
       </label>
       <input
         type="text"
-        placeholder={social.placeholder}
-        value={draftValue}
+        placeholder={placeholder}
+        value={localVal}
         onChange={(e) => {
-          setDraftValue(e.target.value);
-          if (saveStatus === "saved") {
-            onResetSavedStatus(social.key);
-          }
+          setLocalVal(e.target.value);
+          if (onChangeGlobal) onChangeGlobal(socialKey, e.target.value);
         }}
-        onBlur={commitIfChanged}
         style={{ ...styles.input, margin: 0, marginBottom: '6px' }} />
       <button
-        onClick={() => {
-          commitIfChanged();
-          onSave(social.key, draftValue);
-        }}
+        onClick={() => onSave(socialKey, localVal)}
         disabled={isSocialSaveDisabled}
         style={{
           ...styles.authButton,
@@ -727,7 +716,8 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         body: formData
       });
       const uploadData = uploadRes.ok ? await uploadRes.json() : null;
-      const savedVideoUrl = uploadData?.url || perspective[boxKey].videoUrl;
+      // Multi-key safety check for cloud URLs
+      const savedVideoUrl = uploadData?.storageUrl || uploadData?.secure_url || uploadData?.url || perspective[boxKey].videoUrl;
       const updatedPerspective = {
         ...perspective,
         [boxKey]: { ...perspective[boxKey], videoUrl: savedVideoUrl }
@@ -853,13 +843,13 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   const nextRankTitle = getNextRankTitle(displayRankTitle);
   const { currentMin, nextMin, progressPercent } = getRankProgress(displayRankScore, displayRankTitle);
 
-  const handleSocialShareReal = async (platform, videoUrl, caption = '') => {    if (!token) { alert('You must be logged in to share.'); return; } => {
-    if (!username) {
+  const handleSocialShare = (platform, socialUrl) => {
+    if (!socialUrl) {
       alert(`Connect your ${platform} account first in Social Links above.`);
       return;
     }
-    const label = platform === 'Facebook' ? platform : `${platform} @${username}`;
-    handleSocialShareReal(platform, username);
+    const label = platform === 'Facebook' ? platform : `${platform} @${socialUrl}`;
+    alert(`Sharing to ${label}. Full API integration coming soon!`);
   };
 
   return (
@@ -1053,8 +1043,9 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                         <p style={{ fontSize: '12px', color: '#27ae60', fontWeight: '600', marginBottom: '6px' }}>✓ Video Published</p>
                       )}
                       <button
+                        disabled={videoSaveStatus[box.key] === "saving"}
                         onClick={() => handleSendToDuma(box.key)}
-                        style={{ ...styles.authButton, width: '100%', fontSize: '12px', padding: '8px 12px', background: '#8e44ad', marginTop: '8px' }}>
+                        style={{ ...styles.authButton, width: '100%', fontSize: '12px', padding: '8px 12px', background: '#8e44ad', marginTop: '8px', opacity: videoSaveStatus[box.key] === "saving" ? 0.5 : 1, cursor: videoSaveStatus[box.key] === "saving" ? 'not-allowed' : 'pointer' }}>
                         {dumaSubmitStatus[box.key] || "Send to Duma Culture for Voting"}
                       </button>
                     </div>
@@ -1080,15 +1071,17 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Connect Your Social Profiles</h2>
         <div style={styles.dumaCard}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
+            {/* CONNECT YOUR SOCIAL PROFILES LOOP */}
             {SOCIAL_FIELDS.map(social => (
-              <SocialLinkField
+              <SocialInputRow
                 key={social.key}
-                social={social}
-                savedValue={socialLinks[social.key]}
+                socialKey={social.key}
+                label={social.label}
+                placeholder={social.placeholder}
+                initialValue={socialLinks[social.key]}
                 saveStatus={socialSaveStatus[social.key]}
-                onCommit={handleSocialChange}
-                onSave={handleSaveSocialLink}
-                onResetSavedStatus={(key) => setSocialSaveStatus(prev => ({ ...prev, [key]: "idle" }))} />
+                onChangeGlobal={handleSocialChange}
+                onSave={handleSaveSocialLink} />
             ))}
           </div>
         </div>
@@ -1354,7 +1347,7 @@ const LoginPage = ({ onLogin }) => {
   };
 
   const handleTikTokLogin = () => {
-    setSocialError("");    const clientKey = process.env.REACT_APP_TIKTOK_CLIENT_KEY;
+    setSocialError("");
   };
 
   return (

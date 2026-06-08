@@ -2073,7 +2073,20 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, 
 // --- CULTURE LAB PAGE (Share Your Perspective) ---
 const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, onAddPoints, userAvatar }) => {
   const navigate = useNavigate();
-  const [selectedPrompt, setSelectedPrompt] = useState("");
+  const prompts = [
+    { id: 1, text: "Drop a photo of your current view right now—no filtering, no cleaning up. Where are you working or relaxing from today?" },
+    { id: 2, text: "If you had to describe your week so far using only one word, what would it be? Share it below!" },
+    { id: 3, text: "Give a quick shout-out to a tool, a life hack, or a person that saved you time this week. What was it?" },
+    { id: 4, text: "What is a completely harmless 'hill you are willing to die on'? (e.g., 'Cereal is soup,' 'Defrosting the car is the worst chore'). Let's hear your hot takes!" },
+    { id: 5, text: "What was your very first job, and what is the most important (or hilarious) lesson you learned from it?" },
+    { id: 6, text: "Let’s celebrate the small stuff. What is one thing you accomplished this week—big or small—that you’re proud of?" },
+    { id: 7, text: "What is a project you are working on right now that has you genuinely excited?" },
+    { id: 8, text: "Open your phone's photo library, go to the 5th most recent photo, and post it with zero context. Let the comments guess the story." },
+    { id: 9, text: "If you could go back and give your 20-year-old self one piece of advice about life or career, what would it be?" },
+    { id: 10, text: "Whats a more fun sport to watch Basketball or Football? Whats more fun to play?" },
+    { id: 11, text: "Celebrity crush?" }
+  ];
+  const [activePromptIndex, setActivePromptIndex] = useState(0);
   const [response, setResponse] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -2099,12 +2112,23 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
       .catch(err => console.error("Failed to load community socials:", err));
   }, []);
 
-  const prompts = [
-    { id: 1, text: "Introduce yourself." },
-    { id: 2, text: "Tell us what you do." },
-    { id: 3, text: "What makes someone beautiful?" },
-    { id: 4, text: "Thoughts about anything." }
-  ];
+  const activePrompt = prompts[activePromptIndex];
+
+  const selectedPrompt = activePrompt?.text || "";
+
+  const rotatePrompt = (direction) => {
+    setActivePromptIndex((prev) => {
+      if (direction === "random") {
+        if (prompts.length <= 1) return prev;
+        let nextIndex = prev;
+        while (nextIndex === prev) {
+          nextIndex = Math.floor(Math.random() * prompts.length);
+        }
+        return nextIndex;
+      }
+      return (prev + direction + prompts.length) % prompts.length;
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -2201,32 +2225,47 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
 
       <form style={styles.dumaCard} onSubmit={handleSubmit}>
         <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Choose a Prompt</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
-          {prompts.map(prompt => (
-            <label key={prompt.id} style={{
-              padding: '16px',
-              border: selectedPrompt === prompt.text ? '2px solid #222' : '1px solid #ddd',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              backgroundColor: selectedPrompt === prompt.text ? '#f9f9f9' : '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
+        {activePrompt && (
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{
+              padding: '20px',
+              border: '2px solid #222',
+              borderRadius: '12px',
+              backgroundColor: '#f9f9f9',
+              marginBottom: '14px'
             }}>
-              <input
-                type="radio"
-                name="prompt"
-                value={prompt.text}
-                checked={selectedPrompt === prompt.text}
-                onChange={(e) => setSelectedPrompt(e.target.value)}
-                style={{ accentColor: '#222' }}
-              />
-              <span style={{ fontSize: '13px', color: '#222', fontWeight: selectedPrompt === prompt.text ? '600' : '400' }}>
-                {prompt.text}
+              <p style={{ margin: 0, fontSize: '15px', lineHeight: 1.6, color: '#222', fontWeight: 600 }}>
+                {activePrompt.text}
+              </p>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => rotatePrompt(-1)}
+                style={{ ...styles.authButton, width: 'auto', padding: '10px 16px' }}
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                onClick={() => rotatePrompt("random")}
+                style={{ ...styles.authButton, width: 'auto', padding: '10px 16px', backgroundColor: '#666' }}
+              >
+                Shuffle Prompt
+              </button>
+              <button
+                type="button"
+                onClick={() => rotatePrompt(1)}
+                style={{ ...styles.authButton, width: 'auto', padding: '10px 16px' }}
+              >
+                Next
+              </button>
+              <span style={{ fontSize: '12px', color: '#666' }}>
+                Prompt {activePromptIndex + 1} of {prompts.length}
               </span>
-            </label>
-          ))}
-        </div>
+            </div>
+          </div>
+        )}
 
         <h3 style={{ marginTop: '24px', marginBottom: '12px' }}>Your Response</h3>
         <p style={{ fontSize: '12px', color: '#666', margin: '0 0 12px 0' }}>Share your thoughts (recommended: 45 seconds of speaking if recorded)</p>

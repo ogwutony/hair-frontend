@@ -500,13 +500,101 @@ const SocialInputRow = ({ socialKey, label, placeholder, initialValue, onSave, o
 };
 
 // --- PROFILE PAGE COMPONENT - Enhanced with Photo & Video Features ---
-const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar, tokens }) => {
+const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar, tokens, addDumaItem }) => {
+  const navigate = useNavigate();
   const [avatarUrl, setAvatarUrl] = useState(userAvatar || null);
   const [backendRankScore, setBackendRankScore] = useState(rankScore || 1);
   const [backendRankTitle, setBackendRankTitle] = useState(rankTitle || "Comrade");
   const [avatarSaveStatus, setAvatarSaveStatus] = useState("idle"); // idle | saving | saved | error
   const [hadExistingAvatar, setHadExistingAvatar] = useState(false);
   const avatarInputRef = React.useRef(null);
+
+  // Share Your Perspective state
+  const perspectivePrompts = [
+    { id: 1, text: "Drop a photo of your current view right now—no filtering, no cleaning up. Where are you working or relaxing from today?" },
+    { id: 2, text: "If you had to describe your week so far using only one word, what would it be? Share it below!" },
+    { id: 3, text: "Give a quick shout-out to a tool, a life hack, or a person that saved you time this week. What was it?" },
+    { id: 4, text: "What is a completely harmless 'hill you are willing to die on'? (e.g., 'Cereal is soup,' 'Defrosting the car is the worst chore'). Let's hear your hot takes!" },
+    { id: 5, text: "What was your very first job, and what is the most important (or hilarious) lesson you learned from it?" },
+    { id: 6, text: "Let's celebrate the small stuff. What is one thing you accomplished this week—big or small—that you're proud of?" },
+    { id: 7, text: "What is a project you are working on right now that has you genuinely excited?" },
+    { id: 8, text: "Open your phone's photo library, go to the 5th most recent photo, and post it with zero context. Let the comments guess the story." },
+    { id: 9, text: "If you could go back and give your 20-year-old self one piece of advice about life or career, what would it be?" },
+    { id: 10, text: "Whats a more fun sport to watch Basketball or Football? Whats more fun to play?" },
+    { id: 11, text: "Celebrity crush?" }
+  ];
+  const [activePromptIndex, setActivePromptIndex] = useState(0);
+  const [cultureResponse, setCultureResponse] = useState("");
+  const [cultureSubmitted, setCultureSubmitted] = useState(false);
+  const [cultureErrorMsg, setCultureErrorMsg] = useState("");
+
+  const rotatePrompt = (direction) => {
+    setActivePromptIndex((prev) => {
+      if (direction === "random") {
+        if (perspectivePrompts.length <= 1) return prev;
+        let nextIndex = prev;
+        while (nextIndex === prev) {
+          nextIndex = Math.floor(Math.random() * perspectivePrompts.length);
+        }
+        return nextIndex;
+      }
+      return (prev + direction + perspectivePrompts.length) % perspectivePrompts.length;
+    });
+  };
+
+  const handleCultureSubmit = async (e) => {
+    e.preventDefault();
+    const selectedPrompt = perspectivePrompts[activePromptIndex]?.text || "";
+    if (!selectedPrompt || !cultureResponse.trim()) {
+      setCultureErrorMsg("Please select a prompt and provide your response.");
+      return;
+    }
+    setCultureErrorMsg("");
+    try {
+      if (authToken) {
+        const res = await fetch(`${BACKEND_URL}/api/duma/culture`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+          body: JSON.stringify({ prompt: selectedPrompt, response: cultureResponse, category: "Culture" })
+        });
+        const data = await res.json();
+        if (!res.ok) { setCultureErrorMsg(data.error || 'Submission failed'); return; }
+      }
+      if (addDumaItem) {
+        addDumaItem({
+          id: Date.now(),
+          type: "Culture",
+          category: "Culture",
+          prompt: selectedPrompt,
+          response: cultureResponse,
+          submittedBy: userEmail,
+          submitterRank: rankTitle || 'Comrade',
+          submitterAvatar: userAvatar || null,
+          votes: { yes: 0 }
+        });
+      }
+      if (onAddPoints) onAddPoints(1);
+      setCultureSubmitted(true);
+      setTimeout(() => { navigate("/duma"); }, 2000);
+    } catch (err) {
+      if (addDumaItem) {
+        addDumaItem({
+          id: Date.now(),
+          type: "Culture",
+          category: "Culture",
+          prompt: perspectivePrompts[activePromptIndex]?.text || "",
+          response: cultureResponse,
+          submittedBy: userEmail,
+          submitterRank: rankTitle || 'Comrade',
+          submitterAvatar: userAvatar || null,
+          votes: { yes: 0 }
+        });
+      }
+      if (onAddPoints) onAddPoints(1);
+      setCultureSubmitted(true);
+    }
+  };
+
   const [perspective, setPerspective] = useState({
     box1: { videoUrl: null, description: "", videoFile: null },
     box2: { videoUrl: null, description: "", videoFile: null },
@@ -1117,6 +1205,55 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
           </div>
           <p style={{ fontSize: '11px', color: '#aaa', marginTop: '12px' }}>Full API integration coming soon. Connect your accounts above to get started.</p>
         </div>
+      </section>
+
+      {/* SHARE YOUR PERSPECTIVE SECTION */}
+      <section style={{ marginBottom: '50px' }}>
+        <h2 style={{ fontSize: '20px', marginBottom: '8px', fontWeight: '600' }}>Share Your Perspective</h2>
+        <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
+          Contribute to our Culture section by answering one of these prompts.
+          Submit your response to the Duma for community voting and earn points!
+        </p>
+        {cultureSubmitted ? (
+          <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
+            <div style={{ fontSize: '40px', marginBottom: '16px' }}></div>
+            <h2 style={{ marginBottom: '10px' }}>Perspective Shared!</h2>
+            <p style={{ color: '#666', marginBottom: '20px' }}>
+              Your response has been submitted to The Majorities' Culture section and appears in the Duma for community voting.
+            </p>
+            <p style={{ fontSize: '12px', color: '#888' }}>You earned 1 point! Redirecting to Duma…</p>
+          </div>
+        ) : (
+          <>
+            {cultureErrorMsg && <div style={styles.errorMsg}>{cultureErrorMsg}</div>}
+            <form style={styles.dumaCard} onSubmit={handleCultureSubmit}>
+              <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Choose a Prompt</h3>
+              <div style={{ marginBottom: '24px' }}>
+                <div style={{ padding: '20px', border: '2px solid #222', borderRadius: '12px', backgroundColor: '#f9f9f9', marginBottom: '14px' }}>
+                  <p style={{ margin: 0, fontSize: '15px', lineHeight: 1.6, color: '#222', fontWeight: 600 }}>
+                    {perspectivePrompts[activePromptIndex]?.text}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
+                  <button type="button" onClick={() => rotatePrompt(-1)} style={{ ...styles.authButton, width: 'auto', padding: '10px 16px' }}>Previous</button>
+                  <button type="button" onClick={() => rotatePrompt("random")} style={{ ...styles.authButton, width: 'auto', padding: '10px 16px', backgroundColor: '#666' }}>Shuffle Prompt</button>
+                  <button type="button" onClick={() => rotatePrompt(1)} style={{ ...styles.authButton, width: 'auto', padding: '10px 16px' }}>Next</button>
+                  <span style={{ fontSize: '12px', color: '#666' }}>Prompt {activePromptIndex + 1} of {perspectivePrompts.length}</span>
+                </div>
+              </div>
+              <h3 style={{ marginTop: '24px', marginBottom: '12px' }}>Your Response</h3>
+              <p style={{ fontSize: '12px', color: '#666', margin: '0 0 12px 0' }}>Share your thoughts (recommended: 45 seconds of speaking if recorded)</p>
+              <textarea
+                required
+                placeholder="Type your response here..."
+                style={{ ...styles.input, height: '140px' }}
+                value={cultureResponse}
+                onChange={(e) => setCultureResponse(e.target.value)}
+              />
+              <button type="submit" style={styles.authButton}>Submit to the Duma (+1 point)</button>
+            </form>
+          </>
+        )}
       </section>
 
       {/* SAVED FORMULAS SECTION */}
@@ -3108,7 +3245,7 @@ export default function App() {
           <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} />} />
           <Route path="/perspectives" element={<PerspectivesPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} following={following} onFollowUser={followUser} onUnfollowUser={unfollowUser} onAddPoints={addPoints} userAvatar={userAvatar} />} />
           <Route path="/legislature" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} />} />
-          <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={handleAvatarUpdate} tokens={tokens} />} />
+          <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={handleAvatarUpdate} tokens={tokens} addDumaItem={addDumaItem} />} />
           <Route path="/orders" element={<div style={{ padding: '60px', textAlign: 'center' }}><h2>Payment Received!</h2><p>Your custom hair set is being prepared. Check your Profile to see your formula.</p><Link to="/profile">Go to Profile</Link></div>} />
           <Route path="/admin/orders" element={<AdminOrdersPage authToken={authToken} userEmail={userEmail} />} />
         </Routes>

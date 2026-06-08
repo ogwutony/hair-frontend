@@ -2469,42 +2469,43 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
   const [comments, setComments] = useState({});
   const [commentText, setCommentText] = useState({});
   const [activeSection, setActiveSection] = useState("Culture");
-  
-  useEffect(() => { 
-    fetch(`${BACKEND_URL}/api/duma`).then(r => r.json()).then(data => { 
-      if (Array.isArray(data) && data.length > 0) setDumaItems([...data, ...items]); 
-    }).catch(() => {}); 
+
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/api/duma`).then(r => r.json()).then(data => {
+      if (Array.isArray(data) && data.length > 0) {
+        // De-duplicate items by ID so only one unique entry is rendered per submission
+        const uniqueMap = new Map();
+        [...data, ...items].forEach(item => {
+          const id = item._id || item.id;
+          if (id) uniqueMap.set(String(id), item);
+        });
+        setDumaItems(Array.from(uniqueMap.values()));
+      }
+    }).catch(() => {});
   }, [items]);
-  
+
   const handleVote = async (itemId, voteType) => {
     if (!authToken) return alert("Please log in to vote.");
-    if (userVotes[itemId]) return; // Already voted
-    
-    // Record user vote
+    if (userVotes[itemId]) return;
+
     setUserVotes(prev => ({ ...prev, [itemId]: voteType }));
-    
-    // Show vote scores after voting
     setShowScores(prev => ({ ...prev, [itemId]: true }));
-    
-    // Enable comments
     setShowComments(prev => ({ ...prev, [itemId]: true }));
-    
-    // Award points
     if (onAddPoints) onAddPoints(1);
-    
+
     try {
-      const response = await fetch(`${BACKEND_URL}/api/duma/${itemId}/vote`, { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }, 
-        body: JSON.stringify({ vote: voteType }) 
+      const response = await fetch(`${BACKEND_URL}/api/duma/${itemId}/vote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ vote: voteType })
       });
-      if (response.ok) { 
-        const data = await response.json(); 
-        setDumaItems(prev => prev.map(item => item.id === itemId || item._id === itemId ? { ...item, votes: data.votes || item.votes } : item)); 
+      if (response.ok) {
+        const data = await response.json();
+        setDumaItems(prev => prev.map(item => item.id === itemId || item._id === itemId ? { ...item, votes: data.votes || item.votes } : item));
       }
     } catch (err) {}
   };
-  
+
   const handleCommentSubmit = (itemId) => {
     if (!commentText[itemId]?.trim()) return;
     setComments(prev => ({
@@ -2517,7 +2518,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
   const culturalItems = dumaItems.filter(item => item.section === "Cultural" || item.category === "Culture" || item.type === "Video" || item.type === "Culture");
   const recommendationItems = dumaItems.filter(item => item.type === "Product Recommendation" || item.type === "Recommendation");
   const partnerItems = dumaItems.filter(item => item.type === "Partner");
-  
+
   return (
     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '30px' }}>
@@ -2525,7 +2526,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
           <h2 style={{ marginBottom: '6px' }}>The Majorities' Duma</h2>
           <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>Community recommendations, partnerships, and cultural contributions - vote to shape The Majorities.</p>
         </div>
-        {userEmail && rankTitle && <div style={{ textAlign: 'right', minWidth: '250px' }}><CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} /></div>}
+        {userEmail && rankTitle && <div style={{ textAlign: 'right', minWidth: '250px' }}><CredentialHeader email={userEmail} rankTitle={getRankTitle(rankScore)} rankScore={rankScore} avatarUrl={userAvatar} /></div>}
       </div>
       <div style={{ display: 'flex', gap: '10px', marginBottom: '30px', borderBottom: '2px solid #eee', paddingBottom: '15px' }}>
         <button onClick={() => setActiveSection("Culture")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Culture" ? '#222' : '#f5f5f5', color: activeSection === "Culture" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Culture ({culturalItems.length})</button>
@@ -2533,69 +2534,94 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
         <button onClick={() => setActiveSection("Partners")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Partners" ? '#222' : '#f5f5f5', color: activeSection === "Partners" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Partners ({partnerItems.length})</button>
         {authToken && <button onClick={() => window.location.href = '/culture'} style={{ padding: '8px 14px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', marginLeft: 'auto' }}>+ Share Your Perspective</button>}
       </div>
-      
+
       {activeSection === "Culture" && (
         <div>
           {culturalItems.length === 0 ? (
             <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No perspectives shared yet. Share yours and contribute to our culture section!</div>
           ) : (
-            culturalItems.map(item => (
-              <div key={item.id || item._id} style={styles.dumaCard}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                  <span style={styles.typeTag}>Perspective</span>
-                  {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
-                </div>
-                {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
-                <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
-                <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6', marginBottom: '14px' }}>{item.response || item.reason || item.desc}</p>
-                
-                {authToken && (
-                  <div>
-                    <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[item.id || item._id] === 'yes' ? 1 : 0.7 }}>Yes</button>
-                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[item.id || item._id] === 'no' ? 1 : 0.7 }}>No</button>
-                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[item.id || item._id] === 'abstain' ? 1 : 0.7 }}>Abstain</button>
-                    </div>
-                    
-                    {showScores[item.id || item._id] && (
-                      <div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
-                        <p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>Vote Results:</p>
-                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
-                          Yes: {item.votes?.yes || 0} | No: {item.votes?.no || 0} | Abstain: {item.votes?.abstain || 0}
-                        </p>
-                      </div>
-                    )}
-                    
-                    {showComments[item.id || item._id] && (
-                      <div style={{ borderTop: '2px solid #eee', paddingTop: '12px' }}>
-                        <h4 style={{ fontSize: '13px', color: '#555', marginBottom: '12px', fontWeight: '700' }}>Comments:</h4>
-                        
-                        {comments[item.id || item._id]?.length > 0 && (
-                          <div style={{ marginBottom: '12px' }}>
-                            {comments[item.id || item._id].map((comment, idx) => (
-                              <div key={idx} style={{ backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', marginBottom: '8px', borderLeft: '3px solid #3498db' }}>
-                                <p style={{ fontSize: '11px', fontWeight: '600', color: '#222', margin: '0 0 4px 0' }}>{comment.author}</p>
-                                <p style={{ fontSize: '12px', color: '#666', margin: '0 0 4px 0' }}>{comment.text}</p>
-                                <p style={{ fontSize: '10px', color: '#aaa', margin: 0 }}>{comment.timestamp}</p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <input type="text" placeholder="Add a comment..." style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px' }} value={commentText[item.id || item._id] || ''} onChange={(e) => setCommentText(prev => ({ ...prev, [item.id || item._id]: e.target.value }))} />
-                          <button onClick={() => handleCommentSubmit(item.id || item._id)} style={{ padding: '8px 16px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Post</button>
-                        </div>
-                      </div>
-                    )}
+            culturalItems.map(item => {
+              const itemId = item._id || item.id;
+              // Dynamically recalculate rank badge from stored score to always reflect correct tier
+              const verifiedRank = item.rankScore ? getRankTitle(item.rankScore) : (item.submitterRank || "Comrade");
+
+              return (
+                <div key={itemId} style={styles.dumaCard}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                    <span style={styles.typeTag}>Perspective</span>
+                    <RankBadge rankTitle={verifiedRank} />
                   </div>
-                )}
-              </div>
-            ))
+
+                  {item.submittedBy && (
+                    <CredentialHeader
+                      email={item.submittedBy}
+                      rankTitle={verifiedRank}
+                      rankScore={item.rankScore || null}
+                      avatarUrl={item.submitterAvatar || null}
+                      socialLinks={item.submitterSocialLinks || null}
+                    />
+                  )}
+
+                  <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
+                  <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6', marginBottom: '14px' }}>{item.response || item.reason || item.desc}</p>
+
+                  {/* MEDIA DISPLAY: renders uploaded images or videos inline */}
+                  {item.mediaUrl && (
+                    <div style={{ margin: '15px 0', background: '#fafafa', padding: '10px', borderRadius: '12px', border: '1px solid #eee', textAlign: 'center' }}>
+                      {item.mediaType === "video" || /\.(mp4|mov|webm)$/i.test(item.mediaUrl) ? (
+                        <video src={item.mediaUrl} style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px' }} controls />
+                      ) : (
+                        <img src={item.mediaUrl} alt="Perspective Attachment" style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px', objectFit: 'contain' }} />
+                      )}
+                    </div>
+                  )}
+
+                  {authToken && (
+                    <div>
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                        <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[itemId] === 'yes' ? 1 : 0.7 }}>Yes</button>
+                        <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[itemId] === 'no' ? 1 : 0.7 }}>No</button>
+                        <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[itemId] === 'abstain' ? 1 : 0.7 }}>Abstain</button>
+                      </div>
+
+                      {showScores[itemId] && (
+                        <div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
+                          <p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>Vote Results:</p>
+                          <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
+                            Yes: {item.votes?.yes || 0} | No: {item.votes?.no || 0} | Abstain: {item.votes?.abstain || 0}
+                          </p>
+                        </div>
+                      )}
+
+                      {showComments[itemId] && (
+                        <div style={{ borderTop: '2px solid #eee', paddingTop: '12px' }}>
+                          <h4 style={{ fontSize: '13px', color: '#555', marginBottom: '12px', fontWeight: '700' }}>Comments:</h4>
+                          {comments[itemId]?.length > 0 && (
+                            <div style={{ marginBottom: '12px' }}>
+                              {comments[itemId].map((comment, idx) => (
+                                <div key={idx} style={{ backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', marginBottom: '8px', borderLeft: '3px solid #3498db' }}>
+                                  <p style={{ fontSize: '11px', fontWeight: '600', color: '#222', margin: '0 0 4px 0' }}>{comment.author}</p>
+                                  <p style={{ fontSize: '12px', color: '#666', margin: '0 0 4px 0' }}>{comment.text}</p>
+                                  <p style={{ fontSize: '10px', color: '#aaa', margin: 0 }}>{comment.timestamp}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <input type="text" placeholder="Add a comment..." style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px' }} value={commentText[itemId] || ''} onChange={(e) => setCommentText(prev => ({ ...prev, [itemId]: e.target.value }))} />
+                            <button onClick={() => handleCommentSubmit(itemId)} style={{ padding: '8px 16px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Post</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
       )}
-      
+
       {activeSection === "Recommendations" && (
         <div>
           {recommendationItems.length === 0 ? (

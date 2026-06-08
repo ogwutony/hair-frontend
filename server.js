@@ -279,11 +279,17 @@ const DumaItem = mongoose.model('DumaItem', new mongoose.Schema({
   company:    String,
   product:    String,
   name:       String,
+  prompt:     String,
+  response:   String,
+  category:   String,
+  section:    String,
+  mediaUrl:   String,
+  mediaType:  String,
   reason:     String,
   desc:       String,
   submittedBy: String,
   submitterRank: String,
-  votes:      { yay: { type: Number, default: 0 }, nay: { type: Number, default: 0 } },
+  votes:      { yes: { type: Number, default: 0 }, no: { type: Number, default: 0 }, abstain: { type: Number, default: 0 } },
   createdAt:  { type: Date, default: Date.now }
 }));
 
@@ -696,6 +702,11 @@ app.get('/api/duma', async (req, res) => {
     
     const enrichedItems = items.map(item => {
       const obj = item.toObject();
+      obj.votes = {
+        yes: obj.votes?.yes ?? obj.votes?.yay ?? 0,
+        no: obj.votes?.no ?? obj.votes?.nay ?? 0,
+        abstain: obj.votes?.abstain ?? 0
+      };
       if (obj.submittedBy && userMap[obj.submittedBy]) {
         obj.submitterSocialLinks = userMap[obj.submittedBy].socialLinks || null;
         obj.submitterAvatar = userMap[obj.submittedBy].avatarUrl || null;
@@ -713,13 +724,12 @@ app.get('/api/duma', async (req, res) => {
 app.post('/api/duma/:id/vote', authMiddleware, async (req, res) => {
   tr  try {
     const voteType = req.body.voteType || req.body.vote; // Support both parameter names
-    if (!['yay', 'nay'].includes(voteType)) {
-      return res.status(400).json({ error: 'Vote must be "yay" or "nay"' });
+    const normalizedVote = voteType === 'yay' ? 'yes' : voteType === 'nay' ? 'no' : voteType;
+    if (!['yes', 'no', 'abstain'].includes(normalizedVote)) {
+      return res.status(400).json({ error: 'Vote must be "yes", "no", or "abstain"' });
     }
 
-    const update = voteType === 'yay' ? 
-      { $inc: { 'votes.yay': 1 } } : 
-      { $inc: { 'votes.nay': 1 } };
+    const update = { $inc: { [`votes.${normalizedVote}`]: 1 } };
 
     const item = await DumaItem.findByIdAndUpdate(req.params.id, update, { new: true });
     if (!item) return res.status(404).json({ error: 'Item not found' });
@@ -727,13 +737,60 @@ app.post('/api/duma/:id/vote', authMiddleware, async (req, res) => {
     // Award points for voting
     await updateRankScore(req.user._id, 2);
 
-    res.json({ success: true, votes: item.votes });
+    res.json({
+      success: true,
+      votes: {
+        yes: item.votes?.yes ?? item.votes?.yay ?? 0,
+        no: item.votes?.no ?? item.votes?.nay ?? 0,
+        abstain: item.votes?.abstain ?? 0
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// 3. Submit recommendation to Duma
+// 3. Submit culture perspective to Duma
+app.post('/api/duma/culture', authMiddleware, async (req, res) => {
+  tr  try {
+    const { prompt, response, category, mediaUrl, mediaType } = req.body;
+    const trimmedPrompt = typeof prompt === 'string' ? prompt.trim() : '';
+    const trimmedResponse = typeof response === 'string' ? response.trim() : '';
+
+    if (!trimmedPrompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    if (!trimmedResponse && !mediaUrl) {
+      return res.status(400).json({ error: 'A response, photo, or video is required' });
+    }
+
+    if (mediaUrl && !mediaType) {
+      return res.status(400).json({ error: 'Media type is required when media is attached' });
+    }
+
+    const rankTitle = req.user.rank_title || getRankTitle(req.user.rank_score || 1);
+    const item = await DumaItem.create({
+      type: 'Culture',
+      category: category || 'Culture',
+      section: 'Cultural',
+      prompt: trimmedPrompt,
+      response: trimmedResponse,
+      mediaUrl: mediaUrl || '',
+      mediaType: mediaType || '',
+      submittedBy: req.user.email,
+      submitterRank: rankTitle,
+      votes: { yes: 0, no: 0, abstain: 0 }
+    });
+
+    await updateRankScore(req.user._id, 1);
+    res.status(201).json({ message: "Your perspective has been sent to The Majority's Duma for voting", item });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to submit culture perspective' });
+  }
+});
+
+// 4. Submit recommendation to Duma
 app.post('/api/duma/recommend', authMiddleware, async (req, res) => {
   tr  try {
     const { name, company, reason } = req.body;
@@ -756,7 +813,7 @@ app.post('/api/duma/recommend', authMiddleware, async (req, res) => {
   }
 });
 
-// 4. Submit partner application to Duma
+// 5. Submit partner application to Duma
 app.post('/api/duma/partner', authMiddleware, async (req, res) => {
   tr  try {
     const { company, product, desc, tier } = req.body;

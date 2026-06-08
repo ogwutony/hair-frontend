@@ -1784,7 +1784,7 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
       if (authToken) {
         const res = await fetch(`${BACKEND_URL}/api/duma/culture`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `****** },
+          headers: { 'Content-Type': 'application/json', Authorization: `******` },
           body: JSON.stringify({
             prompt: selectedPrompt,
             response: trimmedResponse,

@@ -528,8 +528,28 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     { id: 8, text: "Open your phone's photo library, go to the 5th most recent photo, and post it with zero context. Let the comments guess the story." },
     { id: 9, text: "If you could go back and give your 20-year-old self one piece of advice about life or career, what would it be?" },
     { id: 10, text: "Whats a more fun sport to watch Basketball or Football? Whats more fun to play?" },
-    { id: 11, text: "Celebrity crush?" }
-  ];
+    { id: 11, text: "Celebrity crush?" },
+    { id: 12, text: "What is one morning ritual or habit that completely flips your mindset for a successful day?" },
+    { id: 13, text: "Show or tell us about a 'blind buy' (product, book, or gadget) that actually exceeded your expectations." },
+    { id: 14, text: "What is the best piece of advice you've received about avoiding burnout?" },
+    { id: 15, text: "What's a small, mundane task you've completely optimized or automated in your life?" },
+    { id: 16, text: "Describe your ultimate, no-compromise Sunday routine in three words or a quick clip." },
+    { id: 17, text: "What does 'unplugging' look like for you when you need a digital detox?" },
+    { id: 18, text: "What is a recent small win or personal milestone you're celebrating this week?" },
+    { id: 19, text: "What is one ingredient, scent, or product you absolutely cannot live without right now?" },
+    { id: 20, text: "Who is someone in your local community or online space making a quiet but massive impact? Give them a shout-out!" },
+    { id: 21, text: "What is a cultural tradition or family custom you've actively chosen to keep alive?" },
+    { id: 22, text: "Describe a time a stranger's small act of kindness completely turned your week around." },
+    { id: 23, text: "What does the word 'community' mean to you in today's world?" },
+    { id: 24, text: "What is a book, podcast, or documentary that completely altered how you view a certain topic?" },
+    { id: 25, text: "Show or tell us about a passion project you are working on purely for the joy of it." },
+    { id: 26, text: "If you could instantly master any creative skill or craft overnight, what would it be?" },
+    { id: 27, text: "What is a common piece of conventional wisdom that you completely disagree with?" },
+    { id: 28, text: "What is something you are deeply optimistic about looking into the next year?" },
+    { id: 29, text: "If you could send a 30-second voice note to yourself from five years ago, what would you say?" },
+    { id: 30, text: "What is a new hobby or topic you've suddenly become obsessed with learning about?" },
+    { id: 31, text: "What is one thing you did this week that your future self will thank you for?" }
+  ]
   const [activePromptIndex, setActivePromptIndex] = useState(0);
 
   const rotatePrompt = (direction) => {
@@ -2170,13 +2190,33 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
     { id: 3, text: "Give a quick shout-out to a tool, a life hack, or a person that saved you time this week. What was it?" },
     { id: 4, text: "What is a completely harmless 'hill you are willing to die on'? (e.g., 'Cereal is soup,' 'Defrosting the car is the worst chore'). Let's hear your hot takes!" },
     { id: 5, text: "What was your very first job, and what is the most important (or hilarious) lesson you learned from it?" },
-    { id: 6, text: "Let’s celebrate the small stuff. What is one thing you accomplished this week—big or small—that you’re proud of?" },
+    { id: 6, text: "Let's celebrate the small stuff. What is one thing you accomplished this week—big or small—that you're proud of?" },
     { id: 7, text: "What is a project you are working on right now that has you genuinely excited?" },
     { id: 8, text: "Open your phone's photo library, go to the 5th most recent photo, and post it with zero context. Let the comments guess the story." },
     { id: 9, text: "If you could go back and give your 20-year-old self one piece of advice about life or career, what would it be?" },
     { id: 10, text: "Whats a more fun sport to watch Basketball or Football? Whats more fun to play?" },
-    { id: 11, text: "Celebrity crush?" }
-  ];
+    { id: 11, text: "Celebrity crush?" },
+    { id: 12, text: "What is one morning ritual or habit that completely flips your mindset for a successful day?" },
+    { id: 13, text: "Show or tell us about a 'blind buy' (product, book, or gadget) that actually exceeded your expectations." },
+    { id: 14, text: "What is the best piece of advice you've received about avoiding burnout?" },
+    { id: 15, text: "What's a small, mundane task you've completely optimized or automated in your life?" },
+    { id: 16, text: "Describe your ultimate, no-compromise Sunday routine in three words or a quick clip." },
+    { id: 17, text: "What does 'unplugging' look like for you when you need a digital detox?" },
+    { id: 18, text: "What is a recent small win or personal milestone you're celebrating this week?" },
+    { id: 19, text: "What is one ingredient, scent, or product you absolutely cannot live without right now?" },
+    { id: 20, text: "Who is someone in your local community or online space making a quiet but massive impact? Give them a shout-out!" },
+    { id: 21, text: "What is a cultural tradition or family custom you've actively chosen to keep alive?" },
+    { id: 22, text: "Describe a time a stranger's small act of kindness completely turned your week around." },
+    { id: 23, text: "What does the word 'community' mean to you in today's world?" },
+    { id: 24, text: "What is a book, podcast, or documentary that completely altered how you view a certain topic?" },
+    { id: 25, text: "Show or tell us about a passion project you are working on purely for the joy of it." },
+    { id: 26, text: "If you could instantly master any creative skill or craft overnight, what would it be?" },
+    { id: 27, text: "What is a common piece of conventional wisdom that you completely disagree with?" },
+    { id: 28, text: "What is something you are deeply optimistic about looking into the next year?" },
+    { id: 29, text: "If you could send a 30-second voice note to yourself from five years ago, what would you say?" },
+    { id: 30, text: "What is a new hobby or topic you've suddenly become obsessed with learning about?" },
+    { id: 31, text: "What is one thing you did this week that your future self will thank you for?" }
+  ]
   const [activePromptIndex, setActivePromptIndex] = useState(0);
   const [response, setResponse] = useState("");
   const [submitted, setSubmitted] = useState(false);

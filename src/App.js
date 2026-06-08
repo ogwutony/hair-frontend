@@ -476,13 +476,13 @@ const SocialInputRow = ({ socialKey, label, placeholder, initialValue, onSave, o
         type="text"
         placeholder={placeholder}
         value={localVal}
-        onChange={(e) => {
-          setLocalVal(e.target.value);
-          if (onChangeGlobal) onChangeGlobal(socialKey, e.target.value);
-        }}
+        onChange={(e) => setLocalVal(e.target.value)}
         style={{ ...styles.input, margin: 0, marginBottom: '6px' }} />
       <button
-        onClick={() => onSave(socialKey, localVal)}
+        onClick={() => {
+          if (onChangeGlobal) onChangeGlobal(socialKey, localVal);
+          onSave(socialKey, localVal);
+        }}
         disabled={isSocialSaveDisabled}
         style={{
           ...styles.authButton,
@@ -715,9 +715,9 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         headers: { Authorization: `Bearer ${authToken}` },
         body: formData
       });
-      const uploadData = uploadRes.ok ? await uploadRes.json() : null;
-      // Multi-key safety check for cloud URLs
-      const savedVideoUrl = uploadData?.storageUrl || uploadData?.secure_url || uploadData?.url || perspective[boxKey].videoUrl;
+      const data = uploadRes.ok ? await uploadRes.json() : null;
+      // Multi-key safety check for varying cloud production storage signatures
+      const savedVideoUrl = data?.storageUrl || data?.secure_url || data?.url || perspective[boxKey].videoUrl;
       const updatedPerspective = {
         ...perspective,
         [boxKey]: { ...perspective[boxKey], videoUrl: savedVideoUrl }
@@ -1024,9 +1024,9 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                   })()}
                   {perspective[box.key].videoUrl && (
                     <button
-                      disabled={videoSaveStatus[box.key] === "saving"}
+                      disabled={videoSaveStatus[box.key] === "saving" || dumaSubmitStatus[box.key] === "Submitting..."}
                       onClick={() => handleSendToDuma(box.key)}
-                      style={{ ...styles.authButton, width: '100%', fontSize: '12px', padding: '8px 12px', background: '#8e44ad', marginTop: '8px', opacity: videoSaveStatus[box.key] === "saving" ? 0.5 : 1, cursor: videoSaveStatus[box.key] === "saving" ? 'not-allowed' : 'pointer' }}>
+                      style={{ ...styles.authButton, width: '100%', fontSize: '12px', padding: '8px 12px', background: '#8e44ad', marginTop: '8px', opacity: videoSaveStatus[box.key] === "saving" || dumaSubmitStatus[box.key] === "Submitting..." ? 0.5 : 1, cursor: videoSaveStatus[box.key] === "saving" || dumaSubmitStatus[box.key] === "Submitting..." ? 'not-allowed' : 'pointer' }}>
                       {dumaSubmitStatus[box.key] || "Send to Duma Culture for Voting"}
                     </button>
                   )}
@@ -1043,9 +1043,9 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                         <p style={{ fontSize: '12px', color: '#27ae60', fontWeight: '600', marginBottom: '6px' }}>✓ Video Published</p>
                       )}
                       <button
-                        disabled={videoSaveStatus[box.key] === "saving"}
+                        disabled={videoSaveStatus[box.key] === "saving" || dumaSubmitStatus[box.key] === "Submitting..."}
                         onClick={() => handleSendToDuma(box.key)}
-                        style={{ ...styles.authButton, width: '100%', fontSize: '12px', padding: '8px 12px', background: '#8e44ad', marginTop: '8px', opacity: videoSaveStatus[box.key] === "saving" ? 0.5 : 1, cursor: videoSaveStatus[box.key] === "saving" ? 'not-allowed' : 'pointer' }}>
+                        style={{ ...styles.authButton, width: '100%', fontSize: '12px', padding: '8px 12px', background: '#8e44ad', marginTop: '8px', opacity: videoSaveStatus[box.key] === "saving" || dumaSubmitStatus[box.key] === "Submitting..." ? 0.5 : 1, cursor: videoSaveStatus[box.key] === "saving" || dumaSubmitStatus[box.key] === "Submitting..." ? 'not-allowed' : 'pointer' }}>
                         {dumaSubmitStatus[box.key] || "Send to Duma Culture for Voting"}
                       </button>
                     </div>

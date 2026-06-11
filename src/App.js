@@ -10,7 +10,7 @@ const PRODUCT_VARIANT_MAP = {
     merchandiseId: "47555331358898",
     pricing: { oneTime: 6, subscription: 5 },
     sellingPlanId: DEFAULT_SELLING_PLAN_ID
-  },
+  },h
   "The Majorities Conditioner": {
     merchandiseId: "47555331555506",
     pricing: { oneTime: 6, subscription: 5 },
@@ -158,32 +158,17 @@ const submitShopifyCheckout = (items, purchaseType = "one-time") => {
     return;
   }
 
-  const form = document.createElement("form");
-  form.method = "POST";
-  form.action = `https://${SHOP_DOMAIN}/cart/add`;
-  form.style.display = "none";
+  // Subscription: use Shopify Cart Permalink with selling_plan query param
+  // Format: /cart/variantId1:qty1,variantId2:qty2?selling_plan=planId
+  const subscriptionLineItems = items
+    .map((item) => `${getProductCommerceConfig(item.name).merchandiseId}:1`)
+    .join(",");
 
-  const appendHiddenInput = (name, value) => {
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = name;
-    input.value = value;
-    form.appendChild(input);
-  };
+  const sellingPlanId = getProductCommerceConfig(items[0].name).sellingPlanId;
 
-  items.forEach((item, index) => {
-    const { merchandiseId, sellingPlanId } = getProductCommerceConfig(item.name);
-    appendHiddenInput(`items[${index}][id]`, merchandiseId);
-    appendHiddenInput(`items[${index}][quantity]`, "1");
-    if (sellingPlanId) {
-      appendHiddenInput(`items[${index}][selling_plan]`, sellingPlanId);
-    }
-  });
-
-  appendHiddenInput("return_to", "/checkout?checkout[shipping_address][country]=US");
-  document.body.appendChild(form);
-  form.submit();
-  document.body.removeChild(form);
+  window.location.href =
+    `https://${SHOP_DOMAIN}/cart/${subscriptionLineItems}` +
+    `?selling_plan=${sellingPlanId}&checkout[shipping_address][country]=US`;
 };
 
 const getRankColor = (rankTitle) => {
@@ -1676,6 +1661,19 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
                 <div>One-time total: <strong>{formatCurrency(setTotals.oneTime)}</strong></div>
                 <div>Subscription total: <strong>{formatCurrency(setTotals.subscription)} / month</strong></div>
                 <div>You save <strong>{formatCurrency(subscriptionSavings)}</strong> on each monthly set.</div>
+              </div>
+              {/* Delivery promise callout */}
+              <div style={{ backgroundColor: '#f4f9f4', border: '1px solid #c2e1c2', padding: '12px', borderRadius: '8px', marginBottom: '14px', textAlign: 'left' }}>
+                <span style={{ fontSize: '13px', color: '#1e4620', fontWeight: '700', display: 'block' }}>
+                  🚚 Fast US Fulfillment via ShipBob
+                </span>
+                <span style={{ fontSize: '11px', color: '#2e6f32', display: 'block', marginTop: '3px' }}>
+                  Estimated Delivery: <strong>{
+                    new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                  } - {
+                    new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                  }</strong> (Free Shipping Included)
+                </span>
               </div>
               <button style={styles.checkoutBtn} onClick={handleOneTimeCheckout}>1 time Checkout ({formatCurrency(setTotals.oneTime)})</button>
               <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={handleSubscriptionCheckout}>Monthly Subscription Checkout ({formatCurrency(setTotals.subscription)} / month)</button>

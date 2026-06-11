@@ -10,7 +10,7 @@ const PRODUCT_VARIANT_MAP = {
     merchandiseId: "47555331358898",
     pricing: { oneTime: 6, subscription: 5 },
     sellingPlanId: DEFAULT_SELLING_PLAN_ID
-  },h
+  },
   "The Majorities Conditioner": {
     merchandiseId: "47555331555506",
     pricing: { oneTime: 6, subscription: 5 },

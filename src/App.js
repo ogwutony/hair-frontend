@@ -1672,7 +1672,7 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
                     new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
                   } - {
                     new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-                  }</strong> (Free Shipping Included)
+                  }</strong> (+ Shipping & Handling)
                 </span>
               </div>
               <button style={styles.checkoutBtn} onClick={handleOneTimeCheckout}>1 time Checkout ({formatCurrency(setTotals.oneTime)})</button>

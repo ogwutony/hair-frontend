@@ -3126,6 +3126,279 @@ const AdminOrdersPage = ({ authToken, userEmail }) => {
 };
 
 // --- MAIN APP COMPONENT ---
+
+// --- MODEL-FRIENDLY PAGE ---
+// This page renders a clean, structured, text-based representation of the site
+// optimized for AI models, crawlers, and accessibility tools.
+const ModelFriendlyPage = () => {
+  const products = [
+    {
+      name: "The Majorities Shampoo",
+      category: "Hair Care - Shampoo",
+      pricing: { oneTime: "$6.00", subscription: "$5.00/month" },
+      merchandiseId: "47555331358898",
+      keyIngredients: ["Provitamin B5 (Panthenol)", "Polyquaternium-10", "Polyquaternium-7", "Cocamidopropyl Betaine"],
+      benefits: ["Deep cleansing", "Anti-frizz", "Adds shine", "Suitable for all hair types"],
+      scentProfile: "Premium long-lasting signature fragrance",
+      hairType: "Natural or non-color treated hair, daily use"
+    },
+    {
+      name: "The Majorities Conditioner",
+      category: "Hair Care - Conditioner",
+      pricing: { oneTime: "$6.00", subscription: "$5.00/month" },
+      merchandiseId: "47555331555506",
+      keyIngredients: ["Argan Oil", "Coconut Oil", "Olive Oil", "Provitamin B5"],
+      benefits: ["Deep moisture restoration", "Detangling", "Frizz elimination", "Breakage defense", "Cuticle smoothing"],
+      hairType: "Dry, brittle, or damaged hair"
+    },
+    {
+      name: "The Majorities Hair Oil",
+      category: "Hair Care - Treatment Oil",
+      pricing: { oneTime: "$6.00", subscription: "$5.00/month" },
+      merchandiseId: "47555331752114",
+      keyIngredients: ["Soybean Oil", "Castor Seed Oil", "Safflower Seed Oil", "Sunflower Seed Oil", "Peppermint Oil", "Tocopheryl Acetate"],
+      benefits: ["Seals split ends", "Smooths flyaways", "Weightless finish", "Scalp stimulation", "Moisture lock"],
+      scentProfile: "Refreshing peppermint aroma",
+      applicationType: "Leave-on treatment"
+    },
+    {
+      name: "The Majorities Facial Scrub",
+      category: "Skin Care - Exfoliant",
+      pricing: { oneTime: "$6.00", subscription: "$5.00/month" },
+      merchandiseId: "47555331948722",
+      keyIngredients: ["Bambusa Arundinacea Stem Powder", "Salicylic Acid (BHA)", "Jojoba Esters", "Glycerin"],
+      benefits: ["Exfoliation", "Pore cleansing", "Blemish targeting", "Skin texture refinement"],
+      formulaType: "Dual-action physical and chemical exfoliant",
+      targetConcerns: ["Congestion", "Dullness", "Blemishes", "Uneven texture"]
+    },
+    {
+      name: "The Majorities Face Toner",
+      category: "Skin Care - Toner",
+      pricing: { oneTime: "$6.00", subscription: "$5.00/month" },
+      merchandiseId: "47555332145330",
+      keyIngredients: ["Witch Hazel (Hamamelis Virginiana)", "Sodium PCA", "SD Alcohol 40"],
+      benefits: ["Oil balance", "Pore tightening", "Skin calming", "Residual impurity removal"],
+      formulaType: "Leave-on toner",
+      skinFeel: "Cool, refreshing, matte yet hydrated"
+    },
+    {
+      name: "The Majorities Moisturizing Lotion",
+      category: "Skin Care - Moisturizer",
+      pricing: { oneTime: "$6.00", subscription: "$5.00/month" },
+      merchandiseId: "47555332309170",
+      keyIngredients: ["Ceramides", "Sodium Hyaluronate (Hyaluronic Acid)", "Glycerin", "Vitamin E (Tocopherol)", "Dimethicone"],
+      benefits: ["Intense hydration", "Barrier repair", "Long-lasting moisture", "Non-greasy absorption"],
+      applicationType: "Leave-on lotion for hands and body",
+      targetConcerns: ["Dehydration", "Dryness", "Damaged moisture barrier"]
+    }
+  ];
+
+  const siteInfo = {
+    name: "The Majorities",
+    shopDomain: "c0bqfe-z2.myshopify.com",
+    description: "The Majorities is a community-driven haircare and skincare brand offering a curated set of 6 products spanning hair and face care. All products are priced at $6 one-time or $5/month on subscription.",
+    purchaseModel: "Custom 6-product set builder. Select one product from each category (Shampoo, Conditioner, Hair Oil, Facial Scrub, Face Toner, Moisturizing Lotion). Buy as a one-time purchase or subscribe monthly.",
+    totalOneTimePrice: "$36.00 for full 6-product set",
+    totalSubscriptionPrice: "$30.00/month for full 6-product set",
+    subscriptionSavings: "$6.00/month savings with subscription"
+  };
+
+  const routes = [
+    { path: "/", label: "Home - Product Builder", description: "Select and purchase a custom 6-product set" },
+    { path: "/recommend", label: "Recommend", description: "Submit product recommendations to the community Duma feed" },
+    { path: "/partner", label: "Partner Program", description: "Apply to become a distribution partner (25% commission structure)" },
+    { path: "/duma", label: "The Duma Ledger", description: "Community feed with Culture posts, product recommendations, and partner listings" },
+    { path: "/profile", label: "Profile", description: "User profile with rank system, avatar, social links, and saved product formulas" },
+    { path: "/login", label: "Login", description: "Email/password authentication" },
+    { path: "/signup", label: "Sign Up", description: "Create a new account" },
+    { path: "/model", label: "Model-Friendly View", description: "This page - structured data for AI models and crawlers" }
+  ];
+
+  const rankSystem = {
+    description: "50-tier loyalty rank system. Users earn points through community participation. Ranks range from Comrade (1+ pts) up to Servant of the People (50,000,000+ pts).",
+    lowestRank: { title: "Comrade", minPoints: 1 },
+    highestRank: { title: "Servant of the People", minPoints: 50000000 },
+    notableRanks: [
+      { title: "Comrade", minPoints: 1 },
+      { title: "Schout-bij-nacht", minPoints: 250 },
+      { title: "Rusalka", minPoints: 1000 },
+      { title: "Domovoi", minPoints: 1500 },
+      { title: "Chernobog", minPoints: 10000 },
+      { title: "Morana", minPoints: 50000 },
+      { title: "Lada", minPoints: 100000 },
+      { title: "Politburo Member of The Majorities", minPoints: 10000000 },
+      { title: "Servant of the People", minPoints: 50000000 }
+    ]
+  };
+
+  const containerStyle = {
+    maxWidth: "800px",
+    margin: "0 auto",
+    padding: "40px 20px",
+    fontFamily: "monospace",
+    color: "#111",
+    lineHeight: "1.7"
+  };
+
+  const sectionStyle = {
+    marginBottom: "40px",
+    borderTop: "2px solid #111",
+    paddingTop: "20px"
+  };
+
+  const headingStyle = {
+    fontSize: "16px",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: "2px",
+    marginBottom: "16px"
+  };
+
+  const subHeadingStyle = {
+    fontSize: "14px",
+    fontWeight: "700",
+    marginBottom: "8px",
+    marginTop: "16px"
+  };
+
+  const labelStyle = {
+    fontSize: "11px",
+    textTransform: "uppercase",
+    letterSpacing: "1px",
+    color: "#666",
+    display: "block",
+    marginBottom: "2px"
+  };
+
+  const valueStyle = {
+    fontSize: "13px",
+    marginBottom: "8px",
+    paddingLeft: "12px"
+  };
+
+  return (
+    <div style={containerStyle}>
+      <div style={{ marginBottom: "40px", paddingBottom: "20px", borderBottom: "2px solid #111" }}>
+        <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "2px", color: "#666", marginBottom: "8px" }}>
+          AI / Model-Friendly View
+        </div>
+        <h1 style={{ fontSize: "24px", fontWeight: "700", margin: "0 0 8px 0" }}>The Majorities — Structured Site Data</h1>
+        <p style={{ fontSize: "13px", color: "#444", margin: 0 }}>
+          This page provides a clean, structured representation of The Majorities website for AI assistants,
+          search crawlers, and accessibility tools. All product data, pricing, routes, and community features
+          are listed below in a readable, machine-parseable format.
+        </p>
+      </div>
+
+      <section style={sectionStyle}>
+        <h2 style={headingStyle}>Site Overview</h2>
+        <span style={labelStyle}>Brand Name</span>
+        <div style={valueStyle}>{siteInfo.name}</div>
+        <span style={labelStyle}>Description</span>
+        <div style={valueStyle}>{siteInfo.description}</div>
+        <span style={labelStyle}>Purchase Model</span>
+        <div style={valueStyle}>{siteInfo.purchaseModel}</div>
+        <span style={labelStyle}>Full Set — One-Time Price</span>
+        <div style={valueStyle}>{siteInfo.totalOneTimePrice}</div>
+        <span style={labelStyle}>Full Set — Subscription Price</span>
+        <div style={valueStyle}>{siteInfo.totalSubscriptionPrice}</div>
+        <span style={labelStyle}>Subscription Savings</span>
+        <div style={valueStyle}>{siteInfo.subscriptionSavings}</div>
+      </section>
+
+      <section style={sectionStyle}>
+        <h2 style={headingStyle}>Products ({products.length} Total)</h2>
+        {products.map((product, idx) => (
+          <div key={product.merchandiseId} style={{ marginBottom: "28px", paddingLeft: "12px", borderLeft: "3px solid #eee" }}>
+            <div style={subHeadingStyle}>{idx + 1}. {product.name}</div>
+            <span style={labelStyle}>Category</span>
+            <div style={valueStyle}>{product.category}</div>
+            <span style={labelStyle}>One-Time Price</span>
+            <div style={valueStyle}>{product.pricing.oneTime}</div>
+            <span style={labelStyle}>Subscription Price</span>
+            <div style={valueStyle}>{product.pricing.subscription}</div>
+            <span style={labelStyle}>Key Ingredients</span>
+            <div style={valueStyle}>{product.keyIngredients.join(", ")}</div>
+            <span style={labelStyle}>Benefits</span>
+            <div style={valueStyle}>{product.benefits.join(" · ")}</div>
+            {product.hairType && (
+              <>
+                <span style={labelStyle}>Hair Type</span>
+                <div style={valueStyle}>{product.hairType}</div>
+              </>
+            )}
+            {product.targetConcerns && (
+              <>
+                <span style={labelStyle}>Target Concerns</span>
+                <div style={valueStyle}>{product.targetConcerns.join(", ")}</div>
+              </>
+            )}
+            {product.scentProfile && (
+              <>
+                <span style={labelStyle}>Scent</span>
+                <div style={valueStyle}>{product.scentProfile}</div>
+              </>
+            )}
+            {product.applicationType && (
+              <>
+                <span style={labelStyle}>Application Type</span>
+                <div style={valueStyle}>{product.applicationType}</div>
+              </>
+            )}
+            <span style={labelStyle}>Shopify Merchandise ID</span>
+            <div style={valueStyle}>{product.merchandiseId}</div>
+          </div>
+        ))}
+      </section>
+
+      <section style={sectionStyle}>
+        <h2 style={headingStyle}>Site Routes and Pages</h2>
+        {routes.map(route => (
+          <div key={route.path} style={{ marginBottom: "12px", paddingLeft: "12px", borderLeft: "3px solid #eee" }}>
+            <div style={subHeadingStyle}>{route.label} — <span style={{ fontFamily: "monospace", fontWeight: "400" }}>{route.path}</span></div>
+            <div style={{ fontSize: "13px", color: "#555" }}>{route.description}</div>
+          </div>
+        ))}
+      </section>
+
+      <section style={sectionStyle}>
+        <h2 style={headingStyle}>Community Rank System</h2>
+        <div style={valueStyle}>{rankSystem.description}</div>
+        <span style={labelStyle}>Lowest Rank</span>
+        <div style={valueStyle}>{rankSystem.lowestRank.title} (1+ points)</div>
+        <span style={labelStyle}>Highest Rank</span>
+        <div style={valueStyle}>{rankSystem.highestRank.title} (50,000,000+ points)</div>
+        <span style={labelStyle}>Notable Ranks</span>
+        <div style={{ paddingLeft: "12px" }}>
+          {rankSystem.notableRanks.map(r => (
+            <div key={r.title} style={{ fontSize: "13px", marginBottom: "4px" }}>
+              <strong>{r.title}</strong> — {r.minPoints.toLocaleString()}+ pts
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section style={sectionStyle}>
+        <h2 style={headingStyle}>Community Features</h2>
+        <div style={subHeadingStyle}>The Duma Ledger</div>
+        <div style={valueStyle}>A community feed with three sections: Culture (user perspective posts with prompts), Product Recommendations (community-submitted products), and Partners (business partnership applications).</div>
+        <div style={subHeadingStyle}>Points and Rewards</div>
+        <div style={valueStyle}>Users earn points for community actions (e.g., submitting a Culture post = 100 points, uploading a profile avatar = 25 points). Points determine rank tier.</div>
+        <div style={subHeadingStyle}>Partner Program</div>
+        <div style={valueStyle}>Businesses can apply for a distribution partnership. Minimum order: 500 units of 34oz. Commission structure: 25% distribution fee.</div>
+        <div style={subHeadingStyle}>Social Profiles</div>
+        <div style={valueStyle}>Users can link Instagram, TikTok, and Facebook profiles to their Majorities account.</div>
+      </section>
+
+      <div style={{ borderTop: "2px solid #111", paddingTop: "20px", fontSize: "11px", color: "#888" }}>
+        <p>This model-friendly page is provided by The Majorities to support AI assistants and accessibility tools.</p>
+        <p>Shop domain: {siteInfo.shopDomain} · Backend: hair-backend-2.onrender.com</p>
+        <p>For the interactive product builder, visit the <a href="/" style={{ color: "#111" }}>home page</a>.</p>
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState("");
@@ -3225,6 +3498,7 @@ export default function App() {
             <Link to="/" style={styles.navLink}>Home</Link>
             <Link to="/recommend" style={styles.navLink}>Recommend</Link>
             <Link to="/partner" style={styles.navLink}>Partner</Link>
+            <Link to="/model" style={styles.navLink} onClick={() => setMenuOpen(false)}>Model View</Link>
             {isLoggedIn ? (
               <>
                 <Link to="/duma" style={styles.navLink}>The Duma</Link>
@@ -3266,6 +3540,7 @@ export default function App() {
           <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={handleAvatarUpdate} tokens={tokens} addDumaItem={addDumaItem} />} />
           <Route path="/orders" element={<div style={{ padding: '60px', textAlign: 'center' }}><h2>Payment Received!</h2><p>Your custom hair set is being prepared. Check your Profile to see your formula.</p><Link to="/profile">Go to Profile</Link></div>} />
           <Route path="/admin/orders" element={<AdminOrdersPage authToken={authToken} userEmail={userEmail} />} />
+          <Route path="/model" element={<ModelFriendlyPage />} />
         </Routes>
       </div>
     </Router>

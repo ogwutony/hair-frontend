@@ -3498,7 +3498,7 @@ export default function App() {
             <Link to="/" style={styles.navLink}>Home</Link>
             <Link to="/recommend" style={styles.navLink}>Recommend</Link>
             <Link to="/partner" style={styles.navLink}>Partner</Link>
-            <Link to="/model" style={styles.navLink} onClick={() => setMenuOpen(false)}>Model View</Link>
+            <Link to="/model" style={styles.navLink}>Model View</Link>
             {isLoggedIn ? (
               <>
                 <Link to="/duma" style={styles.navLink}>The Duma</Link>

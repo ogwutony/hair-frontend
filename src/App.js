@@ -706,12 +706,14 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
 
   useEffect(() => {
     if (!authToken) return;
-    fetch(`${BACKEND_URL}/api/auth/social-status`, {
+    fetch(`${BACKEND_URL}/api/social/status`, {
       headers: { Authorization: `Bearer ${authToken}` }
     })
       .then(r => r.json())
       .then(data => {
-        if (data && typeof data === 'object') setSocialConnected(data);
+        if (data && typeof data === 'object') {
+          setSocialConnected(prev => ({ ...prev, ...data }));
+        }
       })
       .catch(() => {});
   }, [authToken]);
@@ -990,6 +992,26 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   const pointsToNextRank = getPointsToNextRank(displayRankScore, displayRankTitle);
   const nextRankTitle = getNextRankTitle(displayRankTitle);
   const { currentMin, nextMin, progressPercent } = getRankProgress(displayRankScore, displayRankTitle);
+  const getAuthUserId = () => {
+    if (!authToken) return "";
+    try {
+      const payload = authToken.split(".")[1];
+      const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+      const decoded = JSON.parse(atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=")));
+      return decoded.userId || "";
+    } catch {
+      return "";
+    }
+  };
+
+  const handleSocialConnect = (platform) => {
+    const userId = getAuthUserId();
+    if (!userId) {
+      alert("Please log in again before connecting social accounts.");
+      return;
+    }
+    window.location.href = `${BACKEND_URL}/api/auth/${platform}/redirect?userId=${encodeURIComponent(userId)}`;
+  };
 
   const handleSocialShare = async (platform, socialUrl) => {
     if (!socialUrl) {
@@ -1224,6 +1246,20 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
             </button>
           </div>
           <p style={{ fontSize: '11px', color: '#aaa', marginTop: '12px' }}>Connect accounts using the OAuth buttons below to unlock sharing.</p>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '18px' }}>
+            <button
+              type="button"
+              onClick={() => handleSocialConnect('instagram')}
+              style={{ ...styles.socialButton, maxWidth: '190px', background: socialConnected.instagram ? '#27ae60' : 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)', color: '#fff', border: 'none' }}>
+              {socialConnected.instagram ? '✓ Instagram Connected' : 'Connect Instagram'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSocialConnect('tiktok')}
+              style={{ ...styles.socialButton, maxWidth: '190px', background: socialConnected.tiktok ? '#27ae60' : '#000', color: '#fff', border: 'none' }}>
+              {socialConnected.tiktok ? '✓ TikTok Connected' : 'Connect TikTok'}
+            </button>
+          </div>
         </div>
       </section>
 

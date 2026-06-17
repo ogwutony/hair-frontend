@@ -614,7 +614,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
           setCultureSubmitStatus("error");
           return;
         }
-      }
+      }h
 
       if (addDumaItem) {
         addDumaItem({
@@ -657,7 +657,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   const [saveStatus, setSaveStatus] = useState("");
   const [dumaSubmitStatus, setDumaSubmitStatus] = useState({});
   const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", facebook: "idle" });
-  const [anyVideoPushed, setAnyVideoPushed] = useState(false);
+  const [anyVideoPushed, setAnyVideoPushed] = useState(false);        const [socialConnected, setSocialConnected] = useState({ instagram: false, tiktok: false, facebook: false });        const [socialShareStatus, setSocialShareStatus] = useState({ Instagram: 'idle', TikTok: 'idle', Facebook: 'idle' });        const [socialConnected, setSocialConnected] = useState({ instagram: false, tiktok: false, facebook: false });
 
   const blobAvatarUrlRef = React.useRef(null);
 
@@ -700,7 +700,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         });
       }
     }).catch(() => {});
-  }, [authToken, onAvatarUpdate]);
+  }, [authToken, onAvatarUpdate]);        useEffect(() => {          if (!authToken) return;          fetch(`${BACKEND_URL}/api/auth/social-status`, {            headers: { Authorization: `Bearer ${authToken}` }          }).then(r => r.json()).then(data => {            if (data && typeof data === 'object') setSocialConnected(data);          }).catch(() => {});        }, [authToken]);        useEffect(() => {          if (!authToken) return;          fetch(`${BACKEND_URL}/api/auth/social-status`, {            headers: { Authorization: `Bearer ${authToken}` }          }).then(r => r.json()).then(data => {            if (data && typeof data === 'object') setSocialConnected(data);          }).catch(() => {});        useEffect(() => {          if (!authToken) return;          fetch(`${BACKEND_URL}/api/auth/social-status`, {            headers: { Authorization: `Bearer ${authToken}` }          }).then(r => r.json()).then(data => {        useEffect(() => {          if (!authToken) return;          fetch(`${BACKEND_URL}/api/auth/social-status`, {        useEffect(() => {
 
   const handleSocialChange = (key, value) => {
     setSocialLinks(prev => ({ ...prev, [key]: value }));
@@ -977,13 +977,13 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   const nextRankTitle = getNextRankTitle(displayRankTitle);
   const { currentMin, nextMin, progressPercent } = getRankProgress(displayRankScore, displayRankTitle);
 
-  const handleSocialShare = (platform, socialUrl) => {
+  const handleSocialShare = async (platform, socialUrl) => {
     if (!socialUrl) {
       alert(`Connect your ${platform} account first in Social Links above.`);
       return;
     }
     const label = platform === 'Facebook' ? platform : `${platform} @${socialUrl}`;
-    alert(`Sharing to ${label}. Full API integration coming soon!`);
+    setSocialShareStatus(prev => ({ ...prev, [platform]: 'sharing' })); try { const res = await fetch(`${BACKEND_URL}/api/profile/share`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }, body: JSON.stringify({ videoUrl: anyVideoPushed, platforms: [platform.toLowerCase()], caption: '' }) }); const data = await res.json(); if (res.ok && data.results?.[platform.toLowerCase()]?.success) { setSocialShareStatus(prev => ({ ...prev, [platform]: 'shared' })); setTimeout(() => setSocialShareStatus(prev => ({ ...prev, [platform]: 'idle' })), 3000); } else { const err = data.results?.[platform.toLowerCase()]?.error || 'Share failed'; if (err.includes('not connected') || err.includes('token expired')) { setSocialShareStatus(prev => ({ ...prev, [platform]: 'reconnect' })); } else { setSocialShareStatus(prev => ({ ...prev, [platform]: 'error' })); } setTimeout(() => setSocialShareStatus(prev => ({ ...prev, [platform]: 'idle' })), 5000); } } catch (e) { setSocialShareStatus(prev => ({ ...prev, [platform]: 'error' })); setTimeout(() => setSocialShareStatus(prev => ({ ...prev, [platform]: 'idle' })), 5000); }
   };
 
   return (
@@ -1162,10 +1162,10 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
 
       {/* SOCIAL LINKS SECTION */}
       <section style={{ marginBottom: '50px' }}>
-        <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Connect Your Social Profiles</h2>
+        <h2 style={{ fontSize: 'h20px', marginBottom: '24px', fontWeight: '600' }}>Connect Your Social Profiles</h2>
         <div style={styles.dumaCard}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
-            {/* CONNECT YOUR SOCIAL PROFILES LOOP */}
+            {/* CONNECT YOUR SOCIAL PROFILES LOOhP */}h
             {SOCIAL_FIELDS.map(social => (
               <SocialInputRow
                 key={social.key}
@@ -1181,7 +1181,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         </div>
       </section>
 
-      {/* CROSS-PLATFORM SHARING */}
+      {/* OAUTH CONNECT SECTION */}          <section style={{ marginBottom: '30px' }}>
       <section style={{ marginBottom: '50px' }}>
         <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Share to Your Socials</h2>
         <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '30px' }}>
@@ -1194,22 +1194,22 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
               disabled={!anyVideoPushed}
               onClick={() => handleSocialShare('Instagram', socialLinks.instagram)}
               style={{ ...styles.socialButton, maxWidth: '180px', background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)', color: '#fff', border: 'none', opacity: anyVideoPushed ? 1 : 0.4, cursor: anyVideoPushed ? 'pointer' : 'not-allowed' }}>
-              Share to Instagram
+              {socialShareStatus.Instagram === 'sharing' ? 'Sharing...' : socialShareStatus.Instagram === 'shared' ? '✓ Shared!' : socialShareStatus.Instagram === 'error' ? 'Error - Retry' : socialShareStatus.Instagram === 'reconnect' ? 'Reconnect Instagram' : '📷 Share to Instagram'}
             </button>
             <button
               disabled={!anyVideoPushed}
               onClick={() => handleSocialShare('TikTok', socialLinks.tiktok)}
               style={{ ...styles.socialButton, maxWidth: '180px', background: '#000', color: '#fff', border: 'none', opacity: anyVideoPushed ? 1 : 0.4, cursor: anyVideoPushed ? 'pointer' : 'not-allowed' }}>
-              Share to TikTok
+              {socialShareStatus.TikTok === 'sharing' ? 'Sharing...' : socialShareStatus.TikTok === 'shared' ? '✓ Shared!' : socialShareStatus.TikTok === 'error' ? 'Error - Retry' : socialShareStatus.TikTok === 'reconnect' ? 'Reconnect TikTok' : '🎵 Share to TikTok'}
             </button>
             <button
               disabled={!anyVideoPushed}
               onClick={() => handleSocialShare('Facebook', socialLinks.facebook)}
               style={{ ...styles.socialButton, maxWidth: '180px', background: '#1877F2', color: '#fff', border: 'none', opacity: anyVideoPushed ? 1 : 0.4, cursor: anyVideoPushed ? 'pointer' : 'not-allowed' }}>
-              Share to Facebook
+              {socialShareStatus.Facebook === 'sharing' ? 'Sharing...' : socialShareStatus.Facebook === 'shared' ? '✓ Shared!' : socialShareStatus.Facebook === 'error' ? 'Error - Retry' : socialShareStatus.Facebook === 'reconnect' ? 'Reconnect Facebook' : '📘 Share to Facebook'}
             </button>
           </div>
-          <p style={{ fontSize: '11px', color: '#aaa', marginTop: '12px' }}>Full API integration coming soon. Connect your accounts above to get started.</p>
+          <p style={{ fontSize: '11px', color: '#aaa', marginTop: '12px' }}>Connect accounts using the OAuth buttons below to unlock sharing.</p>
         </div>
       </section>
 

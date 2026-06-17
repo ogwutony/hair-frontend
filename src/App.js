@@ -39,7 +39,7 @@ const PRODUCT_VARIANT_MAP = {
 };
 
 // --- 2. BACKEND CONFIGURATION ---
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://hair-backend-2.onrender.com";
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://hair-backend-1.onrender.com";
 
 // --- 3. RANK SYSTEM (50-Tier Hierarchy) ---
 const RANK_TIERS = [
@@ -437,7 +437,7 @@ const productsData = {
 };
 
 const SOCIAL_FIELDS = [
-  { key: 'instagram', label: '\u{1F4F7} Instagram', placeholder: 'instagram.com/yourprofile' },// SocialConnectButton component for OAuth connect/disconnectconst SocialConnectButton_unused = null; // See ProfilePage for SocialConnectButton inline{ key: 'instagram', label: '\u{1F4F7} Instagram', placeholder: 'instagram.com/yourprofile' },// SocialConnectButton component for OAuth connect/disconnect '📷 Instagram', placeholder: 'instagram.com/yourprofile' },
+  { key: 'instagram', label: '📷 Instagram', placeholder: 'instagram.com/yourprofile' },
   { key: 'tiktok', label: '🎵 TikTok', placeholder: 'tiktok.com/@yourprofile' },
   { key: 'facebook', label: 'Facebook', placeholder: 'facebook.com/yourprofile' },
 ];

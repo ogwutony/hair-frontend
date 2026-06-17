@@ -614,7 +614,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
           setCultureSubmitStatus("error");
           return;
         }
-      }h
+      }
 
       if (addDumaItem) {
         addDumaItem({
@@ -657,7 +657,9 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   const [saveStatus, setSaveStatus] = useState("");
   const [dumaSubmitStatus, setDumaSubmitStatus] = useState({});
   const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", facebook: "idle" });
-  const [anyVideoPushed, setAnyVideoPushed] = useState(false);        const [socialConnected, setSocialConnected] = useState({ instagram: false, tiktok: false, facebook: false });        const [socialShareStatus, setSocialShareStatus] = useState({ Instagram: 'idle', TikTok: 'idle', Facebook: 'idle' });        const [socialConnected, setSocialConnected] = useState({ instagram: false, tiktok: false, facebook: false });
+  const [anyVideoPushed, setAnyVideoPushed] = useState(false);
+  const [socialConnected, setSocialConnected] = useState({ instagram: false, tiktok: false, facebook: false });
+  const [socialShareStatus, setSocialShareStatus] = useState({ Instagram: 'idle', TikTok: 'idle', Facebook: 'idle' });
 
   const blobAvatarUrlRef = React.useRef(null);
 
@@ -700,7 +702,19 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         });
       }
     }).catch(() => {});
-  }, [authToken, onAvatarUpdate]);        useEffect(() => {          if (!authToken) return;          fetch(`${BACKEND_URL}/api/auth/social-status`, {            headers: { Authorization: `Bearer ${authToken}` }          }).then(r => r.json()).then(data => {            if (data && typeof data === 'object') setSocialConnected(data);          }).catch(() => {});        }, [authToken]);        useEffect(() => {          if (!authToken) return;          fetch(`${BACKEND_URL}/api/auth/social-status`, {            headers: { Authorization: `Bearer ${authToken}` }          }).then(r => r.json()).then(data => {            if (data && typeof data === 'object') setSocialConnected(data);          }).catch(() => {});        useEffect(() => {          if (!authToken) return;          fetch(`${BACKEND_URL}/api/auth/social-status`, {            headers: { Authorization: `Bearer ${authToken}` }          }).then(r => r.json()).then(data => {        useEffect(() => {          if (!authToken) return;          fetch(`${BACKEND_URL}/api/auth/social-status`, {        useEffect(() => {
+  }, [authToken, onAvatarUpdate]);
+
+  useEffect(() => {
+    if (!authToken) return;
+    fetch(`${BACKEND_URL}/api/auth/social-status`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data && typeof data === 'object') setSocialConnected(data);
+      })
+      .catch(() => {});
+  }, [authToken]);
 
   const handleSocialChange = (key, value) => {
     setSocialLinks(prev => ({ ...prev, [key]: value }));
@@ -1165,7 +1179,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         <h2 style={{ fontSize: 'h20px', marginBottom: '24px', fontWeight: '600' }}>Connect Your Social Profiles</h2>
         <div style={styles.dumaCard}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
-            {/* CONNECT YOUR SOCIAL PROFILES LOOhP */}h
+            {/* CONNECT YOUR SOCIAL PROFILES LOOhP */}
             {SOCIAL_FIELDS.map(social => (
               <SocialInputRow
                 key={social.key}
@@ -1181,7 +1195,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         </div>
       </section>
 
-      {/* OAUTH CONNECT SECTION */}          <section style={{ marginBottom: '30px' }}>
+      {/* OAUTH CONNECT SECTION */}
       <section style={{ marginBottom: '50px' }}>
         <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Share to Your Socials</h2>
         <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '30px' }}>

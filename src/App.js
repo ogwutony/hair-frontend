@@ -8,32 +8,32 @@ const DEFAULT_SELLING_PLAN_ID = "1467875506";
 const PRODUCT_VARIANT_MAP = {
   "The Majorities Shampoo": {
     merchandiseId: "47555331358898",
-    pricing: { oneTime: 6, subscription: 5 },
+    pricing: { oneTime: 7, subscription: 6 },
     sellingPlanId: DEFAULT_SELLING_PLAN_ID
   },
   "The Majorities Conditioner": {
     merchandiseId: "47555331555506",
-    pricing: { oneTime: 6, subscription: 5 },
+    pricing: { oneTime: 7, subscription: 6 },
     sellingPlanId: DEFAULT_SELLING_PLAN_ID
   },
   "The Majorities Hair Oil": {
     merchandiseId: "47555331752114",
-    pricing: { oneTime: 6, subscription: 5 },
+    pricing: { oneTime: 7, subscription: 6 },
     sellingPlanId: DEFAULT_SELLING_PLAN_ID
   },
   "The Majorities Facial Scrub": {
     merchandiseId: "47555331948722",
-    pricing: { oneTime: 6, subscription: 5 },
+    pricing: { oneTime: 7, subscription: 6 },
     sellingPlanId: DEFAULT_SELLING_PLAN_ID
   },
   "The Majorities Face Toner": {
     merchandiseId: "47555332145330",
-    pricing: { oneTime: 6, subscription: 5 },
+    pricing: { oneTime: 7, subscription: 6 },
     sellingPlanId: DEFAULT_SELLING_PLAN_ID
   },
   "The Majorities Moisturizing Lotion": {
     merchandiseId: "47555332309170",
-    pricing: { oneTime: 6, subscription: 5 },
+    pricing: { oneTime: 7, subscription: 6 },
     sellingPlanId: DEFAULT_SELLING_PLAN_ID
   }
 };
@@ -533,7 +533,22 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     { id: 28, text: "What is something you are deeply optimistic about looking into the next year?" },
     { id: 29, text: "If you could send a 30-second voice note to yourself from five years ago, what would you say?" },
     { id: 30, text: "What is a new hobby or topic you've suddenly become obsessed with learning about?" },
-    { id: 31, text: "What is one thing you did this week that your future self will thank you for?" }
+    { id: 31, text: "What is one thing you did this week that your future self will thank you for?" },
+    { id: 32, text: "Show us your current hair routine in 3 steps or less. What are the non-negotiables you swear by?" },
+    { id: 33, text: "What is your go-to protective style right now, and how long do you keep it in? Drop a pic or description!" },
+    { id: 34, text: "What is the one hair product that completely transformed your hair health? Brand, type, and why—spill it all!" },
+    { id: 35, text: "Let's talk shrinkage! How do you embrace or manage your natural curl pattern day-to-day?" },
+    { id: 36, text: "What is the biggest hair care myth you used to believe that turned out to be totally wrong?" },
+    { id: 37, text: "Show us your current OOTD (Outfit of the Day)! What inspired today's look—mood, weather, or something else?" },
+    { id: 38, text: "What is one fashion rule you were taught that you have completely thrown out? What rule do you live by instead?" },
+    { id: 39, text: "If you could only shop at one store or brand for an entire year, which would it be and why?" },
+    { id: 40, text: "Drop your best budget fashion hack. How do you build great outfits without breaking the bank?" },
+    { id: 41, text: "What's a wardrobe staple that every person should own regardless of their personal style?" },
+    { id: 42, text: "Share your number one beauty hack that most people don't know about. The tip that genuinely changed your routine!" },
+    { id: 43, text: "What is a skincare or beauty ingredient you recently discovered and can't stop recommending to everyone?" },
+    { id: 44, text: "Describe your 5-minute 'I'm running late' beauty routine. What are the absolute essentials you never skip?" },
+    { id: 45, text: "What is the best drugstore beauty dupe you've found for a high-end product? Let the community save some money!" },
+    { id: 46, text: "Night routine check! Walk us through your wind-down skincare or beauty ritual before bed." }
   ]
   const [activePromptIndex, setActivePromptIndex] = useState(0);
 
@@ -1170,9 +1185,6 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                 </div>
               </div>
 
-              <h3 style={{ marginTop: '24px', marginBottom: '12px' }}>Your Response</h3>
-              <textarea required placeholder="Type your context or response thoughts here..." style={{ ...styles.input, height: '120px' }} value={cultureResponse} onChange={(e) => setCultureResponse(e.target.value)} />
-
               <h3 style={{ marginTop: '24px', marginBottom: '8px' }}>Attach Photo or Video Perspective</h3>
               <p style={{ fontSize: '12px', color: '#666', margin: '0 0 12px 0' }}>Show your view or record a custom speech clip context up to 60 seconds.</p>
 
@@ -1187,6 +1199,9 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                   )}
                 </div>
               )}
+
+              <h3 style={{ marginTop: '24px', marginBottom: '12px' }}>Your Response</h3>
+              <textarea required placeholder="Type your context or response thoughts here..." style={{ ...styles.input, height: '120px' }} value={cultureResponse} onChange={(e) => setCultureResponse(e.target.value)} />
 
               <button type="submit" style={{ ...styles.authButton, marginTop: '15px' }}>
                 Submit Perspective to Duma (+100 points)
@@ -1664,8 +1679,8 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
   );
   
   return (
-    <div style={{ ...styles.layout, flexDirection: isMobile ? 'column' : 'row', padding: isMobile ? '20px 16px' : '20px 60px' }}>
-      <div style={{ ...styles.left, width: isMobile ? '100%' : '70%', paddingRight: isMobile ? 0 : '40px' }}>
+    <div style={{ ...styles.layout, flexDirection: isMobile ? 'column' : 'row', padding: isMobile ? '20px 16px' : '20px 60px', overflowX: isMobile ? 'hidden' : 'visible', boxSizing: 'border-box' }}>
+      <div style={{ ...styles.left, width: isMobile ? '100%' : '70%', paddingRight: isMobile ? 0 : '40px', minWidth: 0, overflowX: 'hidden' }}>
         {renderRow("Pick Shampoos", "shampoos")}
         {renderRow("Pick Conditioners", "conditioners")}
         {renderRow("Pick Oils", "oils")}
@@ -1673,7 +1688,7 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
         {renderRow("Pick Toners", "toners")}
         {renderRow("Pick Creams", "faceCreams")}
       </div>
-      <aside style={{ ...styles.right, width: isMobile ? '100%' : '30%', position: isMobile ? 'static' : 'sticky', top: isMobile ? 'auto' : '20px', boxSizing: 'border-box' }}>
+      <aside style={{ ...styles.right, width: isMobile ? '100%' : '30%', position: isMobile ? 'static' : 'sticky', top: isMobile ? 'auto' : '20px', boxSizing: 'border-box', height: 'auto', maxHeight: 'none' }}>
         <div style={{ minHeight: '100px', marginBottom: '15px' }}>
           {focusedItem ? (
             <div>
@@ -3548,7 +3563,7 @@ export default function App() {
             <Link to="/" style={styles.navLink}>Home</Link>
             <Link to="/recommend" style={styles.navLink}>Recommend</Link>
             <Link to="/partner" style={styles.navLink}>Partner</Link>
-            <Link to="/model" style={styles.navLink}>Model View</Link>
+            {/* <Link to="/model" style={styles.navLink}>Model View</Link> */}
             {isLoggedIn ? (
               <>
                 <Link to="/duma" style={styles.navLink}>The Duma</Link>
@@ -3591,11 +3606,109 @@ export default function App() {
           <Route path="/orders" element={<div style={{ padding: '60px', textAlign: 'center' }}><h2>Payment Received!</h2><p>Your custom hair set is being prepared. Check your Profile to see your formula.</p><Link to="/profile">Go to Profile</Link></div>} />
           <Route path="/admin/orders" element={<AdminOrdersPage authToken={authToken} userEmail={userEmail} />} />
           <Route path="/model" element={<ModelFriendlyPage />} />
+          <Route path="/TermsofService" element={<TermsOfServicePage />} />
+          <Route path="/Privacy" element={<PrivacyPolicyPage />} />
         </Routes>
       </div>
     </Router>
   );
 }
+
+// ============================================================
+// TERMS OF SERVICE PAGE
+// ============================================================
+const TermsOfServicePage = () => {
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+  return (
+    <div style={{ maxWidth: '860px', margin: '0 auto', padding: '60px 30px', fontFamily: 'Inter, sans-serif', color: '#222', lineHeight: 1.8 }}>
+      <h1 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px' }}>Terms of Service</h1>
+      <p style={{ color: '#888', fontSize: '13px', marginBottom: '40px' }}>Last updated: June 1, 2025</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>1. Acceptance of Terms</h2>
+      <p>By accessing or using The Majorities website and any products or services offered therein (collectively, the "Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to all of the terms and conditions of this agreement, you may not access or use the Service. These Terms apply to all visitors, users, and others who access the Service.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>2. Description of Service</h2>
+      <p>The Majorities provides an e-commerce platform for the purchase of premium hair care, skin care, and beauty products, including subscription-based delivery options. The Service also includes community engagement features such as perspective sharing, community rankings, and social profile integration. We reserve the right to modify, suspend, or discontinue the Service (or any part thereof) at any time with or without notice.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>3. User Accounts</h2>
+      <p>To access certain features of the Service, you may be required to register for an account. You agree to provide accurate, current, and complete information during registration and to update such information to keep it accurate, current, and complete. You are solely responsible for safeguarding your account credentials and for all activity that occurs under your account. You agree to notify us immediately at support@themajorities.com of any unauthorized use of your account.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>4. Purchases and Payments</h2>
+      <p>All product prices are displayed in United States Dollars (USD) and are subject to change without notice. When you initiate a purchase, you represent and warrant that you are authorized to use the payment method you provide. By submitting a subscription order, you authorize us to charge your payment method on a recurring basis at the then-current subscription rate. You may cancel a subscription at any time through your account dashboard; cancellations will take effect at the end of the then-current billing period. All sales are final unless the product is defective or damaged upon arrival.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>5. User-Generated Content</h2>
+      <p>The Service allows users to submit, post, and share text, images, and video content ("User Content"). By submitting User Content, you grant The Majorities a non-exclusive, worldwide, royalty-free, irrevocable license to use, reproduce, modify, adapt, publish, translate, distribute, and display such content in connection with the Service and our marketing activities. You represent and warrant that you own or have the necessary rights to grant this license and that your User Content does not violate any third-party rights or applicable laws.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>6. Prohibited Conduct</h2>
+      <p>You agree not to engage in any of the following: (a) use the Service for any unlawful purpose or in violation of any applicable regulations; (b) post content that is defamatory, obscene, harassing, or infringes on the rights of others; (c) attempt to gain unauthorized access to any portion of the Service or its related systems; (d) use any automated tools, scrapers, or bots to interact with the Service; (e) interfere with the proper functioning of the Service or impose an unreasonable load on our infrastructure.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>7. Intellectual Property</h2>
+      <p>All content, trademarks, logos, and intellectual property associated with The Majorities brand, products, and Service are the exclusive property of The Majorities or its licensors. Nothing in these Terms grants you a right or license to use any trademark, logo, or brand feature of The Majorities. Unauthorized use of any proprietary content is strictly prohibited.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>8. Disclaimer of Warranties</h2>
+      <p>THE SERVICE IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS WITHOUT ANY WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, OR FREE OF VIRUSES OR OTHER HARMFUL COMPONENTS.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>9. Limitation of Liability</h2>
+      <p>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE MAJORITIES AND ITS AFFILIATES, DIRECTORS, EMPLOYEES, AND AGENTS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, DATA, OR GOODWILL, ARISING OUT OF OR IN CONNECTION WITH YOUR USE OF THE SERVICE.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>10. Governing Law</h2>
+      <p>These Terms shall be governed by and construed in accordance with the laws of the State of Delaware, without regard to its conflict of law provisions. Any dispute arising from these Terms or your use of the Service shall be resolved through binding arbitration in accordance with the rules of the American Arbitration Association.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>11. Changes to Terms</h2>
+      <p>We reserve the right to update or modify these Terms at any time. We will notify registered users of material changes by email or by posting a prominent notice on the Service. Your continued use of the Service after such changes constitutes your acceptance of the revised Terms. We encourage you to review these Terms periodically.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>12. Contact Us</h2>
+      <p>If you have any questions about these Terms of Service, please contact us at: <strong>legal@themajorities.com</strong></p>
+    </div>
+  );
+};
+
+// ============================================================
+// PRIVACY POLICY PAGE
+// ============================================================
+const PrivacyPolicyPage = () => {
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+  return (
+    <div style={{ maxWidth: '860px', margin: '0 auto', padding: '60px 30px', fontFamily: 'Inter, sans-serif', color: '#222', lineHeight: 1.8 }}>
+      <h1 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px' }}>Privacy Policy</h1>
+      <p style={{ color: '#888', fontSize: '13px', marginBottom: '40px' }}>Last updated: June 1, 2025</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>1. Introduction</h2>
+      <p>The Majorities ("we," "our," or "us") is committed to protecting your personal information and your right to privacy. This Privacy Policy explains what information we collect, how we use it, and what rights you have in relation to it. By using our website and services, you agree to the collection and use of information in accordance with this policy.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>2. Information We Collect</h2>
+      <p>We collect several types of information from and about users of our Service, including: (a) <strong>Personal Identification Information</strong>: name, email address, shipping address, and phone number provided during account registration or checkout; (b) <strong>Payment Information</strong>: billing details processed securely through our payment processor (Shopify Payments); we do not store raw credit card data on our servers; (c) <strong>User Content</strong>: photos, videos, text, and other content you voluntarily submit through our perspective sharing and community features; (d) <strong>Usage Data</strong>: IP address, browser type, pages visited, time spent on pages, and other diagnostic data collected automatically when you access the Service; (e) <strong>Social Profile Data</strong>: public profile information from third-party social accounts you choose to connect to our platform.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>3. How We Use Your Information</h2>
+      <p>We use the information we collect for the following purposes: to process and fulfill your orders and subscriptions; to manage your account and provide customer support; to personalize your experience on our platform; to send you transactional emails (order confirmations, shipping updates); to send you promotional communications, subject to your opt-in preferences; to improve our products, services, and website functionality; to detect, prevent, and address technical issues and fraudulent activity; and to comply with our legal obligations.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>4. Sharing Your Information</h2>
+      <p>We do not sell, trade, or rent your personal identification information to third parties. We may share your data with trusted service providers who assist us in operating our business, including: payment processors (Shopify), cloud storage and hosting providers, email service providers, and analytics platforms. All such service providers are contractually obligated to use your data only for the purposes we specify and to maintain appropriate security measures.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>5. Cookies and Tracking Technologies</h2>
+      <p>We use cookies and similar tracking technologies to enhance your experience on our Service. Cookies are small data files stored on your device. We use both session cookies (which expire when you close your browser) and persistent cookies (which remain on your device for a set period). You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent; however, some features of our Service may not function properly without cookies.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>6. Data Retention</h2>
+      <p>We retain your personal information for as long as your account is active or as needed to provide you with our services. We will also retain and use your information as necessary to comply with our legal obligations, resolve disputes, and enforce our agreements. If you wish to delete your account or request that we no longer use your information, please contact us at privacy@themajorities.com.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>7. Data Security</h2>
+      <p>We implement commercially reasonable security measures to protect your personal information from unauthorized access, alteration, disclosure, or destruction. These measures include encrypted data transmission (SSL/TLS), access controls, and regular security assessments. However, no method of transmission over the Internet or electronic storage is 100% secure, and we cannot guarantee absolute security.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>8. Your Rights</h2>
+      <p>Depending on your location, you may have certain rights regarding your personal data, including: the right to access and receive a copy of your personal data; the right to correct inaccurate or incomplete data; the right to request deletion of your personal data; the right to restrict or object to our processing of your data; and the right to data portability. To exercise any of these rights, please contact us at privacy@themajorities.com. We will respond to all requests within 30 days.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>9. Children's Privacy</h2>
+      <p>Our Service is not directed to individuals under the age of 13. We do not knowingly collect personal information from children under 13. If we become aware that a child under 13 has provided us with personal information, we will take steps to delete such information. If you believe we may have collected information from a child under 13, please contact us immediately.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>10. Changes to This Policy</h2>
+      <p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date. For significant changes, we will provide a more prominent notice, such as an email notification to registered users. We encourage you to review this Privacy Policy periodically to stay informed.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>11. Contact Us</h2>
+      <p>If you have any questions or concerns about this Privacy Policy, please contact us at: <strong>privacy@themajorities.com</strong></p>
+    </div>
+  );
+};
+
 
 const styles = {
   pageWrapper: { fontFamily: 'Inter, sans-serif', color: '#222' },

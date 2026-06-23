@@ -1213,7 +1213,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
 
       {/* SOCIAL LINKS SECTION */}
       <section style={{ marginBottom: '50px' }}>
-        <h2 style={{ fontSize: 'h20px', marginBottom: '24px', fontWeight: '600' }}>Connect Your Social Profiles</h2>
+        <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Connect Your Social Profiles</h2>
         <div style={styles.dumaCard}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
             {/* CONNECT YOUR SOCIAL PROFILES LOOhP */}
@@ -3609,6 +3609,10 @@ export default function App() {
           <Route path="/TermsofService" element={<TermsOfServicePage />} />
           <Route path="/Privacy" element={<PrivacyPolicyPage />} />
         </Routes>
+      <footer style={{ marginTop: '60px', padding: '20px 60px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'center', gap: '30px', fontSize: '12px' }}>
+        <Link to="/TermsofService" style={{ color: '#666', textDecoration: 'none' }}>Terms of Service</Link>
+        <Link to="/Privacy" style={{ color: '#666', textDecoration: 'none' }}>Privacy Policy</Link>
+      </footer>
       </div>
     </Router>
   );

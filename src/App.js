@@ -439,7 +439,7 @@ const productsData = {
 const SOCIAL_FIELDS = [
   { key: 'instagram', label: '📷 Instagram', placeholder: 'instagram.com/yourprofile' },
   { key: 'tiktok', label: '🎵 TikTok', placeholder: 'tiktok.com/@yourprofile' },
-  { key: 'facebook', label: 'Facebook', placeholder: 'facebook.com/yourprofile' },
+  { key: 'facebook', label: '📘 Facebook', placeholder: 'facebook.com/yourprofile' },
 ];
 
 // Add this helper component to manage local, non-lagging text entry
@@ -450,11 +450,11 @@ const SocialInputRow = ({ socialKey, label, placeholder, initialValue, onSave, o
     setLocalVal(initialValue || "");
   }, [initialValue]);
 
-  const isSocialSaveDisabled = saveStatus === "saving" || saveStatus === "saved" || !localVal;
+  const isSocialSaveDisabled = saveStatus === "saving" || !localVal.trim();
 
   return (
     <div>
-      <label style={{ fontSize: '12px', fontWeight: '600', color: '#222', display: 'block', marginBottom: '6px' }}>
+      <label style={{ fontSize: '13px', fontWeight: '600', color: '#222', display: 'block' }}>
         {label}
       </label>
       <input
@@ -462,20 +462,20 @@ const SocialInputRow = ({ socialKey, label, placeholder, initialValue, onSave, o
         placeholder={placeholder}
         value={localVal}
         onChange={(e) => setLocalVal(e.target.value)}
-        style={{ ...styles.input, margin: 0, marginBottom: '6px' }} />
+        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box' }} />
       <button
         onClick={() => {
           if (onChangeGlobal) onChangeGlobal(socialKey, localVal);
-          onSave(socialKey, localVal);
+          onSave(socialKey, localVal.trim());
         }}
         disabled={isSocialSaveDisabled}
         style={{
-          ...styles.authButton,
+          border: 'none',
           width: '100%',
           fontSize: '11px',
-          padding: '6px 10px',
-          backgroundColor: saveStatus === "saved" ? '#27ae60' : saveStatus === "error" ? '#e74c3c' : undefined,
-          opacity: isSocialSaveDisabled ? 0.6 : 1,
+          padding: '10px 16px',
+          backgroundColor: saveStatus === "saved" ? '#27ae60' : saveStatus === "error" ? '#e74c3c' : '#222',
+          fontWeight: '600',
           cursor: isSocialSaveDisabled ? 'not-allowed' : 'pointer'
         }}>
         {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "✓ Linked" : saveStatus === "error" ? "Failed — Retry" : "Save"}

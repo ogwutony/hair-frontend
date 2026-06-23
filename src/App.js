@@ -3622,7 +3622,7 @@ const TermsOfServicePage = () => {
   return (
     <div style={{ maxWidth: '860px', margin: '0 auto', padding: '60px 30px', fontFamily: 'Inter, sans-serif', color: '#222', lineHeight: 1.8 }}>
       <h1 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px' }}>Terms of Service</h1>
-      <p style={{ color: '#888', fontSize: '13px', marginBottom: '40px' }}>Last updated: June 1, 2025</p>
+      <p style={{ color: '#888', fontSize: '13px', marginBottom: '40px' }}>Last updated: June 22, 2026</p>
 
       <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>1. Acceptance of Terms</h2>
       <p>By accessing or using The Majorities website and any products or services offered therein (collectively, the "Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to all of the terms and conditions of this agreement, you may not access or use the Service. These Terms apply to all visitors, users, and others who access the Service.</p>
@@ -3671,7 +3671,7 @@ const PrivacyPolicyPage = () => {
   return (
     <div style={{ maxWidth: '860px', margin: '0 auto', padding: '60px 30px', fontFamily: 'Inter, sans-serif', color: '#222', lineHeight: 1.8 }}>
       <h1 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px' }}>Privacy Policy</h1>
-      <p style={{ color: '#888', fontSize: '13px', marginBottom: '40px' }}>Last updated: June 1, 2025</p>
+      <p style={{ color: '#888', fontSize: '13px', marginBottom: '40px' }}>Last updated: June 22, 2026</p>
 
       <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>1. Introduction</h2>
       <p>The Majorities ("we," "our," or "us") is committed to protecting your personal information and your right to privacy. This Privacy Policy explains what information we collect, how we use it, and what rights you have in relation to it. By using our website and services, you agree to the collection and use of information in accordance with this policy.</p>

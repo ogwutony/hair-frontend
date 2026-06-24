@@ -1045,8 +1045,51 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       alert(`Connect your ${platform} account first in Social Links above.`);
       return;
     }
-    const label = platform === 'Facebook' ? platform : `${platform} @${socialUrl}`;
-    setSocialShareStatus(prev => ({ ...prev, [platform]: 'sharing' })); try { const res = await fetch(`${BACKEND_URL}/api/profile/share`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }, body: JSON.stringify({ videoUrl: anyVideoPushed, platforms: [platform.toLowerCase()], caption: '' }) }); const data = await res.json(); if (res.ok && data.results?.[platform.toLowerCase()]?.success) { setSocialShareStatus(prev => ({ ...prev, [platform]: 'shared' })); setTimeout(() => setSocialShareStatus(prev => ({ ...prev, [platform]: 'idle' })), 3000); } else { const err = data.results?.[platform.toLowerCase()]?.error || 'Share failed'; if (err.includes('not connected') || err.includes('token expired')) { setSocialShareStatus(prev => ({ ...prev, [platform]: 'reconnect' })); } else { setSocialShareStatus(prev => ({ ...prev, [platform]: 'error' })); } setTimeout(() => setSocialShareStatus(prev => ({ ...prev, [platform]: 'idle' })), 5000); } } catch (e) { setSocialShareStatus(prev => ({ ...prev, [platform]: 'error' })); setTimeout(() => setSocialShareStatus(prev => ({ ...prev, [platform]: 'idle' })), 5000); }
+
+    // Fix 1: Find the first available saved video URL from perspective boxes
+    const realVideoUrl = perspective.box1.videoUrl ||
+                         perspective.box2.videoUrl ||
+                         perspective.box3.videoUrl ||
+                         perspective.box4.videoUrl ||
+                         "";
+
+    if (!realVideoUrl) {
+      alert('No active video URL found to share. Please save a perspective video first.');
+      return;
+    }
+
+    setSocialShareStatus(prev => ({ ...prev, [platform]: 'sharing' }));
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/profile/share`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          videoUrl: realVideoUrl,
+          platforms: [platform.toLowerCase()],
+          caption: ''
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.results?.[platform.toLowerCase()]?.success) {
+        setSocialShareStatus(prev => ({ ...prev, [platform]: 'shared' }));
+        setTimeout(() => setSocialShareStatus(prev => ({ ...prev, [platform]: 'idle' })), 3000);
+      } else {
+        const err = data.results?.[platform.toLowerCase()]?.error || 'Share failed';
+        if (err.includes('not connected') || err.includes('token expired')) {
+          setSocialShareStatus(prev => ({ ...prev, [platform]: 'reconnect' }));
+        } else {
+          setSocialShareStatus(prev => ({ ...prev, [platform]: 'error' }));
+        }
+        setTimeout(() => setSocialShareStatus(prev => ({ ...prev, [platform]: 'idle' })), 5000);
+      }
+    } catch (e) {
+      setSocialShareStatus(prev => ({ ...prev, [platform]: 'error' }));
+      setTimeout(() => setSocialShareStatus(prev => ({ ...prev, [platform]: 'idle' })), 5000);
+    }
   };
 
   return (
@@ -1273,6 +1316,8 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
             </button>
           </div>
           <p style={{ fontSize: '11px', color: '#aaa', marginTop: '12px' }}>Connect accounts using the OAuth buttons below to unlock sharing.</p>
+
+          {/* Fix 2: Added missing Facebook OAuth connect button to lower shelf */}
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '18px' }}>
             <button
               type="button"
@@ -1285,6 +1330,12 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
               onClick={() => handleSocialConnect('tiktok')}
               style={{ ...styles.socialButton, maxWidth: '190px', background: socialConnected.tiktok ? '#27ae60' : '#000', color: '#fff', border: 'none' }}>
               {socialConnected.tiktok ? '✓ TikTok Connected' : 'Connect TikTok'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSocialConnect('facebook')}
+              style={{ ...styles.socialButton, maxWidth: '190px', background: socialConnected.facebook ? '#27ae60' : '#1877F2', color: '#fff', border: 'none' }}>
+              {socialConnected.facebook ? '✓ Facebook Connected' : 'Connect Facebook'}
             </button>
           </div>
         </div>
@@ -3208,76 +3259,36 @@ const AdminOrdersPage = ({ authToken, userEmail }) => {
 // This page renders a clean, structured, text-based representation of the site
 // optimized for AI models, crawlers, and accessibility tools.
 const ModelFriendlyPage = () => {
-  const products = [
-    {
-      name: "The Majorities Shampoo",
-      category: "Hair Care - Shampoo",
-      pricing: { oneTime: "$6.00", subscription: "$5.00/month" },
-      merchandiseId: "47555331358898",
-      keyIngredients: ["Provitamin B5 (Panthenol)", "Polyquaternium-10", "Polyquaternium-7", "Cocamidopropyl Betaine"],
-      benefits: ["Deep cleansing", "Anti-frizz", "Adds shine", "Suitable for all hair types"],
-      scentProfile: "Premium long-lasting signature fragrance",
-      hairType: "Natural or non-color treated hair, daily use"
-    },
-    {
-      name: "The Majorities Conditioner",
-      category: "Hair Care - Conditioner",
-      pricing: { oneTime: "$6.00", subscription: "$5.00/month" },
-      merchandiseId: "47555331555506",
-      keyIngredients: ["Argan Oil", "Coconut Oil", "Olive Oil", "Provitamin B5"],
-      benefits: ["Deep moisture restoration", "Detangling", "Frizz elimination", "Breakage defense", "Cuticle smoothing"],
-      hairType: "Dry, brittle, or damaged hair"
-    },
-    {
-      name: "The Majorities Hair Oil",
-      category: "Hair Care - Treatment Oil",
-      pricing: { oneTime: "$6.00", subscription: "$5.00/month" },
-      merchandiseId: "47555331752114",
-      keyIngredients: ["Soybean Oil", "Castor Seed Oil", "Safflower Seed Oil", "Sunflower Seed Oil", "Peppermint Oil", "Tocopheryl Acetate"],
-      benefits: ["Seals split ends", "Smooths flyaways", "Weightless finish", "Scalp stimulation", "Moisture lock"],
-      scentProfile: "Refreshing peppermint aroma",
-      applicationType: "Leave-on treatment"
-    },
-    {
-      name: "The Majorities Facial Scrub",
-      category: "Skin Care - Exfoliant",
-      pricing: { oneTime: "$6.00", subscription: "$5.00/month" },
-      merchandiseId: "47555331948722",
-      keyIngredients: ["Bambusa Arundinacea Stem Powder", "Salicylic Acid (BHA)", "Jojoba Esters", "Glycerin"],
-      benefits: ["Exfoliation", "Pore cleansing", "Blemish targeting", "Skin texture refinement"],
-      formulaType: "Dual-action physical and chemical exfoliant",
-      targetConcerns: ["Congestion", "Dullness", "Blemishes", "Uneven texture"]
-    },
-    {
-      name: "The Majorities Face Toner",
-      category: "Skin Care - Toner",
-      pricing: { oneTime: "$6.00", subscription: "$5.00/month" },
-      merchandiseId: "47555332145330",
-      keyIngredients: ["Witch Hazel (Hamamelis Virginiana)", "Sodium PCA", "SD Alcohol 40"],
-      benefits: ["Oil balance", "Pore tightening", "Skin calming", "Residual impurity removal"],
-      formulaType: "Leave-on toner",
-      skinFeel: "Cool, refreshing, matte yet hydrated"
-    },
-    {
-      name: "The Majorities Moisturizing Lotion",
-      category: "Skin Care - Moisturizer",
-      pricing: { oneTime: "$6.00", subscription: "$5.00/month" },
-      merchandiseId: "47555332309170",
-      keyIngredients: ["Ceramides", "Sodium Hyaluronate (Hyaluronic Acid)", "Glycerin", "Vitamin E (Tocopherol)", "Dimethicone"],
-      benefits: ["Intense hydration", "Barrier repair", "Long-lasting moisture", "Non-greasy absorption"],
-      applicationType: "Leave-on lotion for hands and body",
-      targetConcerns: ["Dehydration", "Dryness", "Damaged moisture barrier"]
-    }
-  ];
+  const products = Object.keys(PRODUCT_VARIANT_MAP).map(name => {
+    const config = PRODUCT_VARIANT_MAP[name];
+    let category = "Skin Care";
+    if (name.includes("Shampoo")) category = "Hair Care - Shampoo";
+    else if (name.includes("Conditioner")) category = "Hair Care - Conditioner";
+    else if (name.includes("Oil")) category = "Hair Care - Treatment Oil";
+    else if (name.includes("Scrub")) category = "Skin Care - Exfoliant";
+    else if (name.includes("Toner")) category = "Skin Care - Toner";
+    else if (name.includes("Lotion")) category = "Skin Care - Moisturizer";
+    return {
+      name: name,
+      category: category,
+      pricing: {
+        oneTime: `$${config.pricing.oneTime}.00`,
+        subscription: `$${config.pricing.subscription}.00/month`
+      },
+      merchandiseId: config.merchandiseId,
+      keyIngredients: name.includes("Shampoo") ? ["Provitamin B5 (Panthenol)", "Polyquaternium-10"] : ["Premium Ingredients"],
+      benefits: ["High-grade community formula"],
+    };
+  });
 
   const siteInfo = {
     name: "The Majorities",
-    shopDomain: "c0bqfe-z2.myshopify.com",
-    description: "The Majorities is a community-driven haircare and skincare brand offering a curated set of 6 products spanning hair and face care. All products are priced at $6 one-time or $5/month on subscription.",
-    purchaseModel: "Custom 6-product set builder. Select one product from each category (Shampoo, Conditioner, Hair Oil, Facial Scrub, Face Toner, Moisturizing Lotion). Buy as a one-time purchase or subscribe monthly.",
-    totalOneTimePrice: "$36.00 for full 6-product set",
-    totalSubscriptionPrice: "$30.00/month for full 6-product set",
-    subscriptionSavings: "$6.00/month savings with subscription"
+    shopDomain: SHOP_DOMAIN,
+    description: "The Majorities is a community-driven haircare and skincare brand offering a curated set of 6 products spanning hair and face care.",
+    purchaseModel: "Custom 6-product set builder. Select one product from each category. Buy as a one-time purchase or subscribe monthly.",
+    totalOneTimePrice: `$${Object.keys(PRODUCT_VARIANT_MAP).length * 7}.00 for full 6-product set`,
+    totalSubscriptionPrice: `$${Object.keys(PRODUCT_VARIANT_MAP).length * 6}.00/month for full 6-product set`,
+    subscriptionSavings: `$${Object.keys(PRODUCT_VARIANT_MAP).length * (7 - 6)}.00/month savings with subscription`
   };
 
   const routes = [

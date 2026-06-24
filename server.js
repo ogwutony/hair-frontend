@@ -1118,6 +1118,11 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
   // ============================================================
   // TIKTOK OAUTH 2.0
   // ============================================================
+// Shortcut: /api/auth/tiktok -> redirects to tiktok/redirect (matches frontend handleSocialConnect)
+app.get('/api/auth/tiktok', (req, res) => {
+  res.redirect('/api/auth/tiktok/redirect' + (req.query.userId ? '?userId=' + req.query.userId : ''));
+});
+
   app.get('/api/auth/tiktok/redirect', (req, res) => {
       const { userId } = req.query;
       if (!userId) return res.status(400).json({ error: 'userId required' });
@@ -1178,7 +1183,8 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
             const user = await User.findById(req.user._id).select('oauthProviders');
             res.json({
                     instagram: !!(user?.oauthProviders?.instagram?.accessToken),
-                    tiktok:    !!(user?.oauthProviders?.tiktok?.accessToken)
+                    tiktok:    !!(user?.oauthProviders?.tiktok?.accessToken),
+      facebook: !!(user && user.oauthProviders && user.oauthProviders.instagram && user.oauthProviders.instagram.accessToken)
             });
       } catch (err) { res.status(500).json({ error: 'Status check failed' }); }
   });

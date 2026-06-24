@@ -1037,7 +1037,9 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       alert("Please log in again before connecting social accounts.");
       return;
     }
-    window.location.href = `${BACKEND_URL}/api/auth/${platform}/redirect?userId=${encodeURIComponent(userId)}`;
+    // Instagram Graph API auth runs through Meta/Facebook Login for Business
+    const targetPlatform = platform === 'instagram' ? 'facebook' : platform;
+    window.location.href = `${BACKEND_URL}/api/auth/${targetPlatform}`;
   };
 
   const handleSocialShare = async (platform, socialUrl) => {

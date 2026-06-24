@@ -176,7 +176,7 @@ const mongoDBModelsClient = {
     if (!MONGODB_MODELS_API_KEY) {
       throw new Error('MongoDB Models API Key not configured');
     }
-    tr  try {
+    try {
       const response = await axios.post(`${MONGODB_MODELS_BASE_URL}/models/${modelId}/infer`, 
         { inputs },
         {
@@ -195,7 +195,7 @@ const mongoDBModelsClient = {
 
   // Helper: Generate hair care recommendation based on user profile
   async generateRecommendation(userProfile) {
-    tr  try {
+    try {
       // This endpoint uses a model that analyzes hair type, needs, preferences
       const response = await axios.post(
         `${MONGODB_MODELS_BASE_URL}/models/hair-recommendation/infer`,
@@ -258,9 +258,10 @@ const userSchema = new mongoose.Schema({
           },
       tiktok: {
               id:          { type: String },
-              accessToken: { type: String },h
+              accessToken: { type: String },
               expiresAt:   { type: Date }
       }
+}
 });
 const User = mongoose.model('User', userSchema);
 
@@ -316,7 +317,7 @@ const authMiddleware = async (req, res, next) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
-  tr  try {
+  try {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.userId);
@@ -411,7 +412,7 @@ app.get('/api/health', (req, res) => {
 
 // Health check for MongoDB Models API
 app.get('/api/models/health', async (req, res) => {
-  tr  try {
+  try {
     const hasKey = !!MONGODB_MODELS_API_KEY;
     res.json({
       status: hasKey ? 'configured' : 'not-configured',
@@ -425,7 +426,7 @@ app.get('/api/models/health', async (req, res) => {
 
 // Generate personalized hair care recommendation
 app.post('/api/models/recommend', authMiddleware, async (req, res) => {
-  tr  try {
+  try {
     const { hairType, concerns, preferredIngredients, budget } = req.body;
 
     // Validate input
@@ -468,7 +469,7 @@ app.post('/api/models/recommend', authMiddleware, async (req, res) => {
 
 // Generic MongoDB Models API call endpoint (authenticated)
 app.post('/api/models/call', authMiddleware, async (req, res) => {
-  tr  try {
+  try {
     const { modelId, inputs } = req.body;
 
     if (!modelId) {
@@ -509,7 +510,7 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
 
 // POST /api/auth/google - Google OAuth Authentication
 app.post('/api/auth/google', async (req, res) => {
-  tr  try {
+  try {
     const { accessToken } = req.body;
     
     if (!accessToken) {
@@ -563,7 +564,7 @@ app.post('/api/auth/google', async (req, res) => {
 
 // SIGN UP
 app.post('/api/signup', async (req, res) => {
-  tr  try {
+  try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
     if (password.length < 8) return res.status(400).json({ error: 'Password must be 8+ chars' });
@@ -588,7 +589,7 @@ app.post('/api/signup', async (req, res) => {
 
 // LOG IN
 app.post('/api/login', async (req, res) => {
-  tr  try {
+  try {
     const { email, password, rememberMe } = req.body;
     const user = await User.findOne({ email: email?.toLowerCase() });
 
@@ -612,7 +613,7 @@ app.post('/api/login', async (req, res) => {
 
 // FORGOT PASSWORD
 app.post('/api/auth/forgot-password', async (req, res) => {
-  tr  try {
+  try {
     const { email } = req.body;
     const user = await User.findOne({ email: email?.toLowerCase() });
     const SAFE_MSG = "If that email is registered, a reset link has been sent.";
@@ -637,7 +638,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 
 // RESET PASSWORD
 app.post('/api/auth/reset-password/:token', async (req, res) => {
-  tr  try {
+  try {
     const { password } = req.body;
     const { token } = req.params;
 
@@ -664,7 +665,7 @@ app.post('/api/auth/reset-password/:token', async (req, res) => {
 
 // STRIPE
 app.post('/api/create-payment-intent', async (req, res) => {
-  tr  try {
+  try {
     const { amount } = req.body;
     if (!amount) return res.status(400).json({ error: "Amount required" });
 
@@ -683,7 +684,7 @@ app.post('/api/create-payment-intent', async (req, res) => {
 
 // 1. Fetch all submissions
 app.get('/api/duma', async (req, res) => {
-  tr  try {
+  try {
     const items = await DumaItem.find().sort({ createdAt: -1 });
     
     // Enrich items with submitter social links and avatar
@@ -711,7 +712,7 @@ app.get('/api/duma', async (req, res) => {
 
 // 2. Voting Logic - Accept both "voteType" and "vote" parameters
 app.post('/api/duma/:id/vote', authMiddleware, async (req, res) => {
-  tr  try {
+  try {
     const voteType = req.body.voteType || req.body.vote; // Support both parameter names
     if (!['yay', 'nay'].includes(voteType)) {
       return res.status(400).json({ error: 'Vote must be "yay" or "nay"' });
@@ -735,7 +736,7 @@ app.post('/api/duma/:id/vote', authMiddleware, async (req, res) => {
 
 // 3. Submit recommendation to Duma
 app.post('/api/duma/recommend', authMiddleware, async (req, res) => {
-  tr  try {
+  try {
     const { name, company, reason } = req.body;
     if (!name || !company || !reason) return res.status(400).json({ error: 'All fields required' });
 
@@ -758,7 +759,7 @@ app.post('/api/duma/recommend', authMiddleware, async (req, res) => {
 
 // 4. Submit partner application to Duma
 app.post('/api/duma/partner', authMiddleware, async (req, res) => {
-  tr  try {
+  try {
     const { company, product, desc, tier } = req.body;
     if (!company || !product || !desc) return res.status(400).json({ error: 'All fields required' });
 
@@ -801,7 +802,7 @@ app.get('/api/rank', authMiddleware, async (req, res) => {
 
 // GET /api/profile - Fetch user profile with perspectives and social links
 app.get('/api/profile', authMiddleware, async (req, res) => {
-  tr  try {
+  try {
     const user = req.user;
     res.json({
       email: user.email,
@@ -824,7 +825,7 @@ app.get('/api/profile', authMiddleware, async (req, res) => {
 
 // PUT /api/profile - Update user profile perspectives
 app.put('/api/profile', authMiddleware, async (req, res) => {
-  tr  try {
+  try {
     const { perspective, socialLinks, avatar } = req.body;
     
     const updateData = {};
@@ -862,7 +863,7 @@ app.put('/api/profile', authMiddleware, async (req, res) => {
 
 // PUT /api/profile/social-links - Update only social media links
 app.put('/api/profile/social-links', authMiddleware, async (req, res) => {
-  tr  try {
+  try {
     const { socialLinks } = req.body;
     
     const user = await User.findByIdAndUpdate(
@@ -881,7 +882,7 @@ app.put('/api/profile/social-links', authMiddleware, async (req, res) => {
 
 // POST /api/media/upload - Upload media file (photo or video)
 app.post('/api/media/upload', authMiddleware, upload.single('file'), async (req, res) => {
-  tr  try {
+  try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file provided' });
     }
@@ -904,7 +905,7 @@ app.post('/api/media/upload', authMiddleware, upload.single('file'), async (req,
     
     // Upload to Cloudinary
     let storageUrl;
-    tr  try {
+    try {
       const uploadResult = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
@@ -959,8 +960,8 @@ app.post('/api/media/upload', authMiddleware, upload.single('file'), async (req,
 });
 
 // DELETE /api/media/{mediaId} - Delete media file
-apapp.delete('/api/media/:mediaId', authMiddleware, async (req, res) => {
-  tr  try {
+app.delete('/api/media/:mediaId', authMiddleware, async (req, res) => {
+  try {
     const media = await Media.findById(req.params.mediaId);
     if (!media) {
       return res.status(404).json({ error: 'Media not found' });
@@ -981,8 +982,8 @@ apapp.delete('/api/media/:mediaId', authMiddleware, async (req, res) => {
 });
 
 // ========== LEADERBOARD ==========
-app.app.get('/api/leaderboard', async (req, res) => {
-  tr  try {
+app.get('/api/leaderboard', async (req, res) => {
+  try {
     const users = await User.find({}, 'email rank_score rank_title')
       .sort({ rank_score: -1 })
       .limit(50);
@@ -990,11 +991,12 @@ app.app.get('/api/leaderboard', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch leaderboard' });
   }
+});
 
   // ============================================================
   // INSTAGRAM OAUTH 2.0
   // ============================================================
-  apapp.get('/api/auth/instagram/redirect', (req, res) => {
+  app.get('/api/auth/instagram/redirect', (req, res) => {
       const { userId } = req.query;
       if (!userId) return res.status(400).json({ error: 'userId required' });
       const params = new URLSearchParams({
@@ -1007,12 +1009,12 @@ app.app.get('/api/leaderboard', async (req, res) => {
       res.redirect('https://api.instagram.com/oauth/authorize?' + params.toString());
   });
 
-  apapp.get('/api/auth/instagram/callback', async (req, res) => {
+  app.get('/api/auth/instagram/callback', async (req, res) => {
       const { code, state: userId, error } = req.query;
       const FRONTEND = process.env.FRONTEND_URL || 'https://themajorities.com';
       if (error) return res.redirect(FRONTEND + '/profile?error=instagram_denied');
       if (!code || !userId) return res.redirect(FRONTEND + '/profile?error=instagram_missing_params');
-      tr  try {
+      try {
             const shortRes = await axios.post(
                     'https://api.instagram.com/oauth/access_token',
                     new URLSearchParams({
@@ -1043,17 +1045,80 @@ app.app.get('/api/leaderboard', async (req, res) => {
       }
   });
 
-  apapp.delete('/api/auth/instagram/disconnect', authMiddleware, async (req, res) => {
-      tr  try {
+  app.delete('/api/auth/instagram/disconnect', authMiddleware, async (req, res) => {
+      try {
             await User.findByIdAndUpdate(req.user._id, { $unset: { 'oauthProviders.instagram': '' } });
             res.json({ success: true });
       } catch (err) { res.status(500).json({ error: 'Disconnect failed' }); }
   });
 
+// ============================================================
+// FACEBOOK / INSTAGRAM (META) OAUTH 2.0
+// ============================================================
+app.get('/api/auth/facebook', (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.status(400).json({ error: 'userId required' });
+  const redirectUri = encodeURIComponent(process.env.BACKEND_URL + '/api/auth/facebook/callback');
+  const scope = 'instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement';
+  const metaAuthUrl = 'https://www.facebook.com/v19.0/dialog/oauth?client_id=' + process.env.FACEBOOK_APP_ID + '&redirect_uri=' + redirectUri + '&state=' + userId + '&scope=' + scope;
+  res.redirect(metaAuthUrl);
+});
+
+app.get('/api/auth/facebook/callback', async (req, res) => {
+  const { code, state: userId, error } = req.query;
+  const FRONTEND = process.env.FRONTEND_URL || 'https://themajorities.com';
+  if (error) return res.redirect(FRONTEND + '/profile?error=facebook_denied');
+  if (!code || !userId) return res.redirect(FRONTEND + '/profile?error=facebook_missing_params');
+  try {
+    const redirectUri = process.env.BACKEND_URL + '/api/auth/facebook/callback';
+    const tokenRes = await axios.get('https://graph.facebook.com/v19.0/oauth/access_token', {
+      params: {
+        client_id: process.env.FACEBOOK_APP_ID,
+        client_secret: process.env.FACEBOOK_APP_SECRET,
+        redirect_uri: redirectUri,
+        code
+      }
+    });
+    const shortToken = tokenRes.data.access_token;
+    const longRes = await axios.get('https://graph.facebook.com/v19.0/oauth/access_token', {
+      params: {
+        grant_type: 'fb_exchange_token',
+        client_id: process.env.FACEBOOK_APP_ID,
+        client_secret: process.env.FACEBOOK_APP_SECRET,
+        fb_exchange_token: shortToken
+      }
+    });
+    const longToken = longRes.data.access_token;
+    const expiresIn = longRes.data.expires_in || 5184000;
+    let igBusinessId = null;
+    try {
+      const pagesRes = await axios.get('https://graph.facebook.com/v19.0/me/accounts?access_token=' + longToken);
+      const page = pagesRes.data.data && pagesRes.data.data[0];
+      if (page) {
+        const igRes = await axios.get('https://graph.facebook.com/v19.0/' + page.id + '?fields=instagram_business_account&access_token=' + longToken);
+        igBusinessId = igRes.data.instagram_business_account && igRes.data.instagram_business_account.id;
+      }
+    } catch (igErr) {
+      console.warn('Could not fetch Instagram Business ID:', igErr.message);
+    }
+    await User.findByIdAndUpdate(userId, {
+      'oauthProviders.instagram': {
+        id: igBusinessId || '',
+        accessToken: encryptToken(longToken),
+        expiresAt: new Date(Date.now() + expiresIn * 1000)
+      }
+    });
+    res.redirect(FRONTEND + '/profile?connected=instagram');
+  } catch (err) {
+    console.error('Facebook/Instagram OAuth error:', (err.response && err.response.data) || err.message);
+    res.redirect(FRONTEND + '/profile?error=facebook_failed');
+  }
+});
+
   // ============================================================
   // TIKTOK OAUTH 2.0
   // ============================================================
-  apapp.get('/api/auth/tiktok/redirect', (req, res) => {
+  app.get('/api/auth/tiktok/redirect', (req, res) => {
       const { userId } = req.query;
       if (!userId) return res.status(400).json({ error: 'userId required' });
       const params = new URLSearchParams({
@@ -1066,12 +1131,12 @@ app.app.get('/api/leaderboard', async (req, res) => {
       res.redirect('https://www.tiktok.com/auth/authorize/?' + params.toString());
   });
 
-  apapp.get('/api/auth/tiktok/callback', async (req, res) => {
+  app.get('/api/auth/tiktok/callback', async (req, res) => {
       const { code, state: userId, error } = req.query;
       const FRONTEND = process.env.FRONTEND_URL || 'https://themajorities.com';
       if (error) return res.redirect(FRONTEND + '/profile?error=tiktok_denied');
       if (!code || !userId) return res.redirect(FRONTEND + '/profile?error=tiktok_missing_params');
-      tr  try {
+      try {
             const tokenRes = await axios.post(
                     'https://open-api.tiktok.com/oauth/access_token/',
                     new URLSearchParams({
@@ -1098,8 +1163,8 @@ app.app.get('/api/leaderboard', async (req, res) => {
       }
   });
 
-  apapp.delete('/api/auth/tiktok/disconnect', authMiddleware, async (req, res) => {
-      tr  try {
+  app.delete('/api/auth/tiktok/disconnect', authMiddleware, async (req, res) => {
+      try {
             await User.findByIdAndUpdate(req.user._id, { $unset: { 'oauthProviders.tiktok': '' } });
             res.json({ success: true });
       } catch (err) { res.status(500).json({ error: 'Disconnect failed' }); }
@@ -1108,8 +1173,8 @@ app.app.get('/api/leaderboard', async (req, res) => {
   // ============================================================
   // SOCIAL SHARE / PUBLISH
   // ============================================================
-  apapp.get('/api/social/status', authMiddleware, async (req, res) => {
-      tr  try {
+  app.get('/api/social/status', authMiddleware, async (req, res) => {
+      try {
             const user = await User.findById(req.user._id).select('oauthProviders');
             res.json({
                     instagram: !!(user?.oauthProviders?.instagram?.accessToken),
@@ -1118,8 +1183,8 @@ app.app.get('/api/leaderboard', async (req, res) => {
       } catch (err) { res.status(500).json({ error: 'Status check failed' }); }
   });
 
-  apapp.post('/api/social/share/instagram', authMiddleware, async (req, res) => {
-      tr  try {
+  app.post('/api/social/share/instagram', authMiddleware, async (req, res) => {
+      try {
             const { videoUrl, caption = '' } = req.body;
             if (!videoUrl) return res.status(400).json({ error: 'videoUrl required' });
             const user = await User.findById(req.user._id);
@@ -1154,8 +1219,8 @@ app.app.get('/api/leaderboard', async (req, res) => {
       }
   });
 
-  apapp.post('/api/social/share/tiktok', authMiddleware, async (req, res) => {
-      tr  try {
+  app.post('/api/social/share/tiktok', authMiddleware, async (req, res) => {
+      try {
             const { videoUrl, caption = '' } = req.body;
             if (!videoUrl) return res.status(400).json({ error: 'videoUrl required' });
             const user = await User.findById(req.user._id);
@@ -1177,7 +1242,6 @@ app.app.get('/api/leaderboard', async (req, res) => {
             res.status(500).json({ error: 'Failed to share: ' + (err.response?.data?.error?.message || err.message) });
       }
   });
-});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Backend running on port ${PORT}`));

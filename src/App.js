@@ -728,10 +728,10 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
           return updated;
         });
       }
-    }).catch(() => {});
       if (data.perspective && Object.keys(data.perspective).length > 0) {
         setAnyVideoPushed(true);
       }
+    }).catch(() => {});
   }, [authToken, onAvatarUpdate]);
 
   useEffect(() => {

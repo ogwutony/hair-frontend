@@ -3632,7 +3632,7 @@ export default function App() {
           <Route path="/admin/orders" element={<AdminOrdersPage authToken={authToken} userEmail={userEmail} />} />
           <Route path="/model" element={<ModelFriendlyPage />} />
           <Route path="/TermsofService" element={<TermsOfServicePage />} />
-          <Route path="/Privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
         </Routes>
       <footer style={{ marginTop: '60px', padding: '20px 60px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'center', gap: '30px', fontSize: '12px' }}>
         <Link to="/TermsofService" style={{ color: '#666', textDecoration: 'none' }}>Terms of Service</Link>

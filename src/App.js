@@ -729,6 +729,9 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         });
       }
     }).catch(() => {});
+      if (data.perspective && Object.keys(data.perspective).length > 0) {
+        setAnyVideoPushed(true);
+      }
   }, [authToken, onAvatarUpdate]);
 
   useEffect(() => {
@@ -1048,12 +1051,8 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       return;
     }
 
-    // Fix 1: Find the first available saved video URL from perspective boxes
-    const realVideoUrl = perspective.box1.videoUrl ||
-                         perspective.box2.videoUrl ||
-                         perspective.box3.videoUrl ||
-                         perspective.box4.videoUrl ||
-                         "";
+    // Fix 1: Use cultureMediaPreview for the active file upload structure
+    const realVideoUrl = cultureMediaPreview || "";
 
     if (!realVideoUrl) {
       alert('No active video URL found to share. Please save a perspective video first.');

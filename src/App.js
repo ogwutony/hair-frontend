@@ -2659,7 +2659,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
         <button onClick={() => setActiveSection("Culture")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Culture" ? '#222' : '#f5f5f5', color: activeSection === "Culture" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Culture ({culturalItems.length})</button>
         <button onClick={() => setActiveSection("Recommendations")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Recommendations" ? '#222' : '#f5f5f5', color: activeSection === "Recommendations" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Recommendations ({recommendationItems.length})</button>
         <button onClick={() => setActiveSection("Partners")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Partners" ? '#222' : '#f5f5f5', color: activeSection === "Partners" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Partners ({partnerItems.length})</button>
-        {authToken && <button onClick={() => window.location.href = '/culture'} style={{ padding: '8px 14px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', marginLeft: 'auto' }}>+ Share Your Perspective</button>}
+        <button onClick={() => window.location.href = authToken ? '/culture' : '/login'} style={{ padding: '8px 14px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', marginLeft: 'auto' }}>{authToken ? '+ Share Your Perspective' : 'Log in to Share'}</button>
       </div>
 
       {activeSection === "Culture" && (
@@ -2749,7 +2749,13 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
         </div>
       )}
 
-      {activeSection === "Recommendations" && (
+      {activeSection === "Recommendations" && !authToken && (
+        <div style={{ padding: '20px 0' }}>
+          <GuestSubmissionPrompt message="This section contains proprietary commerce ledger records, partner structures, and product recommendations. Please log in or register to view this data." />
+        </div>
+      )}
+
+      {activeSection === "Recommendations" && authToken && (
         <div>
           {recommendationItems.length === 0 ? (
             <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No product recommendations yet. Be the first to recommend a product!</div>
@@ -2816,7 +2822,13 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
         </div>
       )}
 
-      {activeSection === "Partners" && (
+      {activeSection === "Partners" && !authToken && (
+        <div style={{ padding: '20px 0' }}>
+          <GuestSubmissionPrompt message="This section contains proprietary commerce ledger records, partner structures, and product recommendations. Please log in or register to view this data." />
+        </div>
+      )}
+
+      {activeSection === "Partners" && authToken && (
         <div>
           {partnerItems.length === 0 ? (
             <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No partner applications yet. Be the first to submit a partnership!</div>
@@ -3588,27 +3600,28 @@ export default function App() {
             <Link to="/recommend" style={styles.navLink}>Recommend</Link>
             <Link to="/partner" style={styles.navLink}>Partner</Link>
             {/* <Link to="/model" style={styles.navLink}>Model View</Link> */}
-            {isLoggedIn ? (
-              <>
-                <Link to="/duma" style={styles.navLink}>The Duma</Link>
-                <Link to="/perspectives" style={styles.navLink}>Culture</Link>
-                {isLoggedIn && userEmail === "YOUR_EMAIL@domain.com" && (
-                  <Link to="/admin/orders" style={{ ...styles.navLink, color: '#e74c3c', fontWeight: '700' }}>
-                    ⚙️ Admin Control
-                  </Link>
-                )}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: '1px solid #eee', paddingLeft: '15px' }}>
-                  <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
-                  {rankTitle && <RankBadge rankTitle={rankTitle} />}
-                  <span style={styles.auth} onClick={handleLogout}>Logout</span>
+            {/* Publicly visible links */}
+              <Link to="/duma" style={styles.navLink}>The Duma</Link>
+              <Link to="/perspectives" style={styles.navLink}>Culture</Link>
+              {isLoggedIn ? (
+                <>
+                  {isLoggedIn && userEmail === "YOUR_EMAIL@domain.com" && (
+                    <Link to="/admin/orders" style={{ ...styles.navLink, color: '#e74c3c', fontWeight: '700' }}>
+                      ⚙️ Admin Control
+                    </Link>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: '1px solid #eee', paddingLeft: '15px' }}>
+                    <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
+                    {rankTitle && <RankBadge rankTitle={rankTitle} />}
+                    <span style={styles.auth} onClick={handleLogout}>Logout</span>
+                  </div>
+                </>
+              ) : (
+                <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                  <Link to="/signup" style={styles.auth}>Sign Up</Link>
+                  <Link to="/login" style={styles.auth}>Login</Link>
                 </div>
-              </>
-            ) : (
-              <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                <Link to="/signup" style={styles.auth}>Sign Up</Link>
-                <Link to="/login" style={styles.auth}>Login</Link>
-              </div>
-            )}
+              )}
           </nav>
         </header>
         <Routes>

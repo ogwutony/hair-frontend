@@ -870,6 +870,8 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
           alert('Video must be 60 seconds or less.');
           return;
         }
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({ event: 'video_upload_start' });
         setPerspective(prev => {
           if (prev[boxKey].videoUrl && prev[boxKey].videoUrl.startsWith('blob:')) {
             URL.revokeObjectURL(prev[boxKey].videoUrl);
@@ -884,6 +886,8 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
 
   const handleSaveVideo = async (boxKey) => {
     if (!perspective[boxKey].videoFile || !authToken) return;
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ event: 'video_upload_start' });
     setVideoSaveStatus(prev => ({ ...prev, [boxKey]: "saving" }));
     try {
       const formData = new FormData();
@@ -920,6 +924,13 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         setPerspective(updatedPerspective);
         if (onAddPoints) onAddPoints(100);
         setAnyVideoPushed(true);
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({
+          event: 'video_upload_success',
+          author_name: userEmail || '',
+          article_title: perspective[boxKey].description || '',
+          content_category: 'Duma'
+        });
         setVideoSaveStatus(prev => ({ ...prev, [boxKey]: "saved" }));
       } else {
         setVideoSaveStatus(prev => ({ ...prev, [boxKey]: "error" }));

@@ -3602,13 +3602,14 @@ export default function App() {
             {/* <Link to="/model" style={styles.navLink}>Model View</Link> */}
             {/* Publicly visible links */}
               <Link to="/duma" style={styles.navLink}>The Duma</Link>
-              {isLoggedIn ? (
-                <>
-                <Link to="/perspectives" style={styles.navLink}>Culture</Link>
-                {isLoggedIn && userEmail === "YOUR_EMAIL@domain.com" && (
-                      ⚙️ Admin Control
-                    </Link>
-                  )}
+{isLoggedIn ? (
+            <>
+              <Link to="/perspectives" style={styles.navLink}>Culture</Link>
+ {isLoggedIn && userEmail === "YOUR_EMAIL@domain.com" && (
+                 <Link to="/admin/orders" style={{ ...styles.navLink, color: '#e74c3c', fontWeight: '700' }}>
+                   ⚙️ Admin Control
+                     </Link>
+                                 )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: '1px solid #eee', paddingLeft: '15px' }}>
                     <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
                     {rankTitle && <RankBadge rankTitle={rankTitle} />}

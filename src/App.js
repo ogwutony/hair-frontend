@@ -509,59 +509,36 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
 
   // --- NEW: Share Your Perspective Media States ---
   const [cultureResponse, setCultureResponse] = useState("");
-  const [cultureMediaFile, setCultureMediaFile] = useState(null);
-  const [cultureMediaType, setCultureMediaType] = useState(null);
-  const [cultureMediaPreview, setCultureMediaPreview] = useState(null);
+  const [cultureMediaFiles, setCultureMediaFiles] = useState([]);
+  const [cultureMediaPreviews, setCultureMediaPreviews] = useState([]);
   const [cultureSubmitStatus, setCultureSubmitStatus] = useState("idle");
   const [cultureErrorMsg, setCultureErrorMsg] = useState("");
 
   const perspectivePrompts = [
-    { id: 1, text: "Drop a photo of your current view right now—no filtering, no cleaning up. Where are you working or relaxing from today?" },
-    { id: 2, text: "If you had to describe your week so far using only one word, what would it be? Share it below!" },
-    { id: 3, text: "Give a quick shout-out to a tool, a life hack, or a person that saved you time this week. What was it?" },
-    { id: 4, text: "What is a completely harmless 'hill you are willing to die on'? (e.g., 'Cereal is soup,' 'Defrosting the car is the worst chore'). Let's hear your hot takes!" },
-    { id: 5, text: "What was your very first job, and what is the most important (or hilarious) lesson you learned from it?" },
-    { id: 6, text: "Let's celebrate the small stuff. What is one thing you accomplished this week—big or small—that you're proud of?" },
-    { id: 7, text: "What is a project you are working on right now that has you genuinely excited?" },
-    { id: 8, text: "Open your phone's photo library, go to the 5th most recent photo, and post it with zero context. Let the comments guess the story." },
-    { id: 9, text: "If you could go back and give your 20-year-old self one piece of advice about life or career, what would it be?" },
-    { id: 10, text: "Whats a more fun sport to watch Basketball or Football? Whats more fun to play?" },
-    { id: 11, text: "Celebrity crush?" },
-    { id: 12, text: "What is one morning ritual or habit that completely flips your mindset for a successful day?" },
-    { id: 13, text: "Show or tell us about a 'blind buy' (product, book, or gadget) that actually exceeded your expectations." },
-    { id: 14, text: "What is the best piece of advice you've received about avoiding burnout?" },
-    { id: 15, text: "What's a small, mundane task you've completely optimized or automated in your life?" },
-    { id: 16, text: "Describe your ultimate, no-compromise Sunday routine in three words or a quick clip." },
-    { id: 17, text: "What does 'unplugging' look like for you when you need a digital detox?" },
-    { id: 18, text: "What is a recent small win or personal milestone you're celebrating this week?" },
-    { id: 19, text: "What is one ingredient, scent, or product you absolutely cannot live without right now?" },
-    { id: 20, text: "Who is someone in your local community or online space making a quiet but massive impact? Give them a shout-out!" },
-    { id: 21, text: "What is a cultural tradition or family custom you've actively chosen to keep alive?" },
-    { id: 22, text: "Describe a time a stranger's small act of kindness completely turned your week around." },
-    { id: 23, text: "What does the word 'community' mean to you in today's world?" },
-    { id: 24, text: "What is a book, podcast, or documentary that completely altered how you view a certain topic?" },
-    { id: 25, text: "Show or tell us about a passion project you are working on purely for the joy of it." },
-    { id: 26, text: "If you could instantly master any creative skill or craft overnight, what would it be?" },
-    { id: 27, text: "What is a common piece of conventional wisdom that you completely disagree with?" },
-    { id: 28, text: "What is something you are deeply optimistic about looking into the next year?" },
-    { id: 29, text: "If you could send a 30-second voice note to yourself from five years ago, what would you say?" },
-    { id: 30, text: "What is a new hobby or topic you've suddenly become obsessed with learning about?" },
-    { id: 31, text: "What is one thing you did this week that your future self will thank you for?" },
-    { id: 32, text: "Show us your current hair routine in 3 steps or less. What are the non-negotiables you swear by?" },
-    { id: 33, text: "What is your go-to protective style right now, and how long do you keep it in? Drop a pic or description!" },
-    { id: 34, text: "What is the one hair product that completely transformed your hair health? Brand, type, and why—spill it all!" },
-    { id: 35, text: "Let's talk shrinkage! How do you embrace or manage your natural curl pattern day-to-day?" },
-    { id: 36, text: "What is the biggest hair care myth you used to believe that turned out to be totally wrong?" },
-    { id: 37, text: "Show us your current OOTD (Outfit of the Day)! What inspired today's look—mood, weather, or something else?" },
-    { id: 38, text: "What is one fashion rule you were taught that you have completely thrown out? What rule do you live by instead?" },
-    { id: 39, text: "If you could only shop at one store or brand for an entire year, which would it be and why?" },
-    { id: 40, text: "Drop your best budget fashion hack. How do you build great outfits without breaking the bank?" },
-    { id: 41, text: "What's a wardrobe staple that every person should own regardless of their personal style?" },
-    { id: 42, text: "Share your number one beauty hack that most people don't know about. The tip that genuinely changed your routine!" },
-    { id: 43, text: "What is a skincare or beauty ingredient you recently discovered and can't stop recommending to everyone?" },
-    { id: 44, text: "Describe your 5-minute 'I'm running late' beauty routine. What are the absolute essentials you never skip?" },
-    { id: 45, text: "What is the best drugstore beauty dupe you've found for a high-end product? Let the community save some money!" },
-    { id: 46, text: "Night routine check! Walk us through your wind-down skincare or beauty ritual before bed." }
+    // 🍽️ RESTAURANTS & BARS
+    { id: 1, text: "What's the best restaurant or local hidden gem you've eaten at recently? What should we order?" },
+    { id: 2, text: "Share your top bar or cocktail lounge recommendation. What's the go-to drink there?" },
+    { id: 3, text: "What is your absolute favorite brunch spot, and what makes it a must-visit?" },
+    { id: 4, text: "What's the coolest coffee shop or late-night dessert place in your area?" },
+
+    // ✈️ VACATIONS & FUN PLACES TO GO
+    { id: 5, text: "If you could recommend one vacation destination for a quick weekend getaway, where are we going?" },
+    { id: 6, text: "Drop your ultimate dream vacation spot or a past trip that blew your expectations away!" },
+    { id: 7, text: "What's a fun local spot or unique activity in your city that tourists usually miss out on?" },
+    { id: 8, text: "Share a photo or clip from your favorite travel memory or outdoor adventure." },
+
+    // 🛍️ SHOPPING & OUTFITS
+    { id: 9, text: "Show us your current OOTD (Outfit of the Day) or favorite wardrobe piece right now!" },
+    { id: 10, text: "What is your favorite brand or boutique to shop at for quality clothes or accessories?" },
+    { id: 11, text: "Drop your best budget fashion or shopping hack. How do you build killer looks for less?" },
+
+    // 🍿 MOVIES & TV SHOWS
+    { id: 12, text: "What TV show or series are you currently binge-watching that everyone needs to check out?" },
+    { id: 13, text: "What is a movie you can watch over and over again without ever getting tired of it?" },
+    { id: 14, text: "Recommend an underrated movie or show that doesn't get enough hype!" },
+
+    // ✨ ANYTHING GOES (WILDCARD)
+    { id: 15, text: "Post Anything! Share whatever is on your mind today—a random thought, life update, or funny hot take." }
   ]
   const [activePromptIndex, setActivePromptIndex] = useState(0);
 
@@ -578,18 +555,14 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   };
 
   const handleCultureMediaChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setCultureMediaFile(file);
-      if (file.type.startsWith("image/")) {
-        setCultureMediaType("image");
-        setCultureMediaPreview(URL.createObjectURL(file));
-      } else if (file.type.startsWith("video/")) {
-        setCultureMediaType("video");
-        setCultureMediaPreview(URL.createObjectURL(file));
-      } else {
-        alert("Please upload an image or video file only.");
-      }
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFiles = Array.from(e.target.files).slice(0, 6);
+      setCultureMediaFiles(selectedFiles);
+      const previews = selectedFiles.map((file) => ({
+        url: URL.createObjectURL(file),
+        type: file.type.startsWith("video/") ? "video" : "image",
+      }));
+      setCultureMediaPreviews(previews);
     }
   };
 
@@ -604,20 +577,23 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     setCultureSubmitStatus("uploading");
 
     try {
-      let uploadedMediaUrl = null;
+      let uploadedMediaUrls = [];
 
-      if (cultureMediaFile && authToken) {
-        const formData = new FormData();
-        formData.append("file", cultureMediaFile);
-        formData.append("type", cultureMediaType);
-        const uploadRes = await fetch(`${BACKEND_URL}/api/media/upload`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${authToken}` },
-          body: formData
-        });
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json();
-          uploadedMediaUrl = uploadData.storageUrl || uploadData.secure_url || uploadData.url;
+      if (cultureMediaFiles.length > 0 && authToken) {
+        for (const file of cultureMediaFiles) {
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("type", file.type.startsWith("video/") ? "video" : "image");
+          const uploadRes = await fetch(`${BACKEND_URL}/api/media/upload`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${authToken}` },
+            body: formData
+          });
+          if (uploadRes.ok) {
+            const uploadData = await uploadRes.json();
+            const cloudUrl = uploadData.storageUrl || uploadData.secure_url || uploadData.url;
+            if (cloudUrl) uploadedMediaUrls.push(cloudUrl);
+          }
         }
       }
 
@@ -632,8 +608,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
             prompt: selectedPrompt,
             response: cultureResponse,
             category: "Culture",
-            mediaUrl: uploadedMediaUrl,
-            mediaType: cultureMediaType
+            mediaUrls: uploadedMediaUrls
           })
         });
         const data = await res.json();
@@ -651,8 +626,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
           category: "Culture",
           prompt: selectedPrompt,
           response: cultureResponse,
-          mediaUrl: cultureMediaPreview,
-          mediaType: cultureMediaType,
+          mediaUrls: uploadedMediaUrls.length > 0 ? uploadedMediaUrls : cultureMediaPreviews.map(p => p.url),
           submittedBy: userEmail,
           submitterRank: rankTitle || 'Comrade',
           submitterAvatar: userAvatar || null,
@@ -1063,8 +1037,8 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       return;
     }
 
-    // Fix 1: Use cultureMediaPreview for the active file upload structure
-    const realVideoUrl = cultureMediaPreview || "";
+    // Use the first preview URL from multi-file uploads for social sharing
+    const realVideoUrl = cultureMediaPreviews[0]?.url || "";
 
     if (!realVideoUrl) {
       alert('No active video URL found to share. Please save a perspective video first.');
@@ -1253,18 +1227,22 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                 </div>
               </div>
 
-              <h3 style={{ marginTop: '24px', marginBottom: '8px' }}>Attach Photo or Video Perspective</h3>
-              <p style={{ fontSize: '12px', color: '#666', margin: '0 0 12px 0' }}>Show your view or record a custom speech clip context up to 60 seconds.</p>
+              <h3 style={{ marginTop: '24px', marginBottom: '8px' }}>Attach Photos or Videos (Up to 6)</h3>
+              <p style={{ fontSize: '12px', color: '#666', margin: '0 0 12px 0' }}>Share photos or clips of restaurants, outfits, vacation spots, or favorite media.</p>
 
-              <input type="file" accept="image/*,video/*" onChange={handleCultureMediaChange} style={{ ...styles.input, padding: '8px' }} />
+              <input type="file" accept="image/*,video/*" multiple onChange={handleCultureMediaChange} style={{ ...styles.input, padding: '8px' }} />
 
-              {cultureMediaPreview && (
-                <div style={{ marginTop: '15px', marginBottom: '15px', textAlign: 'center', background: '#fafafa', padding: '10px', borderRadius: '8px', border: '1px solid #eee' }}>
-                  {cultureMediaType === "image" ? (
-                    <img src={cultureMediaPreview} alt="Preview" style={{ maxWidth: '100%', maxHeight: '250px', borderRadius: '8px' }} />
-                  ) : (
-                    <video src={cultureMediaPreview} style={{ maxWidth: '100%', maxHeight: '250px', borderRadius: '8px' }} controls />
-                  )}
+              {cultureMediaPreviews.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '8px', marginTop: '15px', marginBottom: '15px' }}>
+                  {cultureMediaPreviews.map((preview, idx) => (
+                    <div key={idx} style={{ background: '#fafafa', padding: '6px', borderRadius: '8px', border: '1px solid #eee', textAlign: 'center' }}>
+                      {preview.type === "image" ? (
+                        <img src={preview.url} alt={`Preview ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '6px' }} />
+                      ) : (
+                        <video src={preview.url} style={{ width: '100%', height: '100px', borderRadius: '6px' }} controls />
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -2336,42 +2314,37 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, 
 export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, onAddPoints, userAvatar }) => {
   const navigate = useNavigate();
   const prompts = [
-    { id: 1, text: "Drop a photo of your current view right now—no filtering, no cleaning up. Where are you working or relaxing from today?" },
-    { id: 2, text: "If you had to describe your week so far using only one word, what would it be? Share it below!" },
-    { id: 3, text: "Give a quick shout-out to a tool, a life hack, or a person that saved you time this week. What was it?" },
-    { id: 4, text: "What is a completely harmless 'hill you are willing to die on'? (e.g., 'Cereal is soup,' 'Defrosting the car is the worst chore'). Let's hear your hot takes!" },
-    { id: 5, text: "What was your very first job, and what is the most important (or hilarious) lesson you learned from it?" },
-    { id: 6, text: "Let's celebrate the small stuff. What is one thing you accomplished this week—big or small—that you're proud of?" },
-    { id: 7, text: "What is a project you are working on right now that has you genuinely excited?" },
-    { id: 8, text: "Open your phone's photo library, go to the 5th most recent photo, and post it with zero context. Let the comments guess the story." },
-    { id: 9, text: "If you could go back and give your 20-year-old self one piece of advice about life or career, what would it be?" },
-    { id: 10, text: "Whats a more fun sport to watch Basketball or Football? Whats more fun to play?" },
-    { id: 11, text: "Celebrity crush?" },
-    { id: 12, text: "What is one morning ritual or habit that completely flips your mindset for a successful day?" },
-    { id: 13, text: "Show or tell us about a 'blind buy' (product, book, or gadget) that actually exceeded your expectations." },
-    { id: 14, text: "What is the best piece of advice you've received about avoiding burnout?" },
-    { id: 15, text: "What's a small, mundane task you've completely optimized or automated in your life?" },
-    { id: 16, text: "Describe your ultimate, no-compromise Sunday routine in three words or a quick clip." },
-    { id: 17, text: "What does 'unplugging' look like for you when you need a digital detox?" },
-    { id: 18, text: "What is a recent small win or personal milestone you're celebrating this week?" },
-    { id: 19, text: "What is one ingredient, scent, or product you absolutely cannot live without right now?" },
-    { id: 20, text: "Who is someone in your local community or online space making a quiet but massive impact? Give them a shout-out!" },
-    { id: 21, text: "What is a cultural tradition or family custom you've actively chosen to keep alive?" },
-    { id: 22, text: "Describe a time a stranger's small act of kindness completely turned your week around." },
-    { id: 23, text: "What does the word 'community' mean to you in today's world?" },
-    { id: 24, text: "What is a book, podcast, or documentary that completely altered how you view a certain topic?" },
-    { id: 25, text: "Show or tell us about a passion project you are working on purely for the joy of it." },
-    { id: 26, text: "If you could instantly master any creative skill or craft overnight, what would it be?" },
-    { id: 27, text: "What is a common piece of conventional wisdom that you completely disagree with?" },
-    { id: 28, text: "What is something you are deeply optimistic about looking into the next year?" },
-    { id: 29, text: "If you could send a 30-second voice note to yourself from five years ago, what would you say?" },
-    { id: 30, text: "What is a new hobby or topic you've suddenly become obsessed with learning about?" },
-    { id: 31, text: "What is one thing you did this week that your future self will thank you for?" }
+    // 🍽️ RESTAURANTS & BARS
+    { id: 1, text: "What's the best restaurant or local hidden gem you've eaten at recently? What should we order?" },
+    { id: 2, text: "Share your top bar or cocktail lounge recommendation. What's the go-to drink there?" },
+    { id: 3, text: "What is your absolute favorite brunch spot, and what makes it a must-visit?" },
+    { id: 4, text: "What's the coolest coffee shop or late-night dessert place in your area?" },
+
+    // ✈️ VACATIONS & FUN PLACES TO GO
+    { id: 5, text: "If you could recommend one vacation destination for a quick weekend getaway, where are we going?" },
+    { id: 6, text: "Drop your ultimate dream vacation spot or a past trip that blew your expectations away!" },
+    { id: 7, text: "What's a fun local spot or unique activity in your city that tourists usually miss out on?" },
+    { id: 8, text: "Share a photo or clip from your favorite travel memory or outdoor adventure." },
+
+    // 🛍️ SHOPPING & OUTFITS
+    { id: 9, text: "Show us your current OOTD (Outfit of the Day) or favorite wardrobe piece right now!" },
+    { id: 10, text: "What is your favorite brand or boutique to shop at for quality clothes or accessories?" },
+    { id: 11, text: "Drop your best budget fashion or shopping hack. How do you build killer looks for less?" },
+
+    // 🍿 MOVIES & TV SHOWS
+    { id: 12, text: "What TV show or series are you currently binge-watching that everyone needs to check out?" },
+    { id: 13, text: "What is a movie you can watch over and over again without ever getting tired of it?" },
+    { id: 14, text: "Recommend an underrated movie or show that doesn't get enough hype!" },
+
+    // ✨ ANYTHING GOES (WILDCARD)
+    { id: 15, text: "Post Anything! Share whatever is on your mind today—a random thought, life update, or funny hot take." }
   ]
   const [activePromptIndex, setActivePromptIndex] = useState(0);
   const [response, setResponse] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [mediaFiles, setMediaFiles] = useState([]);
+  const [mediaPreviews, setMediaPreviews] = useState([]);
   const [communitySocials, setCommunitySocials] = useState([]);
 
   useEffect(() => {
@@ -2412,6 +2385,18 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
     });
   };
 
+  const handleMediaChange = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFiles = Array.from(e.target.files).slice(0, 6);
+      setMediaFiles(selectedFiles);
+      const previews = selectedFiles.map((file) => ({
+        url: URL.createObjectURL(file),
+        type: file.type.startsWith("video/") ? "video" : "image",
+      }));
+      setMediaPreviews(previews);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedPrompt || !response.trim()) {
@@ -2422,6 +2407,26 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
     setErrorMsg("");
     
     try {
+      let uploadedMediaUrls = [];
+
+      if (mediaFiles.length > 0 && authToken) {
+        for (const file of mediaFiles) {
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("type", file.type.startsWith("video/") ? "video" : "image");
+          const uploadRes = await fetch(`${BACKEND_URL}/api/media/upload`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${authToken}` },
+            body: formData
+          });
+          if (uploadRes.ok) {
+            const uploadData = await uploadRes.json();
+            const cloudUrl = uploadData.storageUrl || uploadData.secure_url || uploadData.url;
+            if (cloudUrl) uploadedMediaUrls.push(cloudUrl);
+          }
+        }
+      }
+
       if (authToken) {
         const res = await fetch(`${BACKEND_URL}/api/duma/culture`, {
           method: 'POST',
@@ -2429,7 +2434,8 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
           body: JSON.stringify({
             prompt: selectedPrompt,
             response: response,
-            category: "Culture"
+            category: "Culture",
+            mediaUrls: uploadedMediaUrls
           })
         });
         const data = await res.json();
@@ -2443,13 +2449,14 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
         category: "Culture",
         prompt: selectedPrompt,
         response: response,
+        mediaUrls: uploadedMediaUrls.length > 0 ? uploadedMediaUrls : mediaPreviews.map(p => p.url),
         submittedBy: userEmail,
         submitterRank: rankTitle || 'Comrade',
         submitterAvatar: userAvatar || null,
         votes: { yes: 0 }
       });
 
-      if (onAddPoints) onAddPoints(1); // 1 point for submission
+      if (onAddPoints) onAddPoints(100);
       
       setSubmitted(true);
       setTimeout(() => {
@@ -2463,12 +2470,13 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
         category: "Culture",
         prompt: selectedPrompt,
         response: response,
+        mediaUrls: mediaPreviews.map(p => p.url),
         submittedBy: userEmail,
         submitterRank: rankTitle || 'Comrade',
         submitterAvatar: userAvatar || null,
         votes: { yes: 0 }
       });
-      if (onAddPoints) onAddPoints(1);
+      if (onAddPoints) onAddPoints(100);
       setSubmitted(true);
     }
   };
@@ -2551,6 +2559,23 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
           </div>
         )}
 
+        <h3 style={{ marginTop: '24px', marginBottom: '8px' }}>Attach Photos or Videos (Up to 6)</h3>
+        <p style={{ fontSize: '12px', color: '#666', margin: '0 0 12px 0' }}>Share photos or clips of restaurants, outfits, vacation spots, or favorite media.</p>
+        <input type="file" accept="image/*,video/*" multiple onChange={handleMediaChange} style={{ ...styles.input, padding: '8px' }} />
+        {mediaPreviews.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '8px', marginTop: '15px', marginBottom: '15px' }}>
+            {mediaPreviews.map((preview, idx) => (
+              <div key={idx} style={{ background: '#fafafa', padding: '6px', borderRadius: '8px', border: '1px solid #eee', textAlign: 'center' }}>
+                {preview.type === "image" ? (
+                  <img src={preview.url} alt={`Preview ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '6px' }} />
+                ) : (
+                  <video src={preview.url} style={{ width: '100%', height: '100px', borderRadius: '6px' }} controls />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         <h3 style={{ marginTop: '24px', marginBottom: '12px' }}>Your Response</h3>
         <p style={{ fontSize: '12px', color: '#666', margin: '0 0 12px 0' }}>Share your thoughts (recommended: 45 seconds of speaking if recorded)</p>
         <textarea
@@ -2561,7 +2586,7 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
           onChange={(e) => setResponse(e.target.value)}
         />
 
-        <button type="submit" style={styles.authButton}>Submit to the Duma (+1 point)</button>
+        <button type="submit" style={styles.authButton}>Submit to the Duma (+100 points)</button>
       </form>
 
       {/* COMMUNITY SOCIAL FEED */}
@@ -2721,15 +2746,25 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                   <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6', marginBottom: '14px' }}>{item.response || item.reason || item.desc}</p>
 
                   {/* MEDIA DISPLAY: renders uploaded images or videos inline */}
-                  {item.mediaUrl && (
-                    <div style={{ margin: '15px 0', background: '#fafafa', padding: '10px', borderRadius: '12px', border: '1px solid #eee', textAlign: 'center' }}>
-                      {item.mediaType === "video" || /\.(mp4|mov|webm)$/i.test(item.mediaUrl) ? (
-                        <video src={item.mediaUrl} style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px' }} controls />
-                      ) : (
-                        <img src={item.mediaUrl} alt="Perspective Attachment" style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px', objectFit: 'contain' }} />
-                      )}
-                    </div>
-                  )}
+                  {(() => {
+                    const mediaList = Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0
+                      ? item.mediaUrls
+                      : item.mediaUrl ? [item.mediaUrl] : [];
+                    if (mediaList.length === 0) return null;
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: mediaList.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', margin: '15px 0', background: '#fafafa', padding: '10px', borderRadius: '12px', border: '1px solid #eee' }}>
+                        {mediaList.map((url, idx) => (
+                          <div key={idx} style={{ textAlign: 'center' }}>
+                            {/\.(mp4|mov|webm)$/i.test(url) ? (
+                              <video src={url} style={{ width: '100%', maxHeight: '400px', borderRadius: '8px' }} controls />
+                            ) : (
+                              <img src={url} alt={`Attachment ${idx + 1}`} style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover' }} />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
 
                   {authToken && (
                     <div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate, useLocation, useParams } from "react-router-dom";
+import AdMonetization, { trackEvent } from "./components/AdMonetization";
 // --- 1. SHOPIFY CONFIGURATION ---
 const SHOP_DOMAIN = "c0bqfe-z2.myshopify.com";
 
@@ -1723,11 +1724,23 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
   
   const handleOneTimeCheckout = () => {
     if (!isSetComplete) return;
+    trackEvent("checkout_started", {
+      placement: "landing_page",
+      purchaseType: "one_time",
+      itemCount: selectedItems.length,
+      checkoutValue: setTotals.oneTime
+    });
     submitShopifyCheckout(selectedItems, "one-time");
   };
 
   const handleSubscriptionCheckout = () => {
     if (!isSetComplete) return;
+    trackEvent("checkout_started", {
+      placement: "landing_page",
+      purchaseType: "subscription",
+      itemCount: selectedItems.length,
+      checkoutValue: setTotals.subscription
+    });
     submitShopifyCheckout(selectedItems, "subscription");
   };
   
@@ -1820,6 +1833,7 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
             </div>
           ) : <p style={{ fontSize: '12px', color: '#888' }}>Select 6 products to checkout</p>}
         </div>
+        <AdMonetization placement="landing_sidebar" />
       </aside>
     </div>
   );

@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
-import App from './App';
+import { MemoryRouter } from 'react-router-dom';
+import App, { CultureLabPage } from './App';
 
 jest.mock('@stripe/stripe-js', () => ({
   loadStripe: jest.fn(() => Promise.resolve(null)),
@@ -48,17 +49,19 @@ test('shows ad monetization on the duma page', () => {
 });
 
 test('shows ad monetization on the culture page', async () => {
-  window.localStorage.setItem('authToken', 'token');
-  window.localStorage.setItem('userEmail', 'member@example.com');
-  global.fetch = jest.fn((url) =>
-    Promise.resolve({
-      ok: true,
-      json: async () => (String(url).includes('/api/auth/me') ? { email: 'member@example.com', rank_score: 1 } : []),
-    })
+  render(
+    <MemoryRouter>
+      <CultureLabPage
+        addDumaItem={jest.fn()}
+        userEmail="member@example.com"
+        rankTitle="Comrade"
+        rankScore={1}
+        authToken="token"
+        onAddPoints={jest.fn()}
+        userAvatar={null}
+      />
+    </MemoryRouter>
   );
-
-  window.history.pushState({}, '', '/culture');
-  render(<App />);
 
   expect(await screen.findByText(/Share Your Perspective/i)).toBeInTheDocument();
   expect(screen.getByText(/Sponsored Discovery/i)).toBeInTheDocument();

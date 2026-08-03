@@ -46,3 +46,20 @@ test('shows ad monetization on the duma page', () => {
   render(<App />);
   expect(screen.getByText(/Sponsored Discovery/i)).toBeInTheDocument();
 });
+
+test('shows ad monetization on the culture page', async () => {
+  window.localStorage.setItem('authToken', 'token');
+  window.localStorage.setItem('userEmail', 'member@example.com');
+  global.fetch = jest.fn((url) =>
+    Promise.resolve({
+      ok: true,
+      json: async () => (String(url).includes('/api/auth/me') ? { email: 'member@example.com', rank_score: 1 } : []),
+    })
+  );
+
+  window.history.pushState({}, '', '/culture');
+  render(<App />);
+
+  expect(await screen.findByText(/Share Your Perspective/i)).toBeInTheDocument();
+  expect(screen.getByText(/Sponsored Discovery/i)).toBeInTheDocument();
+});

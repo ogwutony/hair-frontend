@@ -1833,7 +1833,6 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
             </div>
           ) : <p style={{ fontSize: '12px', color: '#888' }}>Select 6 products to checkout</p>}
         </div>
-        <AdMonetization placement="landing_sidebar" />
       </aside>
     </div>
   );
@@ -2334,7 +2333,7 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, 
 };
 
 // --- CULTURE LAB PAGE (Share Your Perspective) ---
-const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, onAddPoints, userAvatar }) => {
+export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, onAddPoints, userAvatar }) => {
   const navigate = useNavigate();
   const prompts = [
     { id: 1, text: "Drop a photo of your current view right now—no filtering, no cleaning up. Where are you working or relaxing from today?" },
@@ -2503,6 +2502,8 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
           <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
         </div>
       )}
+
+      <AdMonetization placement="culture_page" />
 
       {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
 
@@ -2686,6 +2687,8 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
         <button onClick={() => setActiveSection("Partners")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Partners" ? '#222' : '#f5f5f5', color: activeSection === "Partners" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Partners ({partnerItems.length})</button>
         <button onClick={() => window.location.href = authToken ? '/culture' : '/login'} style={{ padding: '8px 14px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', marginLeft: 'auto' }}>{authToken ? '+ Share Your Perspective' : 'Log in to Share'}</button>
       </div>
+
+      <AdMonetization placement="duma_page" />
 
       {activeSection === "Culture" && (
         <div>

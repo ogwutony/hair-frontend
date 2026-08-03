@@ -3622,13 +3622,6 @@ export default function App() {
       const storage = localStorage.getItem("authToken") ? localStorage : sessionStorage;
       storage.setItem("rankScore", String(newScore));
       storage.setItem("rankTitle", newRank);
-      if (authToken) {
-        fetch(`${BACKEND_URL}/api/profile/add-points`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-          body: JSON.stringify({ points })
-        }).catch(err => console.error("Error updating points:", err));
-      }
       return newScore;
     });
   }, [authToken]);

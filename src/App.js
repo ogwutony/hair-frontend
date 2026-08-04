@@ -3074,7 +3074,6 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
         </div>
       )}
     </div>
-          </div>
       <div style={{ width: '160px', flexShrink: 0 }}><AdMonetization placement="duma_right_sidebar" /></div>
         </div>
   );

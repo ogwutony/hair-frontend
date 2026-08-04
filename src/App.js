@@ -44,6 +44,9 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://hair-backend-1
 
 // --- 3. RANK SYSTEM (50-Tier Hierarchy) ---
 const RANK_TIERS = [
+    // --- SUPREME COMMAND ---  
+  { title: "Nice and Helpful", min: 75000000 },
+
   // --- EXECUTIVE COMMAND (5M Point Increments) ---
   { title: "Servant of the People",                         min: 50000000 },
   { title: "Servant of the Majorities",                     min: 45000000 },
@@ -57,7 +60,7 @@ const RANK_TIERS = [
   { title: "Secretary of Majorities Committees of Provinces", min: 5000000  },
 
   // --- HEROIC ORDERS & LABOR TITLES ---
-  { title: "Hero of Socialist Labor",                   min: 4500000 },
+  { title: "Champion of the The Majorities",                   min: 4500000 },
   { title: "Hero of the Majorities",                    min: 4000000 },
   { title: "Order of The Majorities",                   min: 3500000 },
   { title: "Order of the October Revolution",           min: 3000000 },
@@ -95,12 +98,39 @@ const getRankTitle = (score) => {
   }
   return "Comrade";
 };
-
-const isPolitburoOrHigher = (score) => score >= 10000000; // "Politburo Member of The Majorities" and above
-
-// --- CALCULATE POINTS TO NEXT RANK ---
-const getPointsToNextRank = (currentScore, currentRankTitle) => {
-  const currentIndex = RANK_TIERS.findIndex(r => r.title === currentRankTitle);
+// --- LOWER HIERARCHY TITLES (used for "Lord " prefix eligibility) ---
+const LOWER_HIERARCHY_TITLES = RANK_TIERS.slice(RANK_TIERS.findIndex(t => t.title === "Perun")).map(t => t.title);
+// Adds a "Lord " prefix once a user has answered all 15 perspective prompts while in a Lower Hierarchy rank
+const getFormattedRankTitle = (rankTitle, completedPromptsCount = 0) => {
+  if (LOWER_HIERARCHY_TITLES.includes(rankTitle) && completedPromptsCount >= 15) {
+    return `Lord ${rankTitle}`;
+  }
+  return rankTitle;
+};
+// --- PROMPT COMPLETION TRACKING (for "Lord " prefix) ---
+const COMPLETED_PROMPTS_KEY = "majorities_completed_prompts";
+const getCompletedPromptIds = (userEmail) => {
+  if (typeof window === "undefined" || !userEmail) return [];
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(COMPLETED_PROMPTS_KEY) || "{}");
+    return stored[userEmail] || [];
+  } catch {
+    return [];
+  }
+};
+const markPromptCompleted = (userEmail, promptId) => {
+  if (typeof window === "undefined" || !userEmail || !promptId) return getCompletedPromptIds(userEmail);
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(COMPLETED_PROMPTS_KEY) || "{}");
+    const existing = new Set(stored[userEmail] || []);
+    existing.add(promptId);
+    stored[userEmail] = Array.from(existing);
+    window.localStorage.setItem(COMPLETED_PROMPTS_KEY, JSON.stringify(stored));
+    return stored[userEmail];
+  } catch {
+    return getCompletedPromptIds(userEmail);
+  }
+};
   if (currentIndex <= 0) return 0;
   const nextRank = RANK_TIERS[currentIndex - 1];
   return Math.max(0, nextRank.min - currentScore);
@@ -228,7 +258,8 @@ const safeSocialUrl = (raw) => {
 const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks = {} }) => {
   const initial = (email || 'C')[0].toUpperCase();
   const color = getRankColor(rankTitle || 'Comrade');
-  const isTopRank = rankTitle === "Servant of the People";
+  const isTopRank = rankTitle === "Nice and Helpful";
+    const formattedRankTitle = getFormattedRankTitle(rankTitle || 'Comrade', getCompletedPromptIds(email).length);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', background: '#fff', flexWrap: 'wrap', marginBottom: '12px' }}>
       {/* Avatar */}
@@ -272,7 +303,7 @@ const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks 
         lineHeight: '1.3',
         ...(isTopRank ? styles.generalSecretaryBadge : {})
       }}>
-        {rankTitle || 'Comrade'}
+        {formattedRankTitle}
       </span>
       {/* Points badge */}
       {rankScore != null && (
@@ -569,6 +600,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   const handleCultureSubmit = async (e) => {
     e.preventDefault();
     const selectedPrompt = perspectivePrompts[activePromptIndex]?.text || "";
+    const selectedPromptId = perspectivePrompts[activePromptIndex]?.id;
     if (!selectedPrompt || !cultureResponse.trim()) {
       setCultureErrorMsg("Please select a prompt and provide your response.");
       return;
@@ -635,6 +667,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       }
 
       if (onAddPoints) onAddPoints(100);
+      if (userEmail && selectedPromptId) markPromptCompleted(userEmail, selectedPromptId);
       setCultureSubmitStatus("saved");
       setTimeout(() => { navigate("/duma"); }, 2000);
     } catch (err) {
@@ -2370,6 +2403,7 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
   const activePrompt = prompts[activePromptIndex];
 
   const selectedPrompt = activePrompt?.text || "";
+const selectedPromptId = activePrompt?.id;
 
   const rotatePrompt = (direction) => {
     setActivePromptIndex((prev) => {
@@ -2457,6 +2491,7 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
       });
 
       if (onAddPoints) onAddPoints(100);
+        if (userEmail && selectedPromptId) markPromptCompleted(userEmail, selectedPromptId);
       
       setSubmitted(true);
       setTimeout(() => {
@@ -2477,6 +2512,7 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
         votes: { yes: 0 }
       });
       if (onAddPoints) onAddPoints(100);
+if (userEmail && selectedPromptId) markPromptCompleted(userEmail, selectedPromptId);
       setSubmitted(true);
     }
   };

@@ -131,6 +131,11 @@ const markPromptCompleted = (userEmail, promptId) => {
     return getCompletedPromptIds(userEmail);
   }
 };
+const isPolitburoOrHigher = (score) => score >= 10000000; // "Politburo Member of The Majorities" and above
+// --- CALCULATE POINTS TO NEXT RANK ---
+const getPointsToNextRank = (currentScore, currentRankTitle) => {
+    const currentIndex = RANK_TIERS.findIndex(r => r.title === currentRankTitle);
+  
   if (currentIndex <= 0) return 0;
   const nextRank = RANK_TIERS[currentIndex - 1];
   return Math.max(0, nextRank.min - currentScore);

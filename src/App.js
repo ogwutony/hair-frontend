@@ -1205,7 +1205,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
             )}
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <label style={{ cursor: 'pointer', display: 'inline-block' }}>
-                <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png" onChange={handleAvatarUpload} style={{ display: 'none' }} />
+                <input ref={avatarInputRef} type="file" accept="image/*, image/heic, image/jpeg, image/png, image/webp" onChange={handleAvatarUpload} style={{ display: 'none' }} />
                 <button
                   type="button"
                   disabled={avatarSaveStatus === "saving"}
@@ -1268,7 +1268,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
               <h3 style={{ marginTop: '24px', marginBottom: '8px' }}>Attach Photos or Videos (Up to 6)</h3>
               <p style={{ fontSize: '12px', color: '#666', margin: '0 0 12px 0' }}>Share photos or clips of restaurants, outfits, vacation spots, or favorite media.</p>
 
-              <input type="file" accept="image/*,video/*" multiple onChange={handleCultureMediaChange} style={{ ...styles.input, padding: '8px' }} />
+              <input type="file" accept="image/*, image/heic, video/*, video/mp4, video/quicktime, video/webm" multiple onChange={handleCultureMediaChange} style={{ ...styles.input, padding: '8px' }} />
 
               {cultureMediaPreviews.length > 0 && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '8px', marginTop: '15px', marginBottom: '15px' }}>
@@ -1971,10 +1971,10 @@ const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken
           <textarea required placeholder="Good: 'Highly effective for type 4C hair; significantly reduced breakage within 3 weeks of consistent use without heavy buildup.' *" style={{ ...styles.input, height: '100px' }} value={formData.whyRecommend} onChange={e => setFormData({...formData, whyRecommend: e.target.value})} />
 
           <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginTop: '15px', marginBottom: '8px' }}>Upload Product Photo (high-resolution, label must be legible)</label>
-          <input type="file" accept="image/*" style={styles.input} onChange={e => setFormData({...formData, photo: e.target.files?.[0] || null})} />
+          <input type="file" accept="image/*, image/heic, image/jpeg, image/png, image/webp" style={styles.input} onChange={e => setFormData({...formData, photo: e.target.files?.[0] || null})} />
 
           <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginTop: '15px', marginBottom: '8px' }}>Upload Product Video (under 60s, or link to review)</label>
-          <input type="file" accept="video/*" style={styles.input} onChange={e => setFormData({...formData, video: e.target.files?.[0] || null})} />
+          <input type="file" accept="video/*, video/mp4, video/quicktime, video/webm" style={styles.input} onChange={e => setFormData({...formData, video: e.target.files?.[0] || null})} />
         </div>
 
         <button type="submit" style={styles.authButton} disabled={isLoading}>{isLoading ? "Submitting..." : "Submit to the Duma"}</button>
@@ -2226,11 +2226,11 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, 
         <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
           <h3 style={styles.formSectionTitle}>4. MEDIA</h3>
           <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Product Photo</label>
-          <input type="file" accept="image/*" style={styles.input} onChange={handlePhotoChange} />
+          <input type="file" accept="image/*, image/heic, image/jpeg, image/png, image/webp" style={styles.input} onChange={handlePhotoChange} />
           {photoPreview && <img src={photoPreview} style={{ maxWidth: '150px', marginTop: '10px', borderRadius: '8px' }} alt="Preview" />}
 
           <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>Product Video</label>
-          <input type="file" accept="video/*" style={styles.input} onChange={handleVideoChange} />
+          <input type="file" accept="video/*, video/mp4, video/quicktime, video/webm" style={styles.input} onChange={handleVideoChange} />
           {videoPreview && <video src={videoPreview} style={{ maxWidth: '150px', marginTop: '10px', borderRadius: '8px' }} controls />}
         </div>
 
@@ -2602,7 +2602,7 @@ if (userEmail && selectedPromptId) markPromptCompleted(userEmail, selectedPrompt
 
         <h3 style={{ marginTop: '24px', marginBottom: '8px' }}>Attach Photos or Videos (Up to 6)</h3>
         <p style={{ fontSize: '12px', color: '#666', margin: '0 0 12px 0' }}>Share photos or clips of restaurants, outfits, vacation spots, or favorite media.</p>
-        <input type="file" accept="image/*,video/*" multiple onChange={handleMediaChange} style={{ ...styles.input, padding: '8px' }} />
+        <input type="file" accept="image/*, image/heic, video/*, video/mp4, video/quicktime, video/webm" multiple onChange={handleMediaChange} style={{ ...styles.input, padding: '8px' }} />
         {mediaPreviews.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '8px', marginTop: '15px', marginBottom: '15px' }}>
             {mediaPreviews.map((preview, idx) => (

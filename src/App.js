@@ -293,13 +293,13 @@ const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks 
       </span>
       {rankScore != null && (
         <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', padding: '4px 10px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px', backgroundColor: '#f5f5f5', color: '#d4af37', border: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>
-          ★ {(rankScore || 1).toLocaleString()} pts
+          â {(rankScore || 1).toLocaleString()} pts
         </span>
       )}
       {socialLinks && (
         <>
-          {socialLinks.instagram && <a href={safeSocialUrl(socialLinks.instagram)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: '15px' }} title="Instagram">📷</a>}
-          {socialLinks.tiktok && <a href={safeSocialUrl(socialLinks.tiktok)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: '15px' }} title="TikTok">🎵</a>}
+          {socialLinks.instagram && <a href={safeSocialUrl(socialLinks.instagram)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: '15px' }} title="Instagram">ð·</a>}
+          {socialLinks.tiktok && <a href={safeSocialUrl(socialLinks.tiktok)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: '15px' }} title="TikTok">ðµ</a>}
           {socialLinks.facebook && <a href={safeSocialUrl(socialLinks.facebook)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: '11px', color: '#1877F2', fontWeight: '600' }} title="Facebook">Facebook</a>}
         </>
       )}
@@ -308,9 +308,9 @@ const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks 
 };
 
 const SOCIAL_FIELDS = [
-  { key: 'instagram', label: '📷 Instagram', placeholder: 'instagram.com/yourprofile' },
-  { key: 'tiktok', label: '🎵 TikTok', placeholder: 'tiktok.com/@yourprofile' },
-  { key: 'facebook', label: '📘 Facebook', placeholder: 'facebook.com/yourprofile' },
+  { key: 'instagram', label: 'ð· Instagram', placeholder: 'instagram.com/yourprofile' },
+  { key: 'tiktok', label: 'ðµ TikTok', placeholder: 'tiktok.com/@yourprofile' },
+  { key: 'facebook', label: 'ð Facebook', placeholder: 'facebook.com/yourprofile' },
 ];
 
 const SocialInputRow = ({ socialKey, label, placeholder, initialValue, onSave, onChangeGlobal, saveStatus }) => {
@@ -335,7 +335,7 @@ const SocialInputRow = ({ socialKey, label, placeholder, initialValue, onSave, o
           disabled={isSocialSaveDisabled}
           style={{ padding: '10px 16px', backgroundColor: saveStatus === "saved" ? '#27ae60' : saveStatus === "error" ? '#e74c3c' : '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: isSocialSaveDisabled ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '12px', minWidth: '85px' }}
         >
-          {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "✓ Linked" : "Save"}
+          {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "â Linked" : "Save"}
         </button>
       </div>
     </div>
@@ -375,7 +375,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     { id: 12, text: "What TV show or series are you currently binge-watching that everyone needs to check out?" },
     { id: 13, text: "What is a movie you can watch over and over again without ever getting tired of it?" },
     { id: 14, text: "Recommend an underrated movie or show that doesn't get enough hype!" },
-    { id: 15, text: "Post Anything! Share whatever is on your mind today—a random thought, life update, or funny hot take." }
+    { id: 15, text: "Post Anything! Share whatever is on your mind todayâa random thought, life update, or funny hot take." }
   ];
 
   const [socialLinks, setSocialLinks] = useState({ instagram: "", tiktok: "", facebook: "" });
@@ -666,13 +666,13 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                 <img src={activeThumbnail} alt="Main Avatar" style={{ width: '130px', height: '130px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #222', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', marginBottom: '10px' }} />
                 <div>
                   <span style={{ fontSize: '11px', fontWeight: '700', backgroundColor: '#222', color: '#fff', padding: '4px 10px', borderRadius: '12px' }}>
-                    ★ Active Thumbnail
+                    â Active Thumbnail
                   </span>
                 </div>
               </div>
             ) : (
               <div style={{ padding: '20px', color: '#888' }}>
-                <span style={{ fontSize: '40px', display: 'block' }}>👤</span>
+                <span style={{ fontSize: '40px', display: 'block' }}>ð¤</span>
                 <p style={{ fontSize: '13px', margin: 0 }}>No profile picture selected yet.</p>
               </div>
             )}
@@ -690,10 +690,10 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                   <div key={index} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: isSelected ? '3px solid #27ae60' : '1px solid #ddd', background: '#fff', padding: '4px', textAlign: 'center' }}>
                     <img src={photo} alt={`Profile ${index + 1}`} style={{ width: '100%', height: '85px', objectFit: 'cover', borderRadius: '6px' }} />
                     <button type="button" onClick={() => handleSelectThumbnail(photo)} style={{ width: '100%', marginTop: '4px', padding: '4px 0', fontSize: '10px', fontWeight: '700', border: 'none', borderRadius: '4px', backgroundColor: isSelected ? '#27ae60' : '#222', color: '#fff', cursor: 'pointer' }}>
-                      {isSelected ? '✓ Selected' : 'Set as Main'}
+                      {isSelected ? 'â Selected' : 'Set as Main'}
                     </button>
                     <button type="button" onClick={() => handleRemovePhoto(photo)} style={{ position: 'absolute', top: '6px', right: '6px', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: '20px', height: '20px', cursor: 'pointer', fontSize: '11px' }}>
-                      ✕
+                      â
                     </button>
                   </div>
                 );
@@ -731,7 +731,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
 
         {cultureSubmitStatus === "saved" ? (
           <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '40px' }}>
-            <div style={{ fontSize: '36px', marginBottom: '12px' }}>✅</div>
+            <div style={{ fontSize: '36px', marginBottom: '12px' }}>â</div>
             <h2>Post Shared!</h2>
             <p style={{ color: '#666' }}>Your entry was published to the Duma. Redirecting...</p>
           </div>
@@ -945,7 +945,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                       <RankBadge rankTitle={item.submitterRank || "Comrade"} />
                       {isOwner && (
                         <button onClick={() => handleDeletePost(itemId)} style={{ background: '#fff0f0', border: '1px solid #e74c3c', color: '#e74c3c', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '600' }}>
-                          🗑 Delete
+                          ð Delete
                         </button>
                       )}
                     </div>
@@ -967,7 +967,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                   {authToken && (
                     <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
                       <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[itemId] === 'yes' ? 1 : 0.7 }}>
-                        👍 Like
+                        ð Like
                       </button>
                       <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[itemId] === 'abstain' ? 1 : 0.7 }}>
                         Abstain
@@ -995,7 +995,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                       {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
                       {isOwner && (
                         <button onClick={() => handleDeletePost(itemId)} style={{ background: '#fff0f0', border: '1px solid #e74c3c', color: '#e74c3c', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '600' }}>
-                          🗑 Delete
+                          ð Delete
                         </button>
                       )}
                     </div>
@@ -1008,10 +1008,10 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                   {authToken && (
                     <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
                       <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[itemId] === 'yes' ? 1 : 0.7 }}>
-                        👍 Up
+                        ð Up
                       </button>
                       <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[itemId] === 'no' ? 1 : 0.7 }}>
-                        👎 Down
+                        ð Down
                       </button>
                       <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[itemId] === 'abstain' ? 1 : 0.7 }}>
                         Abstain
@@ -1119,7 +1119,7 @@ const AdminOrdersPage = ({ authToken, userEmail }) => {
 // --- MODEL-FRIENDLY PAGE ---
 const ModelFriendlyPage = () => (
   <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}>
-    <h1>The Majorities — Structured Site Data</h1>
+    <h1>The Majorities â Structured Site Data</h1>
   </div>
 );
 
@@ -1251,8 +1251,105 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
   );
 };
 
-const LoginPage = () => <div><h2>Login Page</h2></div>;
-const SignupPage = () => <div><h2>Sign Up Page</h2></div>;
+const LoginPage = ({ onLogin }) => {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [socialError, setSocialError] = useState("");
+
+  const handleLogin = async () => {
+    setIsLoading(true);
+    setSocialError("");
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await response.json();
+      if (response.ok) { onLogin(email, data.token, true, data.rank_title, data.rank_score); navigate("/profile"); }
+      else { alert(data.error || "Invalid login"); }
+    } catch { alert("Server is waking up. Try again in 30s."); }
+    finally { setIsLoading(false); }
+  };
+
+  const handleGoogleLogin = () => {
+    setSocialError("");
+    const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+    if (!clientId) { setSocialError("Google login is not configured."); return; }
+    const redirectUri = window.location.origin + "/auth/google/callback";
+    const scope = "openid email profile";
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&prompt=select_account`;
+    window.location.href = authUrl;
+  };
+
+  const handleInstagramLogin = () => {
+    setSocialError("");
+    const appId = process.env.REACT_APP_FACEBOOK_APP_ID;
+    if (!appId) { setSocialError("Instagram login is not configured yet."); return; }
+    const redirectUri = window.location.origin + "/auth/instagram/callback";
+    const scope = "email,public_profile";
+    const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=token`;
+    window.location.href = authUrl;
+  };
+
+  return (
+    <div style={styles.authContainer}>
+      <div style={{ ...styles.authCard, maxWidth: '420px' }}>
+        <h1 style={{ fontSize: '22px', fontWeight: '700', marginBottom: '4px', letterSpacing: '-0.5px' }}>The Majorities</h1>
+        <p style={{ fontSize: '13px', color: '#888', marginBottom: '24px' }}>Sign in to your account</p>
+        {socialError && <div style={{ background: '#fff0f0', color: '#c00', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '16px', textAlign: 'left' }}>{socialError}</div>}
+        <button onClick={handleGoogleLogin} style={{ ...styles.socialButton, backgroundColor: '#fff', color: '#222', border: '1px solid #ddd' }}>
+          Continue with Google
+        </button>
+        <button onClick={handleInstagramLogin} style={{ ...styles.socialButton, background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)', color: '#fff', border: 'none' }}>
+          Continue with Instagram
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0' }}>
+          <div style={{ flex: 1, height: '1px', backgroundColor: '#e0e0e0' }} />
+          <span style={{ padding: '0 12px', fontSize: '12px', color: '#999' }}>OR</span>
+          <div style={{ flex: 1, height: '1px', backgroundColor: '#e0e0e0' }} />
+        </div>
+        <input type="email" placeholder="Email" style={styles.input} value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input type="password" placeholder="Password" style={styles.input} value={password} onChange={(e) => setPassword(e.target.value)} />
+        <button style={styles.authButton} onClick={handleLogin}>{isLoading ? '...' : 'Login'}</button>
+        <Link to="/forgot-password" style={{ display: 'block', marginTop: '12px', fontSize: '13px', color: '#666', textDecoration: 'none', textAlign: 'center' }}>
+          Forgot password?
+        </Link>
+      </div>
+    </div>
+  );
+};
+
+const SignupPage = () => {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const handleSignup = async () => {
+    if (password !== confirmPassword) return alert("Passwords do not match");
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      if (response.ok) { alert("Success! Log in now."); navigate("/login"); }
+    } catch { alert("Server error."); }
+  };
+  return (
+    <div style={styles.authContainer}>
+      <div style={styles.authCard}>
+        <h2>Sign Up</h2>
+        <input type="email" placeholder="Email" style={styles.input} onChange={(e) => setEmail(e.target.value)} />
+        <input type="password" placeholder="Password" style={styles.input} onChange={(e) => setPassword(e.target.value)} />
+        <input type="password" placeholder="Confirm" style={styles.input} onChange={(e) => setConfirmPassword(e.target.value)} />
+        <button style={styles.authButton} onClick={handleSignup}>Create Account</button>
+      </div>
+    </div>
+  );
+};
 const OAuthCallbackPage = () => <div><h2>Authenticating...</h2></div>;
 const ForgotPasswordPage = () => <div><h2>Forgot Password</h2></div>;
 const ResetPasswordPage = () => <div><h2>Reset Password</h2></div>;
@@ -1468,6 +1565,7 @@ const styles = {
   authCard: { width: '380px', padding: '30px', border: '1px solid #eee', borderRadius: '24px', textAlign: 'center' },
   input: { width: '100%', padding: '12px', margin: '8px 0', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box' },
   authButton: { width: '100%', padding: '12px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
+  socialButton: { width: '100%', padding: '12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', marginBottom: '10px', textAlign: 'center' },
   formSectionTitle: { fontSize: '13px', fontWeight: '800', marginTop: '20px', borderBottom: '1px solid #eee', paddingBottom: '5px', textTransform: 'uppercase' },
   uploadBox: { border: '2px dashed #ddd', borderRadius: '12px', padding: '20px', textAlign: 'center', backgroundColor: '#fafafa' },
   dumaCard: { backgroundColor: '#fff', border: '1px solid #eee', borderRadius: '16px', padding: '20px', marginBottom: '20px' },

@@ -539,9 +539,120 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   const [avatarUrl, setAvatarUrl] = useState(userAvatar || null);
   const [avatarFiles, setAvatarFiles] = useState([]);
   const [avatarPreviews, setAvatarPreviews] = useState([]);
+  const [hadExistingAvatar, setHadExistingAvatar] = useState(false);
+  const [perspective, setPerspective] = useState({
+    box1: { videoUrl: null, description: "", videoFile: null },
+    box2: { videoUrl: null, description: "", videoFile: null },
+    box3: { videoUrl: null, description: "", videoFile: null },
+    box4: { videoUrl: null, description: "", videoFile: null }
+  });
   const [backendRankScore, setBackendRankScore] = useState(rankScore || 1);
   const [backendRankTitle, setBackendRankTitle] = useState(rankTitle || "Comrade");
   const [avatarSaveStatus, setAvatarSaveStatus] = useState("idle");
+
+  const [socialLinks, setSocialLinks] = useState({
+    instagram: "",
+    tiktok: "",
+    facebook: ""
+  });
+  const [editingBox, setEditingBox] = useState(null);
+  const [saveStatus, setSaveStatus] = useState("");
+  const [dumaSubmitStatus, setDumaSubmitStatus] = useState({});
+  const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", facebook: "idle" });
+  const [anyVideoPushed, setAnyVideoPushed] = useState(false);
+  const [socialConnected, setSocialConnected] = useState({ instagram: false, tiktok: false, facebook: false });
+  const [socialShareStatus, setSocialShareStatus] = useState({ Instagram: 'idle', TikTok: 'idle', Facebook: 'idle' });
+
+  const blobAvatarUrlRef = React.useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (blobAvatarUrlRef.current) {
+        URL.revokeObjectURL(blobAvatarUrlRef.current);
+        blobAvatarUrlRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const resolvedScore = rankScore || 1;
+    setBackendRankScore(resolvedScore);
+    setBackendRankTitle(getRankTitle(resolvedScore));
+  }, [rankScore, rankTitle]);
+
+  useEffect(() => {
+    if (!authToken) return;
+    fetch(`${BACKEND_URL}/api/profile`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    }).then(r => { if (!r.ok) throw new Error('Failed to fetch profile'); return r.json(); }).then(data => {
+      const resolvedScore = data.rank_score || 1;
+      setBackendRankScore(resolvedScore);
+      setBackendRankTitle(getRankTitle(resolvedScore));
+      if (data.avatar) {
+        setAvatarUrl(data.avatar);
+        setHadExistingAvatar(true);
+        if (onAvatarUpdate) onAvatarUpdate(data.avatar);
+      }
+      if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
+      if (data.perspective) {
+        setPerspective(prev => {
+          const updated = { ...prev };
+          for (const key in data.perspective) {
+            if (updated[key]) updated[key] = { ...updated[key], ...data.perspective[key] };
+          }
+          return updated;
+        });
+      }
+      if (data.perspective && Object.keys(data.perspective).length > 0) {
+        setAnyVideoPushed(true);
+      }
+    }).catch(() => {});
+  }, [authToken, onAvatarUpdate]);
+
+  useEffect(() => {
+    if (!authToken) return;
+    fetch(`${BACKEND_URL}/api/social/status`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data && typeof data === 'object') {
+          setSocialConnected(prev => ({ ...prev, ...data }));
+        }
+      })
+      .catch(() => {});
+  }, [authToken]);
+
+  const handleSocialChange = (key, value) => {
+    setSocialLinks(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSaveSocialLink = async (key, valueOverride) => {
+    if (!authToken) return;
+    const resolvedValue = typeof valueOverride === "string" ? valueOverride : socialLinks[key];
+    if (typeof valueOverride === "string") {
+      setSocialLinks(prev => ({ ...prev, [key]: valueOverride }));
+    }
+    setSocialSaveStatus(prev => ({ ...prev, [key]: "saving" }));
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ socialLinks: { [key]: resolvedValue } })
+      });
+      if (response.ok) {
+        setSocialSaveStatus(prev => ({ ...prev, [key]: "saved" }));
+        setTimeout(() => setSocialSaveStatus(prev => ({ ...prev, [key]: "idle" })), 3000);
+      } else {
+        setSocialSaveStatus(prev => ({ ...prev, [key]: "error" }));
+        setTimeout(() => setSocialSaveStatus(prev => ({ ...prev, [key]: "idle" })), 3000);
+      }
+    } catch {
+      setSocialSaveStatus(prev => ({ ...prev, [key]: "error" }));
+      setTimeout(() => setSocialSaveStatus(prev => ({ ...prev, [key]: "idle" })), 3000);
+    }
+  };
+
 
   const avatarInputRef = React.useRef(null);
 

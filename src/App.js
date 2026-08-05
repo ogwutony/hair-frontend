@@ -1,1029 +1,1589 @@
- (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/src/App.js b/src/App.js
-index 6d402a7ec411b4fc47a87c1f1dc1bb98af115e97..fb46d390654ac507ae27265fff69d24e64a43c70 100644
---- a/src/App.js
-+++ b/src/App.js
-@@ -1,33 +1,35 @@
- import React, { useState, useEffect, useCallback } from "react";
- import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate, useLocation, useParams } from "react-router-dom";
- import AdMonetization, { trackEvent } from "./components/AdMonetization";
- // --- 1. SHOPIFY CONFIGURATION ---
- const SHOP_DOMAIN = "c0bqfe-z2.myshopify.com";
- 
- const DEFAULT_SELLING_PLAN_ID = "1467875506";
- 
-+const ADMIN_EMAIL = process.env.REACT_APP_ADMIN_EMAIL || "";
-+
- const PRODUCT_VARIANT_MAP = {
-   "The Majorities Shampoo": {
-     merchandiseId: "47555331358898",
-     pricing: { oneTime: 7, subscription: 6 },
-     sellingPlanId: DEFAULT_SELLING_PLAN_ID
-   },
-   "The Majorities Conditioner": {
-     merchandiseId: "47555331555506",
-     pricing: { oneTime: 7, subscription: 6 },
-     sellingPlanId: DEFAULT_SELLING_PLAN_ID
-   },
-   "The Majorities Hair Oil": {
-     merchandiseId: "47555331752114",
-     pricing: { oneTime: 7, subscription: 6 },
-     sellingPlanId: DEFAULT_SELLING_PLAN_ID
-   },
-   "The Majorities Facial Scrub": {
-     merchandiseId: "47555331948722",
-     pricing: { oneTime: 7, subscription: 6 },
-     sellingPlanId: DEFAULT_SELLING_PLAN_ID
-   },
-   "The Majorities Face Toner": {
-     merchandiseId: "47555332145330",
-     pricing: { oneTime: 7, subscription: 6 },
-     sellingPlanId: DEFAULT_SELLING_PLAN_ID
-@@ -91,51 +93,51 @@ const RANK_TIERS = [
-   { title: "Crow",              min: 100     },
-   { title: "Comrade",           min: 1       },
- ];
- 
- const getRankTitle = (score) => {
-   for (const tier of RANK_TIERS) {
-     if (score >= tier.min) return tier.title;
-   }
-   return "Comrade";
- };
- // --- LOWER HIERARCHY TITLES (used for "Lord " prefix eligibility) ---
- const LOWER_HIERARCHY_TITLES = RANK_TIERS.slice(RANK_TIERS.findIndex(t => t.title === "Perun")).map(t => t.title);
- // Adds a "Lord " prefix once a user has answered all 15 perspective prompts while in a Lower Hierarchy rank
- const getFormattedRankTitle = (rankTitle, completedPromptsCount = 0) => {
-   if (LOWER_HIERARCHY_TITLES.includes(rankTitle) && completedPromptsCount >= 15) {
-     return `Lord ${rankTitle}`;
-   }
-   return rankTitle;
- };
- // --- PROMPT COMPLETION TRACKING (for "Lord " prefix) ---
- const COMPLETED_PROMPTS_KEY = "majorities_completed_prompts";
- const getCompletedPromptIds = (userEmail) => {
-   if (typeof window === "undefined" || !userEmail) return [];
-   try {
-     const stored = JSON.parse(window.localStorage.getItem(COMPLETED_PROMPTS_KEY) || "{}");
--    return stored[userEmail] || [];
-+    return Array.isArray(stored[userEmail]) ? stored[userEmail] : [];
-   } catch {
-     return [];
-   }
- };
- const markPromptCompleted = (userEmail, promptId) => {
-   if (typeof window === "undefined" || !userEmail || !promptId) return getCompletedPromptIds(userEmail);
-   try {
-     const stored = JSON.parse(window.localStorage.getItem(COMPLETED_PROMPTS_KEY) || "{}");
-     const existing = new Set(stored[userEmail] || []);
-     existing.add(promptId);
-     stored[userEmail] = Array.from(existing);
-     window.localStorage.setItem(COMPLETED_PROMPTS_KEY, JSON.stringify(stored));
-     return stored[userEmail];
-   } catch {
-     return getCompletedPromptIds(userEmail);
-   }
- };
- const isPolitburoOrHigher = (score) => score >= 10000000; // "Politburo Member of The Majorities" and above
- // --- CALCULATE POINTS TO NEXT RANK ---
- const getPointsToNextRank = (currentScore, currentRankTitle) => {
-     const currentIndex = RANK_TIERS.findIndex(r => r.title === currentRankTitle);
-   
-   if (currentIndex <= 0) return 0;
-   const nextRank = RANK_TIERS[currentIndex - 1];
-   return Math.max(0, nextRank.min - currentScore);
-@@ -570,60 +572,65 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
- 
-     // 🍿 MOVIES & TV SHOWS
-     { id: 12, text: "What TV show or series are you currently binge-watching that everyone needs to check out?" },
-     { id: 13, text: "What is a movie you can watch over and over again without ever getting tired of it?" },
-     { id: 14, text: "Recommend an underrated movie or show that doesn't get enough hype!" },
- 
-     // ✨ ANYTHING GOES (WILDCARD)
-     { id: 15, text: "Post Anything! Share whatever is on your mind today—a random thought, life update, or funny hot take." }
-   ]
-   const [activePromptIndex, setActivePromptIndex] = useState(0);
- 
-   const rotatePrompt = (direction) => {
-     setActivePromptIndex((prev) => {
-       if (direction === "random") {
-         if (perspectivePrompts.length <= 1) return prev;
-         let nextIndex = prev;
-         while (nextIndex === prev) { nextIndex = Math.floor(Math.random() * perspectivePrompts.length); }
-         return nextIndex;
-       }
-       return (prev + direction + perspectivePrompts.length) % perspectivePrompts.length;
-     });
-   };
- 
-   const handleCultureMediaChange = (e) => {
-     if (e.target.files && e.target.files.length > 0) {
-+      cultureMediaPreviews.forEach(preview => URL.revokeObjectURL(preview.url));
-       const selectedFiles = Array.from(e.target.files).slice(0, 6);
-       setCultureMediaFiles(selectedFiles);
-       const previews = selectedFiles.map((file) => ({
-         url: URL.createObjectURL(file),
-         type: file.type.startsWith("video/") ? "video" : "image",
-       }));
-       setCultureMediaPreviews(previews);
-     }
-   };
- 
-+  useEffect(() => () => {
-+    cultureMediaPreviews.forEach(preview => URL.revokeObjectURL(preview.url));
-+  }, [cultureMediaPreviews]);
-+
-   const handleCultureSubmit = async (e) => {
-     e.preventDefault();
-     const selectedPrompt = perspectivePrompts[activePromptIndex]?.text || "";
-     const selectedPromptId = perspectivePrompts[activePromptIndex]?.id;
-     if (!selectedPrompt || !cultureResponse.trim()) {
-       setCultureErrorMsg("Please select a prompt and provide your response.");
-       return;
-     }
-     setCultureErrorMsg("");
-     setCultureSubmitStatus("uploading");
- 
-     try {
-       let uploadedMediaUrls = [];
- 
-       if (cultureMediaFiles.length > 0 && authToken) {
-         for (const file of cultureMediaFiles) {
-           const formData = new FormData();
-           formData.append("file", file);
-           formData.append("type", file.type.startsWith("video/") ? "video" : "image");
-           const uploadRes = await fetch(`${BACKEND_URL}/api/media/upload`, {
-             method: "POST",
-             headers: { Authorization: `Bearer ${authToken}` },
-             body: formData
-           });
-           if (uploadRes.ok) {
-@@ -651,50 +658,55 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
-         const data = await res.json();
-         if (!res.ok) {
-           setCultureErrorMsg(data.error || 'Submission failed');
-           setCultureSubmitStatus("error");
-           return;
-         }
-       }
- 
-       if (addDumaItem) {
-         addDumaItem({
-           id: Date.now(),
-           type: "Culture",
-           category: "Culture",
-           prompt: selectedPrompt,
-           response: cultureResponse,
-           mediaUrls: uploadedMediaUrls.length > 0 ? uploadedMediaUrls : cultureMediaPreviews.map(p => p.url),
-           submittedBy: userEmail,
-           submitterRank: rankTitle || 'Comrade',
-           submitterAvatar: userAvatar || null,
-           votes: { yes: 0 }
-         });
-       }
- 
-       if (onAddPoints) onAddPoints(100);
-       if (userEmail && selectedPromptId) markPromptCompleted(userEmail, selectedPromptId);
-+      if (uploadedMediaUrls.length > 0) {
-+        cultureMediaPreviews.forEach(preview => URL.revokeObjectURL(preview.url));
-+        setCultureMediaPreviews([]);
-+        setCultureMediaFiles([]);
-+      }
-       setCultureSubmitStatus("saved");
-       setTimeout(() => { navigate("/duma"); }, 2000);
-     } catch (err) {
-       setCultureSubmitStatus("error");
-       setCultureErrorMsg("Server error trying to process submission.");
-     }
-   };
- 
-     const [perspective, setPerspective] = useState({
-     box1: { videoUrl: null, description: "", videoFile: null },
-     box2: { videoUrl: null, description: "", videoFile: null },
-     box3: { videoUrl: null, description: "", videoFile: null },
-     box4: { videoUrl: null, description: "", videoFile: null }
-   });
-   const [videoSaveStatus, setVideoSaveStatus] = useState({}); // { box1: "idle"|"saving"|"saved"|"error" }
-   const [socialLinks, setSocialLinks] = useState({
-     instagram: "",
-     tiktok: "",
-     facebook: ""
-   });
-   const [editingBox, setEditingBox] = useState(null);
-   const [saveStatus, setSaveStatus] = useState("");
-   const [dumaSubmitStatus, setDumaSubmitStatus] = useState({});
-   const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", facebook: "idle" });
-   const [anyVideoPushed, setAnyVideoPushed] = useState(false);
-@@ -1360,51 +1372,51 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
-               style={{ ...styles.socialButton, maxWidth: '190px', background: socialConnected.tiktok ? '#27ae60' : '#000', color: '#fff', border: 'none' }}>
-               {socialConnected.tiktok ? '✓ TikTok Connected' : 'Connect TikTok'}
-             </button>
-             <button
-               type="button"
-               onClick={() => handleSocialConnect('facebook')}
-               style={{ ...styles.socialButton, maxWidth: '190px', background: socialConnected.facebook ? '#27ae60' : '#1877F2', color: '#fff', border: 'none' }}>
-               {socialConnected.facebook ? '✓ Facebook Connected' : 'Connect Facebook'}
-             </button>
-           </div>
-         </div>
-       </section>
- 
-       
- 
-       {/* SAVED FORMULAS SECTION */}
-       <section>
-         <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Your Saved Formulas</h2>
-         {savedSets.length === 0 ? (
-           <div style={styles.dumaCard}>
-             <p style={{ color: '#888', marginBottom: '12px' }}>You haven't saved any custom sets yet. Head home to build your first one!</p>
-             <Link to="/"><button style={{ ...styles.authButton, width: '200px' }}>Start Building</button></Link>
-           </div>
-         ) : (
-           savedSets.map((set, index) => (
--            <div key={index} style={styles.dumaCard}>
-+            <div key={set.id || `${set.date}-${set.items?.map(item => item.name).join("-")}`} style={styles.dumaCard}>
-               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                 <h4 style={{ margin: 0 }}>Formula #{savedSets.length - index}</h4>
-                 <span style={{ fontSize: '12px', color: '#888' }}>{set.date}</span>
-               </div>
-               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
-                 {set.items.map((item, i) => (
-                   <div key={i} style={{ fontSize: '12px', padding: '10px', background: '#f9f9f9', borderRadius: '8px' }}>
-                     <strong>{item.name}</strong>
-                   </div>
-                 ))}
-               </div>
-             </div>
-           ))
-         )}
-       </section>
-     </div>
-   );
- };
- 
- // --- FORGOT PASSWORD PAGE ---
- const ForgotPasswordPage = () => {
-   const [email, setEmail] = useState("");
-   const [isLoading, setIsLoading] = useState(false);
-   const [submitted, setSubmitted] = useState(false);
-   const [error, setError] = useState("");
-@@ -1791,60 +1803,65 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
-         {renderRow("Pick Face Scrubs", "faceScrubs")}
-         {renderRow("Pick Toners", "toners")}
-         {renderRow("Pick Creams", "faceCreams")}
-       </div>
-       <aside style={{ ...styles.right, width: isMobile ? '100%' : '30%', position: isMobile ? 'static' : 'sticky', top: isMobile ? 'auto' : '20px', boxSizing: 'border-box', height: 'auto', maxHeight: 'none' }}>
-         <div style={{ minHeight: '100px', marginBottom: '15px' }}>
-           {focusedItem ? (
-             <div>
-               <h3>{focusedItem.name}</h3>
-               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                 <span style={{ fontSize: '12px', fontWeight: '600', color: '#333' }}>
-                   One-time {formatCurrency(getProductCommerceConfig(focusedItem.name).pricing.oneTime)}
-                 </span>
-                 <span style={{ fontSize: '12px', fontWeight: '600', color: '#2d6a4f' }}>
-                   Subscribe {formatCurrency(getProductCommerceConfig(focusedItem.name).pricing.subscription)}
-                 </span>
-               </div>
-               <div style={{ fontSize: '13px', color: '#666', lineHeight: '1.6' }}>
-                 {focusedItem.desc}
-               </div>
-             </div>
-           ) : <p style={{color: '#888'}}>Select a product</p>}
-         </div>
-         <div style={styles.summaryContainer}>
-           <h4 style={{ fontSize: '14px', borderBottom: '1px solid #eee', paddingBottom: '10px', marginTop: 0 }}>Your Custom Set ({selectedItems.length}/6)</h4>
--          <div style={{ margin: '10px 0' }}>
--            {(() => {
--              const counts = {};
--              selectedItems.forEach(item => { counts[item.name] = (counts[item.name] || 0) + 1; });
--              return Object.entries(counts).map(([name, count]) => (
--                <p key={name} style={{ fontSize: '11px', margin: '4px 0' }}>
--                  {name}{count > 1 ? ` x${count}` : ''} · {formatCurrency(getProductCommerceConfig(name).pricing.oneTime)} / {formatCurrency(getProductCommerceConfig(name).pricing.subscription)}
--                </p>
--              ));
--            })()}
-+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', margin: '10px 0 16px' }}>
-+            {selectedItems.length === 0 ? (
-+              <p style={{ color: '#888', fontSize: '12px', margin: 0 }}>Select products from the left to build your custom bundle.</p>
-+            ) : (
-+              selectedItems.map(item => {
-+                const { pricing } = getProductCommerceConfig(item.name);
-+                return (
-+                  <div key={item.name} style={{ padding: '10px 12px', borderRadius: '10px', backgroundColor: '#f9f9f9', border: '1px solid #eee' }}>
-+                    <div style={{ fontWeight: '700', fontSize: '13px', marginBottom: '4px', color: '#222' }}>{item.name}</div>
-+                    <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.4', marginBottom: '6px' }}>{item.desc}</div>
-+                    <div style={{ fontSize: '11px', color: '#555' }}>One-time {formatCurrency(pricing.oneTime)} · Subscribe {formatCurrency(pricing.subscription)}</div>
-+                  </div>
-+                );
-+              })
-+            )}
-           </div>
-           {isSetComplete ? (
-             <div style={{ borderTop: '2px solid #222', paddingTop: '15px' }}>
-               <div style={{ fontSize: '12px', color: '#666', marginBottom: '12px', lineHeight: '1.6' }}>
-                 <div>One-time total: <strong>{formatCurrency(setTotals.oneTime)}</strong></div>
-                 <div>Subscription total: <strong>{formatCurrency(setTotals.subscription)} / month</strong></div>
-                 <div>You save <strong>{formatCurrency(subscriptionSavings)}</strong> on each monthly set.</div>
-               </div>
-               {/* Delivery promise callout */}
-               <div style={{ backgroundColor: '#f4f9f4', border: '1px solid #c2e1c2', padding: '12px', borderRadius: '8px', marginBottom: '14px', textAlign: 'left' }}>
-                 <span style={{ fontSize: '13px', color: '#1e4620', fontWeight: '700', display: 'block' }}>
-                   🚚 Fast US Fulfillment via ShipBob
-                 </span>
-                 <span style={{ fontSize: '11px', color: '#2e6f32', display: 'block', marginTop: '3px' }}>
-                   Estimated Delivery: <strong>{
-                     new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-                   } - {
-                     new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-                   }</strong> (+ Shipping & Handling)
-                 </span>
-               </div>
-               <button style={styles.checkoutBtn} onClick={handleOneTimeCheckout}>1 time Checkout ({formatCurrency(setTotals.oneTime)})</button>
-               <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={handleSubscriptionCheckout}>Monthly Subscription Checkout ({formatCurrency(setTotals.subscription)} / month)</button>
-             </div>
-           ) : <p style={{ fontSize: '12px', color: '#888' }}>Select 6 products to checkout</p>}
-@@ -2011,63 +2028,70 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken,
-     photoFile: null,
-     videoFile: null,
-     unitsOf34Oz: "500",
-     desiredOrderQuantity: "",
-     pricing5Gallon: "",
-     standardUnitPrice: "5",
-     promotionalUnitPrice: "4",
-     commission25AgreedTo: false,
-     customerRewardAgreed: false,
-     shippingReturnsAgreed: false,
-     ownershipTitleAgreed: false,
-     tier: "National Associate"
-   });
-   const [errorMsg, setErrorMsg] = useState("");
-   const [submitted, setSubmitted] = useState(false);
-   const [photoPreview, setPhotoPreview] = useState(null);
-   const [videoPreview, setVideoPreview] = useState(null);
-   const [showGuestPrompt, setShowGuestPrompt] = useState(false);
- 
-   const userScore = rankScore || 1;
-   const canApplyPremium = isPolitburoOrHigher(userScore);
- 
-   const handlePhotoChange = (e) => {
-     const file = e.target.files[0];
-     if (file) {
-+      if (photoPreview) URL.revokeObjectURL(photoPreview);
-       setFormData({...formData, photoFile: file});
-       setPhotoPreview(URL.createObjectURL(file));
-     }
-   };
- 
-   const handleVideoChange = (e) => {
-     const file = e.target.files[0];
-     if (file) {
-+      if (videoPreview) URL.revokeObjectURL(videoPreview);
-       setFormData({...formData, videoFile: file});
-       setVideoPreview(URL.createObjectURL(file));
-     }
-   };
- 
-+  useEffect(() => () => {
-+    if (photoPreview) URL.revokeObjectURL(photoPreview);
-+    if (videoPreview) URL.revokeObjectURL(videoPreview);
-+  }, [photoPreview, videoPreview]);
-+
-   const handleSubmit = async (e) => {
-     e.preventDefault();
-     setErrorMsg("");
-     setShowGuestPrompt(false);
- 
-     // Validation
-     if (!formData.name || !formData.contactEmail || !formData.phoneNumber || !formData.ein) {
-       setErrorMsg("Please fill in all contact information fields.");
-       return;
-     }
-     if (!formData.company || !formData.countryOfOrigin || !formData.operatingCountry) {
-       setErrorMsg("Please fill in all company information fields.");
-       return;
-     }
-     if (!formData.productType || !formData.productDescription || !formData.whyPartner) {
-       setErrorMsg("Please fill in all product details.");
-       return;
-     }
-     if (!formData.desiredOrderQuantity) {
-       setErrorMsg("Please provide your desired inventory fulfillment quantity.");
-       return;
-     }
-     if (!formData.standardUnitPrice) {
-       setErrorMsg("Please provide the standard unit price to consumers.");
-       return;
-@@ -2116,61 +2140,69 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken,
-       formDataObj.append('desiredOrderQuantity', formData.desiredOrderQuantity);
-       formDataObj.append('pricing5Gallon', formData.pricing5Gallon);
-       formDataObj.append('standardUnitPrice', formData.standardUnitPrice);
-       formDataObj.append('promotionalUnitPrice', formData.promotionalUnitPrice);
-       formDataObj.append('tier', formData.tier);
-       if (formData.photoFile) formDataObj.append('photo', formData.photoFile);
-       if (formData.videoFile) formDataObj.append('video', formData.videoFile);
- 
-       const res = await fetch(`${BACKEND_URL}/api/duma/partner`, {
-         method: 'POST',
-         headers: { Authorization: `Bearer ${authToken}` },
-         body: formDataObj
-       });
-       const data = await res.json();
-       if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); return; }
-       
-       addDumaItem({
-         ...formData,
-         id: Date.now(),
-         type: "Partner",
-         submittedBy: userEmail || "anonymous",
-         submitterRank: rankTitle || 'Comrade',
-         hasPhoto: !!formData.photoFile,
-         hasVideo: !!formData.videoFile
-       });
-+      if (photoPreview) URL.revokeObjectURL(photoPreview);
-+      if (videoPreview) URL.revokeObjectURL(videoPreview);
-+      setPhotoPreview(null);
-+      setVideoPreview(null);
-       setSubmitted(true);
-     } catch (err) {
-       addDumaItem({
-         ...formData,
-         id: Date.now(),
-         type: "Partner",
-         submittedBy: userEmail || "anonymous",
-         submitterRank: rankTitle || 'Comrade',
-         hasPhoto: !!formData.photoFile,
-         hasVideo: !!formData.videoFile
-       });
-+      if (photoPreview) URL.revokeObjectURL(photoPreview);
-+      if (videoPreview) URL.revokeObjectURL(videoPreview);
-+      setPhotoPreview(null);
-+      setVideoPreview(null);
-       setSubmitted(true);
-     }
-   };
- 
-   if (submitted) {
-     return (
-       <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
-         <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
-           <div style={{ fontSize: '40px', marginBottom: '16px' }}></div>
-           <h2>Partnership Application Submitted!</h2>
-           <p style={{ color: '#666' }}>Your partnership application has been sent to The Majorities' Duma for review.</p>
-           <button style={{ ...styles.authButton, marginTop: '20px', width: 'auto', padding: '12px 24px' }} onClick={() => navigate("/duma")}>View the Duma</button>
-         </div>
-       </div>
-     );
-   }
- 
-   return (
-     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
-       <h2>Partner with The Majorities</h2>
-       <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
-         Apply to become a partner and sell on our marketplace
-       </p>
-       {userEmail && rankTitle && (
-         <div style={{ marginBottom: '20px' }}>
-@@ -2404,60 +2436,65 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
-       })
-       .catch(err => console.error("Failed to load community socials:", err));
-   }, []);
- 
-   const activePrompt = prompts[activePromptIndex];
- 
-   const selectedPrompt = activePrompt?.text || "";
- const selectedPromptId = activePrompt?.id;
- 
-   const rotatePrompt = (direction) => {
-     setActivePromptIndex((prev) => {
-       if (direction === "random") {
-         if (prompts.length <= 1) return prev;
-         let nextIndex = prev;
-         while (nextIndex === prev) {
-           nextIndex = Math.floor(Math.random() * prompts.length);
-         }
-         return nextIndex;
-       }
-       return (prev + direction + prompts.length) % prompts.length;
-     });
-   };
- 
-   const handleMediaChange = (e) => {
-     if (e.target.files && e.target.files.length > 0) {
-+      mediaPreviews.forEach(preview => URL.revokeObjectURL(preview.url));
-       const selectedFiles = Array.from(e.target.files).slice(0, 6);
-       setMediaFiles(selectedFiles);
-       const previews = selectedFiles.map((file) => ({
-         url: URL.createObjectURL(file),
-         type: file.type.startsWith("video/") ? "video" : "image",
-       }));
-       setMediaPreviews(previews);
-     }
-   };
- 
-+  useEffect(() => () => {
-+    mediaPreviews.forEach(preview => URL.revokeObjectURL(preview.url));
-+  }, [mediaPreviews]);
-+
-   const handleSubmit = async (e) => {
-     e.preventDefault();
-     if (!selectedPrompt || !response.trim()) {
-       setErrorMsg("Please select a prompt and provide your response.");
-       return;
-     }
-     
-     setErrorMsg("");
-     
-     try {
-       let uploadedMediaUrls = [];
- 
-       if (mediaFiles.length > 0 && authToken) {
-         for (const file of mediaFiles) {
-           const formData = new FormData();
-           formData.append("file", file);
-           formData.append("type", file.type.startsWith("video/") ? "video" : "image");
-           const uploadRes = await fetch(`${BACKEND_URL}/api/media/upload`, {
-             method: "POST",
-             headers: { Authorization: `Bearer ${authToken}` },
-             body: formData
-           });
-           if (uploadRes.ok) {
-             const uploadData = await uploadRes.json();
-             const cloudUrl = uploadData.storageUrl || uploadData.secure_url || uploadData.url;
-@@ -2476,50 +2513,55 @@ const selectedPromptId = activePrompt?.id;
-             category: "Culture",
-             mediaUrls: uploadedMediaUrls
-           })
-         });
-         const data = await res.json();
-         if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); return; }
-       }
- 
-       // Add to local Duma and award points
-       addDumaItem({
-         id: Date.now(),
-         type: "Culture",
-         category: "Culture",
-         prompt: selectedPrompt,
-         response: response,
-         mediaUrls: uploadedMediaUrls.length > 0 ? uploadedMediaUrls : mediaPreviews.map(p => p.url),
-         submittedBy: userEmail,
-         submitterRank: rankTitle || 'Comrade',
-         submitterAvatar: userAvatar || null,
-         votes: { yes: 0 }
-       });
- 
-       if (onAddPoints) onAddPoints(100);
-         if (userEmail && selectedPromptId) markPromptCompleted(userEmail, selectedPromptId);
-       
-+      if (uploadedMediaUrls.length > 0) {
-+        mediaPreviews.forEach(preview => URL.revokeObjectURL(preview.url));
-+        setMediaPreviews([]);
-+        setMediaFiles([]);
-+      }
-       setSubmitted(true);
-       setTimeout(() => {
-         navigate("/duma");
-       }, 2000);
-     } catch (err) {
-       // Fallback to local only
-       addDumaItem({
-         id: Date.now(),
-         type: "Culture",
-         category: "Culture",
-         prompt: selectedPrompt,
-         response: response,
-         mediaUrls: mediaPreviews.map(p => p.url),
-         submittedBy: userEmail,
-         submitterRank: rankTitle || 'Comrade',
-         submitterAvatar: userAvatar || null,
-         votes: { yes: 0 }
-       });
-       if (onAddPoints) onAddPoints(100);
- if (userEmail && selectedPromptId) markPromptCompleted(userEmail, selectedPromptId);
-       setSubmitted(true);
-     }
-   };
- 
-   if (submitted) {
-@@ -2670,55 +2712,56 @@ if (userEmail && selectedPromptId) markPromptCompleted(userEmail, selectedPrompt
-                     </a>
-                   )}
-                 </div>
-               </div>
-             ))}
-           </div>
-         )}
-       </section>
-     </div>
-   );
- };
- 
- // --- DUMA PAGE ---
- const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints, userAvatar }) => {
-   const [dumaItems, setDumaItems] = useState(items);
-   const [userVotes, setUserVotes] = useState({});
-   const [showScores, setShowScores] = useState({});
-   const [showComments, setShowComments] = useState({});
-   const [comments, setComments] = useState({});
-   const [commentText, setCommentText] = useState({});
-   const [activeSection, setActiveSection] = useState("Culture");
- 
-   useEffect(() => {
-     fetch(`${BACKEND_URL}/api/duma`).then(r => r.json()).then(data => {
-       if (Array.isArray(data) && data.length > 0) {
--        // De-duplicate items by ID so only one unique entry is rendered per submission
-+        // De-duplicate items by ID and assign stable render keys to prevent duplicate React keys.
-         const uniqueMap = new Map();
--        [...data, ...items].forEach(item => {
--          const id = item._id || item.id;
--          if (id) uniqueMap.set(String(id), item);
-+        [...data, ...items].forEach((item, idx) => {
-+          const rawId = item._id || item.id || `duma-item-${idx}`;
-+          const key = String(rawId);
-+          uniqueMap.set(key, { ...item, _uniqueKey: key });
-         });
-         setDumaItems(Array.from(uniqueMap.values()));
-       }
-     }).catch(() => {});
-   }, [items]);
- 
-   const handleVote = async (itemId, voteType) => {
-     if (!authToken) return alert("Please log in to vote.");
-     if (userVotes[itemId]) return;
- 
-     setUserVotes(prev => ({ ...prev, [itemId]: voteType }));
-     setShowScores(prev => ({ ...prev, [itemId]: true }));
-     setShowComments(prev => ({ ...prev, [itemId]: true }));
-     if (onAddPoints) onAddPoints(1);
- 
-     try {
-       const response = await fetch(`${BACKEND_URL}/api/duma/${itemId}/vote`, {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-         body: JSON.stringify({ vote: voteType })
-       });
-       if (response.ok) {
-         const data = await response.json();
-         setDumaItems(prev => prev.map(item => item.id === itemId || item._id === itemId ? { ...item, votes: data.votes || item.votes } : item));
-       }
-@@ -2740,56 +2783,56 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
- 
-   return (
-     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
-       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '30px' }}>
-         <div>
-           <h2 style={{ marginBottom: '6px' }}>The Majorities' Duma</h2>
-           <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>Community recommendations, partnerships, and cultural contributions - vote to shape The Majorities.</p>
-         </div>
-         {userEmail && rankTitle && <div style={{ textAlign: 'right', minWidth: '250px' }}><CredentialHeader email={userEmail} rankTitle={getRankTitle(rankScore)} rankScore={rankScore} avatarUrl={userAvatar} /></div>}
-       </div>
-       <div style={{ display: 'flex', gap: '10px', marginBottom: '30px', borderBottom: '2px solid #eee', paddingBottom: '15px' }}>
-         <button onClick={() => setActiveSection("Culture")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Culture" ? '#222' : '#f5f5f5', color: activeSection === "Culture" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Culture ({culturalItems.length})</button>
-         <button onClick={() => setActiveSection("Recommendations")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Recommendations" ? '#222' : '#f5f5f5', color: activeSection === "Recommendations" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Recommendations ({recommendationItems.length})</button>
-         <button onClick={() => setActiveSection("Partners")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Partners" ? '#222' : '#f5f5f5', color: activeSection === "Partners" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Partners ({partnerItems.length})</button>
-         <button onClick={() => window.location.href = authToken ? '/culture' : '/login'} style={{ padding: '8px 14px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', marginLeft: 'auto' }}>{authToken ? '+ Share Your Perspective' : 'Log in to Share'}</button>
-       </div>
- 
-       <AdMonetization placement="duma_page" />
- 
-       {activeSection === "Culture" && (
-         <div>
-           {culturalItems.length === 0 ? (
-             <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No perspectives shared yet. Share yours and contribute to our culture section!</div>
-           ) : (
-             culturalItems.map(item => {
--              const itemId = item._id || item.id;
-+              const itemId = item._id || item.id || item._uniqueKey;
-               // Dynamically recalculate rank badge from stored score to always reflect correct tier
-               const verifiedRank = item.rankScore ? getRankTitle(item.rankScore) : (item.submitterRank || "Comrade");
- 
-               return (
--                <div key={itemId} style={styles.dumaCard}>
-+                <div key={item._uniqueKey || itemId} style={styles.dumaCard}>
-                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                     <span style={styles.typeTag}>Perspective</span>
-                     <RankBadge rankTitle={verifiedRank} />
-                   </div>
- 
-                   {item.submittedBy && (
-                     <CredentialHeader
-                       email={item.submittedBy}
-                       rankTitle={verifiedRank}
-                       rankScore={item.rankScore || null}
-                       avatarUrl={item.submitterAvatar || null}
-                       socialLinks={item.submitterSocialLinks || null}
-                     />
-                   )}
- 
-                   <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
-                   <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6', marginBottom: '14px' }}>{item.response || item.reason || item.desc}</p>
- 
-                   {/* MEDIA DISPLAY: renders uploaded images or videos inline */}
-                   {(() => {
-                     const mediaList = Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0
-                       ? item.mediaUrls
-                       : item.mediaUrl ? [item.mediaUrl] : [];
-                     if (mediaList.length === 0) return null;
-                     return (
-@@ -2843,51 +2886,51 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
-                             <button onClick={() => handleCommentSubmit(itemId)} style={{ padding: '8px 16px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Post</button>
-                           </div>
-                         </div>
-                       )}
-                     </div>
-                   )}
-                 </div>
-               );
-             })
-           )}
-         </div>
-       )}
- 
-       {activeSection === "Recommendations" && !authToken && (
-         <div style={{ padding: '20px 0' }}>
-           <GuestSubmissionPrompt message="This section contains proprietary commerce ledger records, partner structures, and product recommendations. Please log in or register to view this data." />
-         </div>
-       )}
- 
-       {activeSection === "Recommendations" && authToken && (
-         <div>
-           {recommendationItems.length === 0 ? (
-             <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No product recommendations yet. Be the first to recommend a product!</div>
-           ) : (
-             recommendationItems.map(item => (
--              <div key={item.id || item._id} style={styles.dumaCard}>
-+              <div key={item._uniqueKey || item.id || item._id} style={styles.dumaCard}>
-                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                   <span style={styles.typeTag}>{item.type}</span>
-                   {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
-                 </div>
-                 {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
-                 <h3 style={{ marginTop: '8px', marginBottom: '6px' }}>{item.name || item.product} by {item.company}</h3>
-                 <p style={{ color: '#666', fontSize: '14px', marginBottom: '14px' }}>{item.reason || item.desc}</p>
-                 
-                 {/* VOTING SECTION */}
-                 {authToken && (
-                   <div>
-                     <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-                       <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[item.id || item._id] === 'yes' ? 1 : 0.7 }}>Yes</button>
-                       <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[item.id || item._id] === 'no' ? 1 : 0.7 }}>No</button>
-                       <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[item.id || item._id] === 'abstain' ? 1 : 0.7 }}>Abstain</button>
-                     </div>
-                     
-                     {/* VOTE SCORES - VISIBLE ONLY AFTER VOTING */}
-                     {showScores[item.id || item._id] && (
-                       <div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
-                         <p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>Vote Results:</p>
-                         <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
-                           Yes: {item.votes?.yes || 0} | No: {item.votes?.no || 0} | Abstain: {item.votes?.abstain || 0}
-                         </p>
-                       </div>
-@@ -2916,51 +2959,51 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
-                           <input type="text" placeholder="Add a comment..." style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px' }} value={commentText[item.id || item._id] || ''} onChange={(e) => setCommentText(prev => ({ ...prev, [item.id || item._id]: e.target.value }))} />
-                           <button onClick={() => handleCommentSubmit(item.id || item._id)} style={{ padding: '8px 16px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Post</button>
-                         </div>
-                       </div>
-                     )}
-                   </div>
-                 )}
-               </div>
-             ))
-           )}
-         </div>
-       )}
- 
-       {activeSection === "Partners" && !authToken && (
-         <div style={{ padding: '20px 0' }}>
-           <GuestSubmissionPrompt message="This section contains proprietary commerce ledger records, partner structures, and product recommendations. Please log in or register to view this data." />
-         </div>
-       )}
- 
-       {activeSection === "Partners" && authToken && (
-         <div>
-           {partnerItems.length === 0 ? (
-             <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No partner applications yet. Be the first to submit a partnership!</div>
-           ) : (
-             partnerItems.map(item => (
--              <div key={item.id || item._id} style={styles.dumaCard}>
-+              <div key={item._uniqueKey || item.id || item._id} style={styles.dumaCard}>
-                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                   <span style={styles.typeTag}>{item.type}</span>
-                   {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
-                 </div>
-                 {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
- 
-                 <h3 style={{ marginTop: '12px', marginBottom: '12px' }}>{item.productType} - {item.company}</h3>
- 
-                 <h4 style={{ marginBottom: '6px', fontSize: '13px', color: '#555', fontWeight: '700' }}>Product Details:</h4>
-                 <p style={{ color: '#666', fontSize: '13px', marginBottom: '6px', lineHeight: '1.5' }}>
-                   <strong>Type:</strong> {item.productType}
-                 </p>
-                 <p style={{ color: '#222', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>
-                   <strong>Description:</strong> {item.productDescription}
-                 </p>
-                 <p style={{ color: '#222', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>
-                   <strong>Partnership Rationale:</strong> {item.whyPartner}
-                 </p>
- 
-                 {(item.hasPhoto || item.hasVideo) && (
-                   <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '12px', borderLeft: '4px solid #9b59b6' }}>
-                     <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Media:</h4>
-                     {item.hasPhoto && <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>Product photo included</p>}
-                     {item.hasVideo && <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>Product video included</p>}
-                   </div>
-@@ -3155,75 +3198,75 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
-                   textAlign: 'center',
-                   overflow: 'hidden',
-                   textOverflow: 'ellipsis',
-                   whiteSpace: 'nowrap'
-                 }}
-               >
-                 {person}
-               </button>
-             ))}
-           </div>
-         )}
-       </div>
- 
-       <div>
-         <h3 style={{ marginBottom: '16px' }}>Perspectives Feed ({filteredItems.length})</h3>
-         {filteredItems.length === 0 && selectedFollowing.length === 0 ? (
-           <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>
-             Select people you follow to see their perspectives here.
-           </div>
-         ) : selectedFollowing.length > 0 && filteredItems.length === 0 ? (
-           <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>
-             No perspectives yet from people you follow.
-           </div>
-         ) : (
-           filteredItems.map(item => (
--            <div key={item.id || item._id} style={styles.dumaCard}>
-+            <div key={item._uniqueKey || item.id || item._id} style={styles.dumaCard}>
-               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                 <span style={styles.typeTag}>Perspective</span>
-                 {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
-               </div>
-               {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
-               <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
-               <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6' }}>{item.response || item.reason || item.desc}</p>
-             </div>
-           ))
-         )}
-       </div>
-     </div>
-   );
- };
- 
- // --- ADMIN ORDER TRACKING & FULFILLMENT SYSTEM ---
- const AdminOrdersPage = ({ authToken, userEmail }) => {
-   const [orders, setOrders] = useState([]);
-   const [filterStatus, setFilterStatus] = useState("All");
-   const [loading, setLoading] = useState(true);
-   const [updatingId, setUpdatingId] = useState(null);
- 
--  // Security Gate: Replace with your exact company owner email address
--  const isOwner = userEmail === "YOUR_EMAIL@domain.com";
-+  // Security Gate: configure REACT_APP_ADMIN_EMAIL for the company owner
-+  const isOwner = Boolean(ADMIN_EMAIL) && userEmail?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
- 
-   const fetchAllOrders = useCallback(async () => {
-     if (!authToken) return;
-     try {
-       setLoading(true);
-       const response = await fetch(`${BACKEND_URL}/api/admin/orders`, {
-         headers: { Authorization: `Bearer ${authToken}` }
-       });
-       if (response.ok) {
-         const data = await response.json();
-         setOrders(data);
-       }
-     } catch (err) {
-       console.error("Error retrieving site orders:", err);
-     } finally {
-       setLoading(false);
-     }
-   }, [authToken]);
- 
-   useEffect(() => {
-     if (isOwner) fetchAllOrders();
-   }, [isOwner, fetchAllOrders]);
- 
-   const handleUpdateStatus = async (orderId, nextStatus) => {
-     setUpdatingId(orderId);
-@@ -3623,51 +3666,58 @@ export default function App() {
-     const email = localStorage.getItem("userEmail") || sessionStorage.getItem("userEmail");
-     const storedSets = localStorage.getItem("savedSets");
-     if (storedSets) { try { setSavedSets(JSON.parse(storedSets)); } catch (e) {} }
-     const storedAvatar = localStorage.getItem("userAvatar") || sessionStorage.getItem("userAvatar");
-     if (storedAvatar) setUserAvatar(storedAvatar);
-     if (token) {
-       fetch(`${BACKEND_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(data => {
-         if (data.email) { setIsLoggedIn(true); setUserEmail(data.email); setAuthToken(token); const currentScore = data.rank_score || 1; setRankScore(currentScore); setRankTitle(getRankTitle(currentScore)); localStorage.removeItem("rankTitle"); localStorage.removeItem("rankScore"); sessionStorage.removeItem("rankTitle"); sessionStorage.removeItem("rankScore"); } else { localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); }
-       }).catch(() => { if (email) { setIsLoggedIn(true); setUserEmail(email); setAuthToken(token); const storedRank = localStorage.getItem("rankTitle") || sessionStorage.getItem("rankTitle"); const storedScore = parseInt(localStorage.getItem("rankScore") || sessionStorage.getItem("rankScore") || "1"); if (storedRank) setRankTitle(storedRank); setRankScore(storedScore); } });
-     }
-   }, []);
-   const handleLoginSuccess = (email, token, rememberMe, rank, score) => {
-     setIsLoggedIn(true); setUserEmail(email); setAuthToken(token); const resolvedScore = score || 1; const resolvedRank = getRankTitle(resolvedScore); setRankTitle(resolvedRank); setRankScore(resolvedScore);
-     const storage = rememberMe ? localStorage : sessionStorage; storage.setItem("authToken", token); storage.setItem("userEmail", email); storage.setItem("rankTitle", resolvedRank); storage.setItem("rankScore", String(resolvedScore));
-   };
-   const handleLogout = () => {
-     setIsLoggedIn(false); setUserEmail(""); setAuthToken(""); setRankTitle("Comrade"); setRankScore(1); setUserAvatar("");
-     localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); localStorage.removeItem("rankTitle"); localStorage.removeItem("rankScore"); localStorage.removeItem("userAvatar");
-     sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); sessionStorage.removeItem("rankTitle"); sessionStorage.removeItem("rankScore"); sessionStorage.removeItem("userAvatar");
-   };
-   const handleAvatarUpdate = (url) => {
-     setUserAvatar(url);
-     const storage = localStorage.getItem("authToken") ? localStorage : sessionStorage;
-     if (url) { storage.setItem("userAvatar", url); } else { storage.removeItem("userAvatar"); }
-   };
--  const saveSetToProfile = (items) => { const newSet = { items, date: new Date().toLocaleDateString() }; const updatedSets = [newSet, ...savedSets]; setSavedSets(updatedSets); localStorage.setItem("savedSets", JSON.stringify(updatedSets)); };
-+  const saveSetToProfile = (items) => {
-+    const newSet = { id: `set-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, items, date: new Date().toLocaleDateString() };
-+    setSavedSets(prev => {
-+      const updatedSets = [newSet, ...prev];
-+      localStorage.setItem("savedSets", JSON.stringify(updatedSets));
-+      return updatedSets;
-+    });
-+  };
-   const addDumaItem = (item) => setDumaItems(prev => [item, ...prev]);
-   const addPoints = useCallback((points) => {
-     setRankScore(prevScore => {
-       const newScore = prevScore + points;
-       const oldRank = getRankTitle(prevScore);
-       const newRank = getRankTitle(newScore);
-       if (newRank !== oldRank) {
-         const oldMin = RANK_TIERS.find(t => t.title === oldRank)?.min ?? 1;
-         const newMin = RANK_TIERS.find(t => t.title === newRank)?.min ?? 1;
-         if (newMin > oldMin) {
-           setTokens(prev => prev + 1);
-         }
-       }
-       setRankTitle(newRank);
-       const storage = localStorage.getItem("authToken") ? localStorage : sessionStorage;
-       storage.setItem("rankScore", String(newScore));
-       storage.setItem("rankTitle", newRank);
-       return newScore;
-     });
-   }, [authToken]);
- 
-   const followUser = useCallback((personEmail) => {
-     if (!following.includes(personEmail)) {
-       setFollowing(prev => [...prev, personEmail]);
-       addPoints(1); // +1 point for following someone
-@@ -3680,51 +3730,51 @@ export default function App() {
-         }).catch(err => console.error("Error notifying follow:", err));
-       }
-     }
-   }, [following, addPoints, authToken]);
- 
-   const unfollowUser = (personEmail) => {
-     setFollowing(prev => prev.filter(p => p !== personEmail));
-   };
- 
-   return (
-     <Router>
-       <ScrollToTop />
-       <div style={styles.pageWrapper}>
-         <header style={styles.header}>
-           <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}><div style={styles.logo}>The Majorities</div></Link>
-           <nav style={styles.nav}>
-             <Link to="/" style={styles.navLink}>Home</Link>
-             <Link to="/recommend" style={styles.navLink}>Recommend</Link>
-             <Link to="/partner" style={styles.navLink}>Partner</Link>
-             {/* <Link to="/model" style={styles.navLink}>Model View</Link> */}
-             {/* Publicly visible links */}
-               <Link to="/duma" style={styles.navLink}>The Duma</Link>
- {isLoggedIn ? (
-             <>
-               <Link to="/perspectives" style={styles.navLink}>Culture</Link>
-- {isLoggedIn && userEmail === "YOUR_EMAIL@domain.com" && (
-+ {isLoggedIn && Boolean(ADMIN_EMAIL) && userEmail?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && (
-                  <Link to="/admin/orders" style={{ ...styles.navLink, color: '#e74c3c', fontWeight: '700' }}>
-                    ⚙️ Admin Control
-                      </Link>
-                                  )}
-                   <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: '1px solid #eee', paddingLeft: '15px' }}>
-                     <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
-                     {rankTitle && <RankBadge rankTitle={rankTitle} />}
-                     <span style={styles.auth} onClick={handleLogout}>Logout</span>
-                   </div>
-                 </>
-               ) : (
-                 <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                   <Link to="/signup" style={styles.auth}>Sign Up</Link>
-                   <Link to="/login" style={styles.auth}>Login</Link>
-                 </div>
-               )}
-           </nav>
-         </header>
-         <Routes>
-           <Route path="/" element={<LandingPage saveSetToProfile={saveSetToProfile} onAddPoints={addPoints} savedSets={savedSets} />} />
-           <Route path="/login" element={<LoginPage onLogin={handleLoginSuccess} />} />
-           <Route path="/auth/google/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="google" />} />
-           <Route path="/auth/instagram/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="instagram" />} />              <Route path="/oauth/callback/:provider" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="instagram" />} />
-           <Route path="/auth/tiktok/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="tiktok" />} />
-           <Route path="/signup" element={<SignupPage onLogin={handleLoginSuccess} />} />
- 
-EOF
-)
+import React, { useState, useEffect, useCallback } from "react";
+import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate, useLocation, useParams } from "react-router-dom";
+import AdMonetization, { trackEvent } from "./components/AdMonetization";
+
+// --- 1. SHOPIFY CONFIGURATION ---
+const SHOP_DOMAIN = "c0bqfe-z2.myshopify.com";
+const DEFAULT_SELLING_PLAN_ID = "1467875506";
+
+const PRODUCT_VARIANT_MAP = {
+  "The Majorities Shampoo": {
+    merchandiseId: "47555331358898",
+    pricing: { oneTime: 7, subscription: 6 },
+    sellingPlanId: DEFAULT_SELLING_PLAN_ID
+  },
+  "The Majorities Conditioner": {
+    merchandiseId: "47555331555506",
+    pricing: { oneTime: 7, subscription: 6 },
+    sellingPlanId: DEFAULT_SELLING_PLAN_ID
+  },
+  "The Majorities Hair Oil": {
+    merchandiseId: "47555331752114",
+    pricing: { oneTime: 7, subscription: 6 },
+    sellingPlanId: DEFAULT_SELLING_PLAN_ID
+  },
+  "The Majorities Facial Scrub": {
+    merchandiseId: "47555331948722",
+    pricing: { oneTime: 7, subscription: 6 },
+    sellingPlanId: DEFAULT_SELLING_PLAN_ID
+  },
+  "The Majorities Face Toner": {
+    merchandiseId: "47555332145330",
+    pricing: { oneTime: 7, subscription: 6 },
+    sellingPlanId: DEFAULT_SELLING_PLAN_ID
+  },
+  "The Majorities Moisturizing Lotion": {
+    merchandiseId: "47555332309170",
+    pricing: { oneTime: 7, subscription: 6 },
+    sellingPlanId: DEFAULT_SELLING_PLAN_ID
+  }
+};
+
+// --- 2. BACKEND CONFIGURATION ---
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://hair-backend-1.onrender.com";
+
+// --- 3. RANK SYSTEM (51-Tier Hierarchy) ---
+const RANK_TIERS = [
+  // --- SUPREME COMMAND ---  
+  { title: "Nice and Helpful", min: 75000000 },
+
+  // --- EXECUTIVE COMMAND (5M Point Increments) ---
+  { title: "Servant of the People",                         min: 50000000 },
+  { title: "Servant of the Majorities",                     min: 45000000 },
+  { title: "General Secretary of The Majorities",           min: 40000000 },
+  { title: "Premier of The Majorities",                     min: 35000000 },
+  { title: "Chairman of the Standing Committee of the Majorities Duma", min: 30000000 },
+  { title: "Chairman of the National Committee of the Majorities Political Consultative", min: 25000000 },
+  { title: "Director of the General Office of the Majorities", min: 20000000 },
+  { title: "Secretary of the Central Commission for Discipline Inspection", min: 15000000 },
+  { title: "Politburo Member of The Majorities",            min: 10000000 },
+  { title: "Secretary of Majorities Committees of Provinces", min: 5000000  },
+
+  // --- HEROIC ORDERS & LABOR TITLES ---
+  { title: "Champion of the The Majorities",                   min: 4500000 },
+  { title: "Hero of the Majorities",                    min: 4000000 },
+  { title: "Order of The Majorities",                   min: 3500000 },
+  { title: "Order of the October Revolution",           min: 3000000 },
+  { title: "Order of the Red Banner of Labor",          min: 2500000 },
+  { title: "Order of Friendship of Peoples",            min: 2000000 },
+  { title: "Order of the Badge of Honor",               min: 1500000 },
+  { title: "the Salvation of the Drowning",             min: 1000000 },
+
+  // --- LOWER HIERARCHY (Russian Gods) ---
+  { title: "Perun",             min: 900000  },
+  { title: "Veles",             min: 800000  },
+  { title: "Svarog",            min: 700000  },
+  { title: "Mokosh",            min: 600000  },
+  { title: "Dazhbog",           min: 500000  },
+  { title: "Stribog",           min: 400000  },
+  { title: "Rod",               min: 300000  },
+  { title: "Yarilo",            min: 200000  },
+  { title: "Lada",              min: 100000  },
+  { title: "Morana",            min: 50000   },
+  { title: "Belobog",           min: 25000   },
+  { title: "Chernobog",         min: 10000   },
+  { title: "Leshiy",            min: 5000    },
+  { title: "Vodyanoy",          min: 2500    },
+  { title: "Domovoi",           min: 1500    },
+  { title: "Rusalka",           min: 1000    },
+  { title: "Rugiaevit",         min: 500     },
+  { title: "Schout-bij-nacht",  min: 250     },
+  { title: "Crow",              min: 100     },
+  { title: "Comrade",           min: 1       },
+];
+
+const LOWER_HIERARCHY_RANKS = [
+  "Perun", "Veles", "Svarog", "Mokosh", "Dazhbog", "Stribog", "Rod", "Yarilo",
+  "Lada", "Morana", "Belobog", "Chernobog", "Leshiy", "Vodyanoy", "Domovoi",
+  "Rusalka", "Rugiaevit", "Schout-bij-nacht", "Crow", "Comrade"
+];
+
+const getRankTitle = (score) => {
+  for (const tier of RANK_TIERS) {
+    if (score >= tier.min) return tier.title;
+  }
+  return "Comrade";
+};
+
+const getFormattedRankTitle = (rankTitle, completedPromptsCount = 0) => {
+  if (!rankTitle) return "Comrade";
+  if (completedPromptsCount >= 15 && LOWER_HIERARCHY_RANKS.includes(rankTitle)) {
+    return `Lord ${rankTitle}`;
+  }
+  return rankTitle;
+};
+
+const COMPLETED_PROMPTS_KEY = "majorities_completed_prompts";
+const getCompletedPromptIds = (userEmail) => {
+  if (typeof window === "undefined" || !userEmail) return [];
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(COMPLETED_PROMPTS_KEY) || "{}");
+    return stored[userEmail] || [];
+  } catch {
+    return [];
+  }
+};
+
+const markPromptCompleted = (userEmail, promptId) => {
+  if (typeof window === "undefined" || !userEmail || !promptId) return getCompletedPromptIds(userEmail);
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(COMPLETED_PROMPTS_KEY) || "{}");
+    const existing = new Set(stored[userEmail] || []);
+    existing.add(promptId);
+    stored[userEmail] = Array.from(existing);
+    window.localStorage.setItem(COMPLETED_PROMPTS_KEY, JSON.stringify(stored));
+    return stored[userEmail];
+  } catch {
+    return getCompletedPromptIds(userEmail);
+  }
+};
+
+const isPolitburoOrHigher = (score) => score >= 10000000;
+
+const getPointsToNextRank = (currentScore, currentRankTitle) => {
+  const currentIndex = RANK_TIERS.findIndex(r => r.title === currentRankTitle);
+  if (currentIndex <= 0) return 0;
+  const nextRank = RANK_TIERS[currentIndex - 1];
+  return Math.max(0, nextRank.min - currentScore);
+};
+
+const getNextRankTitle = (currentRankTitle) => {
+  const currentIndex = RANK_TIERS.findIndex(r => r.title === currentRankTitle);
+  if (currentIndex <= 0) return null;
+  return RANK_TIERS[currentIndex - 1].title;
+};
+
+const getRankProgress = (currentScore, currentRankTitle) => {
+  const currentIndex = RANK_TIERS.findIndex(r => r.title === currentRankTitle);
+  const currentTier = RANK_TIERS[currentIndex] || RANK_TIERS[RANK_TIERS.length - 1];
+  const nextTier = currentIndex > 0 ? RANK_TIERS[currentIndex - 1] : null;
+  const currentMin = currentTier?.min || 1;
+  if (!nextTier) {
+    return { currentMin, nextMin: currentMin, progressPercent: 100 };
+  }
+
+  const span = Math.max(1, nextTier.min - currentMin);
+  const progressPercent = Math.min(100, Math.max(0, ((currentScore - currentMin) / span) * 100));
+  return { currentMin, nextMin: nextTier.min, progressPercent };
+};
+
+const formatCurrency = (value) => `$${Number(value || 0).toFixed(2)}`;
+
+const getProductCommerceConfig = (productName) => PRODUCT_VARIANT_MAP[productName] || {
+  merchandiseId: "",
+  pricing: { oneTime: 0, subscription: 0 },
+  sellingPlanId: null
+};
+
+const calculateSetTotals = (items = []) => items.reduce((totals, item) => {
+  const { pricing } = getProductCommerceConfig(item.name);
+  return {
+    oneTime: totals.oneTime + (pricing.oneTime || 0),
+    subscription: totals.subscription + (pricing.subscription || 0)
+  };
+}, { oneTime: 0, subscription: 0 });
+
+const submitShopifyCheckout = (items, purchaseType = "one-time") => {
+  if (!items.length) return;
+  if (purchaseType === "one-time") {
+    const lineItems = items.map((item) => `${getProductCommerceConfig(item.name).merchandiseId}:1`).join(",");
+    window.location.href = `https://${SHOP_DOMAIN}/cart/${lineItems}?checkout[shipping_address][country]=US`;
+    return;
+  }
+  const subscriptionLineItems = items.map((item) => `${getProductCommerceConfig(item.name).merchandiseId}:1`).join(",");
+  const sellingPlanId = getProductCommerceConfig(items[0].name).sellingPlanId;
+  window.location.href = `https://${SHOP_DOMAIN}/cart/${subscriptionLineItems}?selling_plan=${sellingPlanId}&checkout[shipping_address][country]=US`;
+};
+
+const getRankColor = (rankTitle) => {
+  const goldTier = [
+    "Nice and Helpful", "Servant of the People", "Servant of the Majorities", "General Secretary of The Majorities",
+    "Premier of The Majorities", "Chairman of the Standing Committee of the Majorities Duma",
+    "Chairman of the National Committee of the Majorities Political Consultative",
+    "Director of the General Office of the Majorities",
+    "Secretary of the Central Commission for Discipline Inspection",
+    "Politburo Member of The Majorities", "Secretary of Majorities Committees of Provinces",
+    "Champion of the The Majorities", "Hero of the Majorities", "Order of The Majorities",
+    "Order of the October Revolution", "Order of the Red Banner of Labor",
+    "Order of Friendship of Peoples", "Order of the Badge of Honor", "the Salvation of the Drowning"
+  ];
+  const silverTier = ["Perun", "Veles", "Svarog", "Mokosh", "Dazhbog", "Stribog", "Rod", "Yarilo"];
+  if (goldTier.includes(rankTitle)) return '#FFD700';
+  if (silverTier.includes(rankTitle)) return '#C0C0C0';
+  return '#888';
+};
+
+// --- RANK BADGE COMPONENT ---
+const RankBadge = ({ rankTitle }) => {
+  const color = getRankColor(rankTitle);
+  const isTopRank = rankTitle === "Nice and Helpful";
+  const isLongTitle = rankTitle && rankTitle.length > 20;
+  return (
+    <span style={{
+      fontSize: isLongTitle ? '9px' : '11px',
+      fontWeight: '700',
+      color: color,
+      padding: '3px 8px',
+      borderRadius: '4px',
+      border: `1px solid ${color}`,
+      textTransform: 'uppercase',
+      letterSpacing: isLongTitle ? '0px' : '0.5px',
+      whiteSpace: 'nowrap',
+      display: 'inline-flex',
+      alignItems: 'center',
+      maxWidth: '200px',
+      lineHeight: '1.3',
+      ...(isTopRank ? styles.generalSecretaryBadge : {})
+    }}>
+      {rankTitle}
+    </span>
+  );
+};
+
+const safeSocialUrl = (raw) => {
+  if (!raw) return null;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return `https://${raw}`;
+};
+
+const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks = {} }) => {
+  const initial = (email || 'C')[0].toUpperCase();
+  const color = getRankColor(rankTitle || 'Comrade');
+  const isTopRank = rankTitle === "Nice and Helpful";
+  const formattedRankTitle = getFormattedRankTitle(rankTitle || 'Comrade', getCompletedPromptIds(email).length);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', background: '#fff', flexWrap: 'wrap', marginBottom: '12px' }}>
+      <div style={{
+        width: '42px',
+        height: '42px',
+        borderRadius: '50%',
+        border: '1.5px solid #1a1a1a',
+        backgroundColor: avatarUrl ? 'transparent' : color,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '16px',
+        fontWeight: '700',
+        color: '#fff',
+        flexShrink: 0,
+        overflow: 'hidden',
+        ...(isTopRank && !avatarUrl ? { boxShadow: '0 0 12px rgba(255,215,0,0.8)' } : {})
+      }}>
+        {avatarUrl ? <img src={avatarUrl} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initial}
+      </div>
+      <span style={{ fontWeight: '600', fontSize: '14px', color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '220px' }}>
+        {email}
+      </span>
+      <span style={{
+        fontSize: rankTitle && rankTitle.length > 20 ? '9px' : '11px',
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        padding: '4px 10px',
+        borderRadius: '4px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        backgroundColor: '#000',
+        color: '#fff',
+        whiteSpace: 'nowrap',
+        letterSpacing: rankTitle && rankTitle.length > 20 ? '0px' : '0.5px',
+        lineHeight: '1.3',
+        ...(isTopRank ? styles.generalSecretaryBadge : {})
+      }}>
+        {formattedRankTitle}
+      </span>
+      {rankScore != null && (
+        <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', padding: '4px 10px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px', backgroundColor: '#f5f5f5', color: '#d4af37', border: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>
+          ★ {(rankScore || 1).toLocaleString()} pts
+        </span>
+      )}
+      {socialLinks && (
+        <>
+          {socialLinks.instagram && <a href={safeSocialUrl(socialLinks.instagram)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: '15px' }} title="Instagram">📷</a>}
+          {socialLinks.tiktok && <a href={safeSocialUrl(socialLinks.tiktok)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: '15px' }} title="TikTok">🎵</a>}
+          {socialLinks.snapchat && <a href={safeSocialUrl(socialLinks.snapchat)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: '15px' }} title="Snapchat">👻</a>}
+        </>
+      )}
+    </div>
+  );
+};
+
+const SOCIAL_FIELDS = [
+  { key: 'instagram', label: '📷 Instagram', placeholder: 'instagram.com/yourprofile' },
+  { key: 'tiktok', label: '🎵 TikTok', placeholder: 'tiktok.com/@yourprofile' },
+  { key: 'snapchat', label: '👻 Snapchat', placeholder: 'snapchat.com/add/yourprofile' },
+];
+
+const SocialInputRow = ({ socialKey, label, placeholder, initialValue, onSave, onChangeGlobal, saveStatus }) => {
+  const [localVal, setLocalVal] = React.useState(initialValue || "");
+
+  React.useEffect(() => { setLocalVal(initialValue || ""); }, [initialValue]);
+
+  const isSocialSaveDisabled = saveStatus === "saving" || !localVal.trim();
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '14px', border: '1px solid #eaeaea', borderRadius: '10px', backgroundColor: '#fff' }}>
+      <label style={{ fontSize: '13px', fontWeight: '600', color: '#222', display: 'block' }}>{label}</label>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <input type="text" placeholder={placeholder} value={localVal} onChange={(e) => setLocalVal(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box' }} />
+        <button
+          type="button"
+          onClick={() => {
+            const sanitizedVal = localVal.trim();
+            if (onChangeGlobal) onChangeGlobal(socialKey, sanitizedVal);
+            onSave(socialKey, sanitizedVal);
+          }}
+          disabled={isSocialSaveDisabled}
+          style={{ padding: '10px 16px', backgroundColor: saveStatus === "saved" ? '#27ae60' : saveStatus === "error" ? '#e74c3c' : '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: isSocialSaveDisabled ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '12px', minWidth: '85px' }}
+        >
+          {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "✓ Linked" : "Save"}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// --- PROFILE PAGE COMPONENT ---
+const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar, tokens, addDumaItem }) => {
+  const navigate = useNavigate();
+  const [profilePhotos, setProfilePhotos] = useState(userAvatar ? [userAvatar] : []);
+  const [activeThumbnail, setActiveThumbnail] = useState(userAvatar || null);
+  const [uploadStatus, setUploadStatus] = useState("idle");
+  const photoInputRef = React.useRef(null);
+
+  const [backendRankScore, setBackendRankScore] = useState(rankScore || 1);
+  const [backendRankTitle, setBackendRankTitle] = useState(rankTitle || "Comrade");
+
+  const [cultureResponse, setCultureResponse] = useState("");
+  const [cultureMediaFiles, setCultureMediaFiles] = useState([]);
+  const [cultureMediaPreviews, setCultureMediaPreviews] = useState([]);
+  const [cultureSubmitStatus, setCultureSubmitStatus] = useState("idle");
+  const [cultureErrorMsg, setCultureErrorMsg] = useState("");
+  const [selectedPrompt, setSelectedPrompt] = useState(null);
+
+  const perspectivePrompts = [
+    { id: 1, text: "What's the best restaurant or local hidden gem you've eaten at recently? What should we order?" },
+    { id: 2, text: "Share your top bar or cocktail lounge recommendation. What's the go-to drink there?" },
+    { id: 3, text: "What is your absolute favorite brunch spot, and what makes it a must-visit?" },
+    { id: 4, text: "What's the coolest coffee shop or late-night dessert place in your area?" },
+    { id: 5, text: "If you could recommend one vacation destination for a quick weekend getaway, where are we going?" },
+    { id: 6, text: "Drop your ultimate dream vacation spot or a past trip that blew your expectations away!" },
+    { id: 7, text: "What's a fun local spot or unique activity in your city that tourists usually miss out on?" },
+    { id: 8, text: "Share a photo or clip from your favorite travel memory or outdoor adventure." },
+    { id: 9, text: "Show us your current OOTD (Outfit of the Day) or favorite wardrobe piece right now!" },
+    { id: 10, text: "What is your favorite brand or boutique to shop at for quality clothes or accessories?" },
+    { id: 11, text: "Drop your best budget fashion or shopping hack. How do you build killer looks for less?" },
+    { id: 12, text: "What TV show or series are you currently binge-watching that everyone needs to check out?" },
+    { id: 13, text: "What is a movie you can watch over and over again without ever getting tired of it?" },
+    { id: 14, text: "Recommend an underrated movie or show that doesn't get enough hype!" },
+    { id: 15, text: "Post Anything! Share whatever is on your mind today—a random thought, life update, or funny hot take." }
+  ];
+
+  const [socialLinks, setSocialLinks] = useState({ instagram: "", tiktok: "", snapchat: "" });
+  const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", snapchat: "idle" });
+
+  useEffect(() => {
+    const resolvedScore = rankScore || 1;
+    setBackendRankScore(resolvedScore);
+    const rawRank = getRankTitle(resolvedScore);
+    const promptCount = getCompletedPromptIds(userEmail).length;
+    setBackendRankTitle(getFormattedRankTitle(rawRank, promptCount));
+  }, [rankScore, rankTitle, userEmail]);
+
+  useEffect(() => {
+    if (!authToken) return;
+    fetch(`${BACKEND_URL}/api/profile`, { headers: { Authorization: `Bearer ${authToken}` } })
+      .then(r => r.json())
+      .then(data => {
+        const resolvedScore = data.rank_score || 1;
+        setBackendRankScore(resolvedScore);
+        const rawRank = getRankTitle(resolvedScore);
+        const promptCount = getCompletedPromptIds(userEmail).length;
+        setBackendRankTitle(getFormattedRankTitle(rawRank, promptCount));
+
+        if (data.profilePhotos?.length > 0) setProfilePhotos(data.profilePhotos.slice(0, 6));
+        else if (data.avatar) setProfilePhotos([data.avatar]);
+
+        if (data.avatar) {
+          setActiveThumbnail(data.avatar);
+          if (onAvatarUpdate) onAvatarUpdate(data.avatar);
+        }
+        if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
+      })
+      .catch(() => {});
+  }, [authToken, onAvatarUpdate, userEmail]);
+
+  const handleProfilePhotosUpload = async (e) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const selectedFiles = Array.from(e.target.files).slice(0, 6 - profilePhotos.length);
+    e.target.value = "";
+    setUploadStatus("uploading");
+    const uploadedUrls = [];
+
+    try {
+      for (const file of selectedFiles) {
+        if (!['image/jpeg', 'image/png'].includes(file.type)) continue;
+        if (file.size > 5 * 1024 * 1024) continue;
+
+        if (authToken) {
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("type", "avatar");
+
+          const response = await fetch(`${BACKEND_URL}/api/media/upload`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${authToken}` },
+            body: formData
+          });
+          if (response.ok) {
+            const data = await response.json();
+            const cloudUrl = data.storageUrl || data.url || data.secure_url;
+            if (cloudUrl) uploadedUrls.push(cloudUrl);
+          }
+        } else {
+          uploadedUrls.push(URL.createObjectURL(file));
+        }
+      }
+
+      if (uploadedUrls.length > 0) {
+        const newGallery = [...profilePhotos, ...uploadedUrls].slice(0, 6);
+        setProfilePhotos(newGallery);
+        const newMain = activeThumbnail || newGallery[0];
+        setActiveThumbnail(newMain);
+        if (onAvatarUpdate) onAvatarUpdate(newMain);
+
+        if (authToken) {
+          await fetch(`${BACKEND_URL}/api/profile`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+            body: JSON.stringify({ avatar: newMain, profilePhotos: newGallery })
+          });
+        }
+        setUploadStatus("saved");
+        setTimeout(() => setUploadStatus("idle"), 3000);
+      } else {
+        setUploadStatus("error");
+        setTimeout(() => setUploadStatus("idle"), 3000);
+      }
+    } catch {
+      setUploadStatus("error");
+      setTimeout(() => setUploadStatus("idle"), 3000);
+    }
+  };
+
+  const handleSelectThumbnail = async (photoUrl) => {
+    setActiveThumbnail(photoUrl);
+    if (onAvatarUpdate) onAvatarUpdate(photoUrl);
+    if (authToken) {
+      await fetch(`${BACKEND_URL}/api/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ avatar: photoUrl, profilePhotos })
+      });
+    }
+  };
+
+  const handleRemovePhoto = async (photoUrl) => {
+    const updatedGallery = profilePhotos.filter(p => p !== photoUrl);
+    setProfilePhotos(updatedGallery);
+    let nextMain = activeThumbnail;
+    if (activeThumbnail === photoUrl) {
+      nextMain = updatedGallery[0] || null;
+      setActiveThumbnail(nextMain);
+      if (onAvatarUpdate) onAvatarUpdate(nextMain);
+    }
+    if (authToken) {
+      await fetch(`${BACKEND_URL}/api/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ avatar: nextMain, profilePhotos: updatedGallery })
+      });
+    }
+  };
+
+  const handleCultureMediaChange = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFiles = Array.from(e.target.files).slice(0, 6);
+      setCultureMediaFiles(selectedFiles);
+      setCultureMediaPreviews(selectedFiles.map(file => ({
+        url: URL.createObjectURL(file),
+        type: file.type.startsWith("video/") ? "video" : "image"
+      })));
+    }
+  };
+
+  const handleCultureSubmit = async (e) => {
+    e.preventDefault();
+    if (!cultureResponse.trim()) {
+      setCultureErrorMsg("Please write a description for your post.");
+      return;
+    }
+    setCultureErrorMsg("");
+    setCultureSubmitStatus("uploading");
+
+    try {
+      let uploadedMediaUrls = [];
+
+      if (cultureMediaFiles.length > 0 && authToken) {
+        for (const file of cultureMediaFiles) {
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("type", file.type.startsWith("video/") ? "video" : "image");
+          const uploadRes = await fetch(`${BACKEND_URL}/api/media/upload`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${authToken}` },
+            body: formData
+          });
+          if (uploadRes.ok) {
+            const uploadData = await uploadRes.json();
+            const cloudUrl = uploadData.storageUrl || uploadData.secure_url || uploadData.url;
+            if (cloudUrl) uploadedMediaUrls.push(cloudUrl);
+          }
+        }
+      }
+
+      const promptText = selectedPrompt ? selectedPrompt.text : "Post About Anything";
+
+      if (authToken) {
+        const res = await fetch(`${BACKEND_URL}/api/duma/culture`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+          body: JSON.stringify({
+            prompt: promptText,
+            response: cultureResponse,
+            category: "Culture",
+            mediaUrls: uploadedMediaUrls
+          })
+        });
+        if (!res.ok) {
+          setCultureSubmitStatus("error");
+          setCultureErrorMsg("Submission failed");
+          return;
+        }
+      }
+
+      if (selectedPrompt) {
+        markPromptCompleted(userEmail, selectedPrompt.id);
+      }
+
+      if (addDumaItem) {
+        addDumaItem({
+          id: Date.now(),
+          type: "Culture",
+          category: "Culture",
+          prompt: promptText,
+          response: cultureResponse,
+          mediaUrls: uploadedMediaUrls.length > 0 ? uploadedMediaUrls : cultureMediaPreviews.map(p => p.url),
+          submittedBy: userEmail,
+          submitterRank: backendRankTitle,
+          submitterAvatar: activeThumbnail || null,
+          votes: { yes: 0 }
+        });
+      }
+
+      const pointsAwarded = selectedPrompt ? 120 : 100;
+      if (onAddPoints) onAddPoints(pointsAwarded);
+      setCultureSubmitStatus("saved");
+      setTimeout(() => { navigate("/duma"); }, 2000);
+    } catch {
+      setCultureSubmitStatus("error");
+      setCultureErrorMsg("Server error trying to process submission.");
+    }
+  };
+
+  const handleSaveSocialLink = async (key, valueOverride) => {
+    if (!authToken) return;
+    const resolvedValue = typeof valueOverride === "string" ? valueOverride : socialLinks[key];
+    if (typeof valueOverride === "string") setSocialLinks(prev => ({ ...prev, [key]: valueOverride }));
+    setSocialSaveStatus(prev => ({ ...prev, [key]: "saving" }));
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ socialLinks: { [key]: resolvedValue } })
+      });
+      if (response.ok) {
+        setSocialSaveStatus(prev => ({ ...prev, [key]: "saved" }));
+        setTimeout(() => setSocialSaveStatus(prev => ({ ...prev, [key]: "idle" })), 3000);
+      } else {
+        setSocialSaveStatus(prev => ({ ...prev, [key]: "error" }));
+        setTimeout(() => setSocialSaveStatus(prev => ({ ...prev, [key]: "idle" })), 3000);
+      }
+    } catch {
+      setSocialSaveStatus(prev => ({ ...prev, [key]: "error" }));
+      setTimeout(() => setSocialSaveStatus(prev => ({ ...prev, [key]: "idle" })), 3000);
+    }
+  };
+
+  const displayRankScore = backendRankScore || 1;
+  const displayRankTitle = backendRankTitle || 'Comrade';
+  const pointsToNextRank = getPointsToNextRank(displayRankScore, displayRankTitle);
+  const nextRankTitle = getNextRankTitle(displayRankTitle);
+  const { currentMin, nextMin, progressPercent } = getRankProgress(displayRankScore, displayRankTitle);
+
+  return (
+    <div style={{ padding: '40px 60px', maxWidth: '1000px', margin: '0 auto' }}>
+      {/* HEADER SECTION */}
+      <div style={{ marginBottom: '40px' }}>
+        <h1 style={{ fontSize: '32px', marginBottom: '8px', fontWeight: '700' }}>Welcome</h1>
+        {displayRankTitle && (
+          <div style={{ marginTop: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <RankBadge rankTitle={displayRankTitle} />
+              <span style={{ fontSize: '13px', color: '#666' }}>{displayRankScore.toLocaleString()} points</span>
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '11px', color: '#666', marginBottom: '6px', textTransform: 'uppercase' }}>
+                <span>Rank progress</span>
+                <span>{progressPercent.toFixed(0)}%</span>
+              </div>
+              <div style={{ width: '100%', height: '10px', background: '#ececec', borderRadius: '999px', overflow: 'hidden' }}>
+                <div style={{ width: `${progressPercent}%`, height: '100%', background: 'linear-gradient(90deg, #222 0%, #d4af37 100%)' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#888', marginTop: '6px' }}>
+                <span>{currentMin.toLocaleString()} pts</span>
+                <span>{nextRankTitle ? `${nextMin.toLocaleString()} pts` : 'Top rank reached'}</span>
+              </div>
+            </div>
+            {nextRankTitle && (
+              <div style={{ fontSize: '12px', color: '#888', marginTop: '8px' }}>
+                <strong>{pointsToNextRank.toLocaleString()}</strong> points to your next rank ({nextRankTitle})
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 1. PROFILE PICTURES (UP TO 6) */}
+      <section style={{ marginBottom: '40px' }}>
+        <h2 style={{ fontSize: '20px', marginBottom: '8px', fontWeight: '600' }}>Profile Pictures (Up to 6)</h2>
+        <p style={{ color: '#666', fontSize: '13px', marginBottom: '20px' }}>
+          Upload up to 6 pictures and select your active main avatar thumbnail.
+        </p>
+
+        <div style={styles.uploadBox}>
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            {activeThumbnail ? (
+              <div>
+                <img src={activeThumbnail} alt="Main Avatar" style={{ width: '130px', height: '130px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #222', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', marginBottom: '10px' }} />
+                <div>
+                  <span style={{ fontSize: '11px', fontWeight: '700', backgroundColor: '#222', color: '#fff', padding: '4px 10px', borderRadius: '12px' }}>
+                    ★ Active Avatar
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div style={{ padding: '20px', color: '#888' }}>
+                <span style={{ fontSize: '40px', display: 'block' }}>👤</span>
+                <p style={{ fontSize: '13px', margin: 0 }}>No profile picture selected yet.</p>
+              </div>
+            )}
+          </div>
+
+          <h4 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#555', marginBottom: '12px' }}>
+            Your Pictures ({profilePhotos.length}/6)
+          </h4>
+
+          {profilePhotos.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+              {profilePhotos.map((photo, index) => {
+                const isSelected = photo === activeThumbnail;
+                return (
+                  <div key={index} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: isSelected ? '3px solid #27ae60' : '1px solid #ddd', background: '#fff', padding: '4px', textAlign: 'center' }}>
+                    <img src={photo} alt={`Profile ${index + 1}`} style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '6px' }} />
+                    <button type="button" onClick={() => handleSelectThumbnail(photo)} onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85'; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }} style={{ width: '100%', marginTop: '4px', padding: '4px 0', fontSize: '10px', fontWeight: '700', border: 'none', borderRadius: '6px', backgroundColor: isSelected ? '#27ae60' : '#222', color: '#fff', cursor: 'pointer', transition: 'opacity 0.15s ease' }}>
+                      {isSelected ? '✓ Selected' : 'Set as Main'}
+                    </button>
+                    <button type="button" onClick={() => handleRemovePhoto(photo)} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.85)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.6)'; }} style={{ position: 'absolute', top: '6px', right: '6px', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '6px', width: '22px', height: '22px', cursor: 'pointer', fontSize: '11px', transition: 'background 0.15s ease' }}>
+                      ✕
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <input ref={photoInputRef} type="file" accept="image/jpeg,image/png" multiple onChange={handleProfilePhotosUpload} style={{ display: 'none' }} />
+          <div
+            onClick={() => { if (profilePhotos.length < 6 && uploadStatus !== "uploading" && photoInputRef.current) photoInputRef.current.click(); }}
+            onMouseEnter={(e) => { if (profilePhotos.length < 6) e.currentTarget.style.borderColor = '#222'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#ccc'; }}
+            style={{
+              border: '2px dashed #ccc',
+              borderRadius: '12px',
+              padding: '24px',
+              textAlign: 'center',
+              backgroundColor: '#fff',
+              cursor: (profilePhotos.length >= 6 || uploadStatus === "uploading") ? 'not-allowed' : 'pointer',
+              opacity: profilePhotos.length >= 6 ? 0.5 : 1,
+              transition: 'border-color 0.15s ease'
+            }}
+          >
+            <div style={{ fontSize: '28px', marginBottom: '8px' }}>📸</div>
+            <h4 style={{ fontSize: '14px', fontWeight: '700', margin: '0 0 4px' }}>
+              {uploadStatus === "uploading" ? "Uploading..." : profilePhotos.length >= 6 ? "Max 6 Photos Reached" : "Upload Profile Pictures"}
+            </h4>
+            <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>JPG/PNG, Max 6 photos, 5MB each</p>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. SOCIALS SECTION */}
+      <section style={{ marginBottom: '40px' }}>
+        <h2 style={{ fontSize: '20px', marginBottom: '16px', fontWeight: '600' }}>Socials</h2>
+        <div style={styles.dumaCard}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+            {SOCIAL_FIELDS.map(social => (
+              <SocialInputRow key={social.key} socialKey={social.key} label={social.label} placeholder={social.placeholder} initialValue={socialLinks[social.key]} saveStatus={socialSaveStatus[social.key]} onChangeGlobal={(k, v) => setSocialLinks(prev => ({ ...prev, [k]: v }))} onSave={handleSaveSocialLink} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 3. POST ABOUT ANYTHING SECTION */}
+      <section style={{ marginBottom: '50px' }}>
+        <h2 style={{ fontSize: '20px', marginBottom: '8px', fontWeight: '600' }}>Post About Anything</h2>
+        <p style={{ color: '#666', fontSize: '13px', marginBottom: '20px' }}>
+          Share your thoughts or photos/videos directly to the Duma (+100 points). Optionally select a prompt below to earn bonus points (+120 points)!
+        </p>
+
+        {cultureSubmitStatus === "saved" ? (
+          <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '40px' }}>
+            <div style={{ fontSize: '36px', marginBottom: '12px' }}>✅</div>
+            <h2>Post Shared!</h2>
+            <p style={{ color: '#666' }}>Your entry was published to the Duma. Redirecting...</p>
+          </div>
+        ) : (
+          <form onSubmit={handleCultureSubmit} style={styles.dumaCard}>
+            {cultureErrorMsg && <div style={{ color: '#e74c3c', marginBottom: '12px', fontSize: '13px' }}>{cultureErrorMsg}</div>}
+
+            <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginBottom: '8px' }}>
+              Attach Photos or Videos (Up to 6)
+            </label>
+            <input type="file" accept="image/*,video/*" multiple onChange={handleCultureMediaChange} style={{ ...styles.input, padding: '8px' }} />
+
+            {cultureMediaPreviews.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '8px', margin: '12px 0' }}>
+                {cultureMediaPreviews.map((p, i) => (
+                  <div key={i} style={{ height: '80px', borderRadius: '6px', overflow: 'hidden', border: '1px solid #ddd' }}>
+                    {p.type === "image" ? <img src={p.url} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <video src={p.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginTop: '16px', marginBottom: '6px' }}>
+              Write a description *
+            </label>
+            <textarea required placeholder="Write your post details here..." style={{ ...styles.input, height: '100px' }} value={cultureResponse} onChange={e => setCultureResponse(e.target.value)} />
+
+            {/* Answer Prompts for Points */}
+            <div style={{ marginTop: '24px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#000', textTransform: 'uppercase', marginBottom: '4px' }}>
+                Answer Prompts for Points (Complete all for speical Reward)
+              </h3>
+              <p style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>
+                Click any prompt below to attach it to your post and earn 120 points! (Scroll to view all 15 prompts)
+              </p>
+
+              {/* SCROLLABLE CONTAINER */}
+              <div className="prompt-scroll" style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                height: '215px',
+                overflowY: 'auto',
+                paddingRight: '6px',
+                border: '1px solid #eaeaea',
+                borderRadius: '10px',
+                padding: '10px',
+                backgroundColor: '#ffffff',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+              }}>
+                {perspectivePrompts.map((p) => {
+                  const isSelected = selectedPrompt?.id === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setSelectedPrompt(isSelected ? null : p)}
+                      style={{
+                        textAlign: 'left',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        border: isSelected ? '2px solid #d4af37' : '1px solid #ddd',
+                        backgroundColor: isSelected ? '#fdf6e3' : '#fff',
+                        boxShadow: isSelected ? '0 0 0 1px #d4af37' : 'none',
+                        color: '#000',
+                        fontWeight: isSelected ? '700' : '400',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        lineHeight: '1.4',
+                        flexShrink: 0
+                      }}
+                    >
+                      {p.id}. {p.text}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <button type="submit" style={{ ...styles.authButton, marginTop: '20px' }}>
+              {cultureSubmitStatus === "uploading" ? "Publishing..." : "Submit Post to Duma"}
+            </button>
+          </form>
+        )}
+      </section>
+
+      {/* SAVED FORMULAS SECTION */}
+      <section>
+        <h2 style={{ fontSize: '20px', marginBottom: '20px', fontWeight: '600' }}>Your Saved Formulas</h2>
+        {savedSets.length === 0 ? (
+          <div style={styles.dumaCard}>
+            <p style={{ color: '#888' }}>You haven't saved any custom sets yet.</p>
+          </div>
+        ) : (
+          savedSets.map((set, index) => (
+            <div key={index} style={styles.dumaCard}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <h4 style={{ margin: 0 }}>Formula #{savedSets.length - index}</h4>
+                <span style={{ fontSize: '12px', color: '#888' }}>{set.date}</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                {set.items.map((item, i) => (
+                  <div key={i} style={{ fontSize: '12px', padding: '8px', background: '#f9f9f9', borderRadius: '6px' }}>
+                    <strong>{item.name}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </section>
+    </div>
+  );
+};
+
+// --- DUMA PAGE COMPONENT ---
+const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints, userAvatar }) => {
+  const [dumaItems, setDumaItems] = useState(items);
+  const [userVotes, setUserVotes] = useState({});
+  const [activeSection, setActiveSection] = useState("Culture");
+
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/api/duma`).then(r => r.json()).then(data => {
+      if (Array.isArray(data) && data.length > 0) {
+        const uniqueMap = new Map();
+        [...data, ...items].forEach(item => {
+          const id = item._id || item.id;
+          if (id) uniqueMap.set(String(id), item);
+        });
+        setDumaItems(Array.from(uniqueMap.values()));
+      }
+    }).catch(() => {});
+  }, [items]);
+
+  const handleDeletePost = async (itemId) => {
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
+    try {
+      if (authToken) {
+        const response = await fetch(`${BACKEND_URL}/api/duma/${itemId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${authToken}` }
+        });
+        if (!response.ok) {
+          alert("Could not delete post.");
+          return;
+        }
+      }
+      setDumaItems(prev => prev.filter(item => (item._id || item.id) !== itemId));
+    } catch {
+      alert("Error deleting post.");
+    }
+  };
+
+  const handleVote = async (itemId, voteType) => {
+    if (!authToken) return alert("Please log in to vote.");
+    if (userVotes[itemId]) return;
+
+    setUserVotes(prev => ({ ...prev, [itemId]: voteType }));
+    if (onAddPoints) onAddPoints(1);
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/duma/${itemId}/vote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ vote: voteType })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDumaItems(prev => prev.map(item => item.id === itemId || item._id === itemId ? { ...item, votes: data.votes || item.votes } : item));
+      }
+    } catch {}
+  };
+
+  const culturalItems = dumaItems.filter(item => item.section === "Cultural" || item.category === "Culture" || item.type === "Video" || item.type === "Culture");
+  const recommendationItems = dumaItems.filter(item => item.type === "Product Recommendation" || item.type === "Recommendation");
+  const partnerItems = dumaItems.filter(item => item.type === "Partner");
+
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', width: '100%', minHeight: '80vh' }}>
+      {/* LEFT AD SIDEBAR */}
+      <aside style={{ width: '180px', padding: '20px 10px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <AdMonetization placement="duma_left_sidebar" />
+      </aside>
+
+      {/* MAIN CONTENT AREA */}
+      <main style={{ flex: 1, maxWidth: '850px', padding: '40px 20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '30px' }}>
+          <div>
+            <h2 style={{ marginBottom: '6px' }}>The Majorities' Duma</h2>
+            <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>Community recommendations, partnerships, and cultural contributions.</p>
+          </div>
+          {userEmail && rankTitle && <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />}
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '30px', borderBottom: '2px solid #eee', paddingBottom: '15px' }}>
+          <button onClick={() => setActiveSection("Culture")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Culture" ? '#222' : '#f5f5f5', color: activeSection === "Culture" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>Culture ({culturalItems.length})</button>
+          <button onClick={() => setActiveSection("Recommendations")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Recommendations" ? '#222' : '#f5f5f5', color: activeSection === "Recommendations" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>Recommendations ({recommendationItems.length})</button>
+          <button onClick={() => setActiveSection("Partners")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Partners" ? '#222' : '#f5f5f5', color: activeSection === "Partners" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>Partners ({partnerItems.length})</button>
+        </div>
+
+        {/* CULTURE FEED */}
+        {activeSection === "Culture" && (
+          <div>
+            {culturalItems.map(item => {
+              const itemId = item._id || item.id;
+              const isOwner = userEmail && item.submittedBy === userEmail;
+
+              return (
+                <div key={itemId} style={styles.dumaCard}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <span style={styles.typeTag}>Perspective</span>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <RankBadge rankTitle={item.submitterRank || "Comrade"} />
+                      {isOwner && (
+                        <button onClick={() => handleDeletePost(itemId)} style={{ background: '#fff0f0', border: '1px solid #e74c3c', color: '#e74c3c', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '600' }}>
+                          🗑 Delete
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} avatarUrl={item.submitterAvatar || null} />}
+                  <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'Post About Anything'}"</h4>
+                  <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6' }}>{item.response || item.desc}</p>
+
+                  {item.mediaUrls?.length > 0 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '8px', margin: '12px 0' }}>
+                      {item.mediaUrls.map((url, idx) => (
+                        <img key={idx} src={url} alt="Attachment" style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '8px' }} />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* CULTURE VOTING */}
+                  {authToken && (
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
+                      <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[itemId] === 'yes' ? 1 : 0.7 }}>
+                        👍 Like
+                      </button>
+                      <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[itemId] === 'abstain' ? 1 : 0.7 }}>
+                        Abstain
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* RECOMMENDATIONS FEED */}
+        {activeSection === "Recommendations" && (
+          <div>
+            {recommendationItems.map(item => {
+              const itemId = item._id || item.id;
+              const isOwner = userEmail && item.submittedBy === userEmail;
+
+              return (
+                <div key={itemId} style={styles.dumaCard}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <span style={styles.typeTag}>Recommendation</span>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
+                      {isOwner && (
+                        <button onClick={() => handleDeletePost(itemId)} style={{ background: '#fff0f0', border: '1px solid #e74c3c', color: '#e74c3c', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '600' }}>
+                          🗑 Delete
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <h3>{item.name || item.product} by {item.company}</h3>
+                  <p style={{ color: '#666', fontSize: '14px' }}>{item.reason || item.desc}</p>
+
+                  {/* RECOMMENDATION VOTING */}
+                  {authToken && (
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
+                      <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[itemId] === 'yes' ? 1 : 0.7 }}>
+                        👍 Up
+                      </button>
+                      <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[itemId] === 'no' ? 1 : 0.7 }}>
+                        👎 Down
+                      </button>
+                      <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[itemId] === 'abstain' ? 1 : 0.7 }}>
+                        Abstain
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* PARTNER HIGHLIGHTS */}
+        {activeSection === "Partners" && (
+          <div>
+            {partnerItems.length === 0 ? (
+              <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No partner listings available.</div>
+            ) : (
+              partnerItems.map(item => (
+                <div key={item.id || item._id} style={styles.dumaCard}>
+                  <h4>{item.productType} - {item.company}</h4>
+                  <p style={{ fontSize: '13px', color: '#555' }}>{item.productDescription}</p>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </main>
+
+      {/* RIGHT AD SIDEBAR */}
+      <aside style={{ width: '180px', padding: '20px 10px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <AdMonetization placement="duma_right_sidebar" />
+      </aside>
+    </div>
+  );
+};
+
+// --- PERSPECTIVES / CULTURE PAGE ---
+const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, following, onFollowUser, onUnfollowUser, userAvatar }) => {
+  const [allItems, setAllItems] = useState(items);
+
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/api/duma`)
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data) && data.length > 0) setAllItems(data); })
+      .catch(() => {});
+  }, [items]);
+
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', width: '100%', minHeight: '80vh' }}>
+      {/* CULTURE LEFT AD SIDEBAR */}
+      <aside style={{ width: '180px', padding: '20px 10px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <AdMonetization placement="culture_left_sidebar" />
+      </aside>
+
+      {/* MAIN CULTURE CONTENT */}
+      <main style={{ flex: 1, maxWidth: '850px', padding: '40px 20px' }}>
+        <div style={{ marginBottom: '30px' }}>
+          <h2 style={{ marginBottom: '6px' }}>My Perspectives</h2>
+          <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
+            Follow people from The Duma to see their perspectives in your personalized feed.
+          </p>
+        </div>
+
+        {userEmail && rankTitle && (
+          <div style={{ marginBottom: '20px' }}>
+            <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
+          </div>
+        )}
+
+        <div>
+          {allItems.map(item => (
+            <div key={item.id || item._id} style={styles.dumaCard}>
+              <p><strong>{item.submittedBy}</strong>: {item.response || item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </main>
+
+      {/* CULTURE RIGHT AD SIDEBAR */}
+      <aside style={{ width: '180px', padding: '20px 10px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <AdMonetization placement="culture_right_sidebar" />
+      </aside>
+    </div>
+  );
+};
+
+// --- ADMIN ORDER TRACKING PAGE ---
+const AdminOrdersPage = ({ authToken, userEmail }) => {
+  const isOwner = userEmail === "YOUR_EMAIL@domain.com";
+  if (!isOwner) return <div style={{ padding: '40px', textAlign: 'center' }}>Access Restricted</div>;
+
+  return (
+    <div style={{ padding: '40px 60px', maxWidth: '1200px', margin: '0 auto' }}>
+      <h2>Fulfillment Dashboard</h2>
+    </div>
+  );
+};
+
+// --- MODEL-FRIENDLY PAGE ---
+const ModelFriendlyPage = () => (
+  <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}>
+    <h1>The Majorities — Structured Site Data</h1>
+  </div>
+);
+
+// --- MAIN APP COMPONENT ---
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+};
+
+const productsData = {
+  shampoos: [{ name: "The Majorities Shampoo", desc: <p>Reset and revive stressed hair with a salon-grade deep cleansing wash.</p> }],
+  conditioners: [{ name: "The Majorities Conditioner", desc: <p>Rescue and restore dry hair with rich botanical therapy.</p> }],
+  oils: [{ name: "The Majorities Hair Oil", desc: <p>Lightweight elixir for a sleek, high-gloss finish.</p> }],
+  faceScrubs: [{ name: "The Majorities Facial Scrub", desc: <p>Dual-action polish to gently refine skin texture.</p> }],
+  toners: [{ name: "The Majorities Face Toner", desc: <p>Refreshing hydration splash that tightens pores.</p> }],
+  faceCreams: [{ name: "The Majorities Moisturizing Lotion", desc: <p>Nourishing lotion with Ceramides and Vitamin E.</p> }]
+};
+
+function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
+  const [selection, setSelection] = useState([]);
+  const [focusedItem, setFocusedItem] = useState(null);
+  const isSetComplete = selection.length === 6;
+  const setTotals = calculateSetTotals(selection);
+
+  const handleSelect = (item) => {
+    setFocusedItem(item);
+    setSelection(prev => (prev.some(i => i.name === item.name) ? prev.filter(i => i.name !== item.name) : prev.length >= 6 ? prev : [...prev, item]));
+  };
+
+  return (
+    <div style={{ ...styles.layout, padding: '20px 60px' }}>
+      <div style={{ ...styles.left, width: '70%' }}>
+        {Object.keys(productsData).map(category => (
+          <div key={category} style={styles.rowSection}>
+            <h3 style={styles.rowLabel}>Pick {category}</h3>
+            <div style={styles.scrollRow}>
+              {productsData[category].map(item => (
+                <div key={item.name} onClick={() => handleSelect(item)} style={{ ...styles.card, border: selection.some(i => i.name === item.name) ? "2px solid #222" : "1px solid #eee" }}>
+                  <div style={styles.imagePlaceholder}>{item.name[0]}</div>
+                  <div style={styles.itemName}>{item.name}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <aside style={{ ...styles.right, width: '30%' }}>
+        <h4>Your Custom Set ({selection.length}/6)</h4>
+        {isSetComplete && <button style={styles.checkoutBtn} onClick={() => submitShopifyCheckout(selection, "one-time")}>Checkout ({formatCurrency(setTotals.oneTime)})</button>}
+      </aside>
+    </div>
+  );
+}
+
+const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, userAvatar }) => {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({ name: "", company: "", productType: "", websiteLink: "", whyRecommend: "" });
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    addDumaItem({ ...formData, id: Date.now(), type: "Product Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'Comrade' });
+    setSubmitted(true);
+  };
+
+  if (submitted) return <div style={{ padding: '50px', textAlign: 'center' }}><h2>Recommendation Submitted!</h2><button onClick={() => navigate("/duma")}>View Duma</button></div>;
+
+  return (
+    <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+      <h2>Submit Product Recommendation</h2>
+      <form style={styles.dumaCard} onSubmit={handleSubmit}>
+        <input required placeholder="Product Name *" style={styles.input} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+        <input required placeholder="Company Name *" style={styles.input} value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
+        <input required placeholder="Product Type *" style={styles.input} value={formData.productType} onChange={e => setFormData({...formData, productType: e.target.value})} />
+        <input required placeholder="Website Link *" style={styles.input} value={formData.websiteLink} onChange={e => setFormData({...formData, websiteLink: e.target.value})} />
+        <textarea required placeholder="Why Recommend? *" style={{ ...styles.input, height: '100px' }} value={formData.whyRecommend} onChange={e => setFormData({...formData, whyRecommend: e.target.value})} />
+        <button type="submit" style={styles.authButton}>Submit to Duma</button>
+      </form>
+    </div>
+  );
+};
+
+const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, userAvatar }) => {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({ company: "", productType: "", productDescription: "" });
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    addDumaItem({ ...formData, id: Date.now(), type: "Partner", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'Comrade' });
+    setSubmitted(true);
+  };
+
+  if (submitted) return <div style={{ padding: '50px', textAlign: 'center' }}><h2>Partner Application Submitted!</h2><button onClick={() => navigate("/duma")}>View Duma</button></div>;
+
+  return (
+    <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+      <h2>Partner with The Majorities</h2>
+      <form style={styles.dumaCard} onSubmit={handleSubmit}>
+        <input required placeholder="Company Name *" style={styles.input} value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
+        <input required placeholder="Product Type *" style={styles.input} value={formData.productType} onChange={e => setFormData({...formData, productType: e.target.value})} />
+        <textarea required placeholder="Product Description *" style={{ ...styles.input, height: '100px' }} value={formData.productDescription} onChange={e => setFormData({...formData, productDescription: e.target.value})} />
+        <button type="submit" style={styles.authButton}>Submit Partnership</button>
+      </form>
+    </div>
+  );
+};
+
+const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, onAddPoints, userAvatar }) => {
+  const navigate = useNavigate();
+  const [response, setResponse] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    addDumaItem({ id: Date.now(), type: "Culture", prompt: "Post About Anything", response, submittedBy: userEmail, submitterRank: rankTitle || 'Comrade' });
+    if (onAddPoints) onAddPoints(100);
+    navigate("/duma");
+  };
+
+  return (
+    <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+      <h2>Share Your Perspective</h2>
+      <form style={styles.dumaCard} onSubmit={handleSubmit}>
+        <textarea required placeholder="Type your response here..." style={{ ...styles.input, height: '120px' }} value={response} onChange={(e) => setResponse(e.target.value)} />
+        <button type="submit" style={styles.authButton}>Submit to Duma (+100 pts)</button>
+      </form>
+    </div>
+  );
+};
+
+const LoginPage = ({ onLogin }) => {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [socialError, setSocialError] = useState("");
+
+  const handleLogin = async () => {
+    setIsLoading(true);
+    setSocialError("");
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await response.json();
+      if (response.ok) { onLogin(email, data.token, true, data.rank_title, data.rank_score); navigate("/profile"); }
+      else { alert(data.error || "Invalid login"); }
+    } catch { alert("Server is waking up. Try again in 30s."); }
+    finally { setIsLoading(false); }
+  };
+
+  const handleGoogleLogin = () => {
+    setSocialError("");
+    const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+    if (!clientId) { setSocialError("Google login is not configured."); return; }
+    const redirectUri = window.location.origin + "/auth/google/callback";
+    const scope = "openid email profile";
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&prompt=select_account`;
+    window.location.href = authUrl;
+  };
+
+  const handleInstagramLogin = () => {
+    setSocialError("");
+    const appId = process.env.REACT_APP_FACEBOOK_APP_ID;
+    if (!appId) { setSocialError("Instagram login is not configured yet."); return; }
+    const redirectUri = window.location.origin + "/auth/instagram/callback";
+    const scope = "email,public_profile";
+    const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=token`;
+    window.location.href = authUrl;
+  };
+
+  return (
+    <div style={styles.authContainer}>
+      <div style={{ ...styles.authCard, maxWidth: '420px' }}>
+        <h1 style={{ fontSize: '22px', fontWeight: '700', marginBottom: '4px', letterSpacing: '-0.5px' }}>The Majorities</h1>
+        <p style={{ fontSize: '13px', color: '#888', marginBottom: '24px' }}>Sign in to your account</p>
+        {socialError && <div style={{ background: '#fff0f0', color: '#c00', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '16px', textAlign: 'left' }}>{socialError}</div>}
+        <button onClick={handleGoogleLogin} style={{ ...styles.socialButton, backgroundColor: '#fff', color: '#222', border: '1px solid #ddd' }}>
+          Continue with Google
+        </button>
+        <button onClick={handleInstagramLogin} style={{ ...styles.socialButton, background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)', color: '#fff', border: 'none' }}>
+          Continue with Instagram
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0' }}>
+          <div style={{ flex: 1, height: '1px', backgroundColor: '#e0e0e0' }} />
+          <span style={{ padding: '0 12px', fontSize: '12px', color: '#999' }}>OR</span>
+          <div style={{ flex: 1, height: '1px', backgroundColor: '#e0e0e0' }} />
+        </div>
+        <input type="email" placeholder="Email" style={styles.input} value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input type="password" placeholder="Password" style={styles.input} value={password} onChange={(e) => setPassword(e.target.value)} />
+        <button style={styles.authButton} onClick={handleLogin}>{isLoading ? '...' : 'Login'}</button>
+        <Link to="/forgot-password" style={{ display: 'block', marginTop: '12px', fontSize: '13px', color: '#666', textDecoration: 'none', textAlign: 'center' }}>
+          Forgot password?
+        </Link>
+      </div>
+    </div>
+  );
+};
+
+const SignupPage = () => {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const handleSignup = async () => {
+    if (password !== confirmPassword) return alert("Passwords do not match");
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      if (response.ok) { alert("Success! Log in now."); navigate("/login"); }
+    } catch { alert("Server error."); }
+  };
+  return (
+    <div style={styles.authContainer}>
+      <div style={styles.authCard}>
+        <h2>Sign Up</h2>
+        <input type="email" placeholder="Email" style={styles.input} onChange={(e) => setEmail(e.target.value)} />
+        <input type="password" placeholder="Password" style={styles.input} onChange={(e) => setPassword(e.target.value)} />
+        <input type="password" placeholder="Confirm" style={styles.input} onChange={(e) => setConfirmPassword(e.target.value)} />
+        <button style={styles.authButton} onClick={handleSignup}>Create Account</button>
+      </div>
+    </div>
+  );
+};
+const OAuthCallbackPage = () => <div><h2>Authenticating...</h2></div>;
+const ForgotPasswordPage = () => <div><h2>Forgot Password</h2></div>;
+const ResetPasswordPage = () => <div><h2>Reset Password</h2></div>;
+
+export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+  const [authToken, setAuthToken] = useState("");
+  const [rankTitle, setRankTitle] = useState("Comrade");
+  const [rankScore, setRankScore] = useState(1);
+  const [tokens, setTokens] = useState(0);
+  const [savedSets, setSavedSets] = useState([]);
+  const [userAvatar, setUserAvatar] = useState("");
+  const [dumaItems, setDumaItems] = useState([{ id: 1, type: "Partner", company: "EcoHair Labs", product: "Silk Serum", desc: "Organic hair serum.", section: "Commerce", submitterRank: "Comrade" }]);
+  const [following, setFollowing] = useState([]);
+
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/api/health`, { method: "GET" }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+    const email = localStorage.getItem("userEmail") || sessionStorage.getItem("userEmail");
+    if (token) {
+      fetch(`${BACKEND_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(data => {
+        if (data.email) {
+          setIsLoggedIn(true);
+          setUserEmail(data.email);
+          setAuthToken(token);
+          const currentScore = data.rank_score || 1;
+          setRankScore(currentScore);
+          setRankTitle(getRankTitle(currentScore));
+        }
+      }).catch(() => {
+        if (email) {
+          setIsLoggedIn(true);
+          setUserEmail(email);
+          setAuthToken(token);
+        }
+      });
+    }
+  }, []);
+
+  const handleLoginSuccess = (email, token, rememberMe, rank, score) => {
+    setIsLoggedIn(true);
+    setUserEmail(email);
+    setAuthToken(token);
+    const resolvedScore = score || 1;
+    const resolvedRank = getRankTitle(resolvedScore);
+    setRankTitle(resolvedRank);
+    setRankScore(resolvedScore);
+    const storage = rememberMe ? localStorage : sessionStorage;
+    storage.setItem("authToken", token);
+    storage.setItem("userEmail", email);
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setUserEmail("");
+    setAuthToken("");
+    setRankTitle("Comrade");
+    setRankScore(1);
+    setUserAvatar("");
+    localStorage.clear();
+    sessionStorage.clear();
+  };
+
+  const handleAvatarUpdate = (url) => {
+    setUserAvatar(url);
+  };
+
+  const saveSetToProfile = (items) => {
+    const newSet = { items, date: new Date().toLocaleDateString() };
+    const updatedSets = [newSet, ...savedSets];
+    setSavedSets(updatedSets);
+  };
+
+  const addDumaItem = (item) => setDumaItems(prev => [item, ...prev]);
+
+  const addPoints = useCallback((points) => {
+    setRankScore(prevScore => {
+      const newScore = prevScore + points;
+      const oldRank = getRankTitle(prevScore);
+      const newRank = getRankTitle(newScore);
+      if (newRank !== oldRank) {
+        const oldMin = RANK_TIERS.find(t => t.title === oldRank)?.min ?? 1;
+        const newMin = RANK_TIERS.find(t => t.title === newRank)?.min ?? 1;
+        if (newMin > oldMin) {
+          setTokens(prev => prev + 1);
+        }
+      }
+      setRankTitle(newRank);
+      return newScore;
+    });
+  }, []);
+
+  const followUser = useCallback((personEmail) => {
+    if (!following.includes(personEmail)) {
+      setFollowing(prev => [...prev, personEmail]);
+      addPoints(1);
+    }
+  }, [following, addPoints]);
+
+  const unfollowUser = (personEmail) => {
+    setFollowing(prev => prev.filter(p => p !== personEmail));
+  };
+
+  return (
+    <Router>
+      <ScrollToTop />
+      <div style={styles.pageWrapper}>
+        <header style={styles.header}>
+          <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}><div style={styles.logo}>The Majorities</div></Link>
+          <nav style={styles.nav}>
+            <Link to="/" style={styles.navLink}>Home</Link>
+            <Link to="/recommend" style={styles.navLink}>Recommend</Link>
+            <Link to="/partner" style={styles.navLink}>Partner</Link>
+            <Link to="/duma" style={styles.navLink}>The Duma</Link>
+            {isLoggedIn ? (
+              <>
+                <Link to="/perspectives" style={styles.navLink}>Culture</Link>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', borderLeft: '1px solid #eee', paddingLeft: '15px' }}>
+                  <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
+                  {rankTitle && <RankBadge rankTitle={rankTitle} />}
+                  <span style={styles.auth} onClick={handleLogout}>Logout</span>
+                </div>
+              </>
+            ) : (
+              <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                <Link to="/signup" style={styles.auth}>Sign Up</Link>
+                <Link to="/login" style={styles.auth}>Login</Link>
+              </div>
+            )}
+          </nav>
+        </header>
+
+        <Routes>
+          <Route path="/" element={<LandingPage saveSetToProfile={saveSetToProfile} onAddPoints={addPoints} savedSets={savedSets} />} />
+          <Route path="/login" element={<LoginPage onLogin={handleLoginSuccess} />} />
+          <Route path="/auth/google/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="google" />} />
+          <Route path="/auth/instagram/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="instagram" />} />
+          <Route path="/auth/tiktok/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="tiktok" />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+          <Route path="/recommend" element={<RecommendPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
+          <Route path="/partner" element={<PartnerPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
+          <Route path="/culture" element={isLoggedIn ? <CultureLabPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
+          <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} />} />
+          <Route path="/perspectives" element={isLoggedIn ? <PerspectivesPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} following={following} onFollowUser={followUser} onUnfollowUser={unfollowUser} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
+          <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={handleAvatarUpdate} tokens={tokens} addDumaItem={addDumaItem} />} />
+          <Route path="/admin/orders" element={<AdminOrdersPage authToken={authToken} userEmail={userEmail} />} />
+          <Route path="/model" element={<ModelFriendlyPage />} />
+          <Route path="/TermsofService" element={<TermsOfServicePage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        </Routes>
+
+        <footer style={{ marginTop: '60px', padding: '20px 60px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'center', gap: '30px', fontSize: '12px' }}>
+          <Link to="/TermsofService" style={{ color: '#666', textDecoration: 'none' }}>Terms of Service</Link>
+          <Link to="/privacy" style={{ color: '#666', textDecoration: 'none' }}>Privacy Policy</Link>
+        </footer>
+      </div>
+    </Router>
+  );
+}
+
+// --- TERMS OF SERVICE PAGE ---
+const TermsOfServicePage = () => {
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+  return (
+    <div style={{ maxWidth: '860px', margin: '0 auto', padding: '60px 30px', fontFamily: 'Inter, sans-serif', color: '#222', lineHeight: 1.8 }}>
+      <h1>Terms of Service</h1>
+      <p style={{ color: '#888', fontSize: '13px' }}>Last updated: August 4, 2026</p>
+      <h2>1. Acceptance of Terms</h2>
+      <p>By accessing or using The Majorities ecosystem, you agree to be bound by these Terms.</p>
+    </div>
+  );
+};
+
+// --- PRIVACY POLICY PAGE ---
+const PrivacyPolicyPage = () => {
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+  return (
+    <div style={{ maxWidth: '860px', margin: '0 auto', padding: '60px 30px', fontFamily: 'Inter, sans-serif', color: '#222', lineHeight: 1.8 }}>
+      <h1>Privacy Policy</h1>
+      <p style={{ color: '#888', fontSize: '13px' }}>Last updated: August 4, 2026</p>
+      <h2>1. Information We Collect</h2>
+      <p>We log data to fulfill custom cosmetic orders and handle account interactions.</p>
+    </div>
+  );
+};
+
+// --- STYLES OBJECT ---
+const styles = {
+  pageWrapper: { fontFamily: 'Inter, sans-serif', color: '#222' },
+  header: { display: "flex", justifyContent: "space-between", padding: "15px 60px", borderBottom: "1px solid #eee", alignItems: 'center', gap: '20px' },
+  logo: { fontSize: "18px", fontWeight: "700" },
+  nav: { display: "flex", gap: "25px", fontSize: "13px", alignItems: 'center' },
+  navLink: { textDecoration: 'none', color: '#222', fontWeight: '500' },
+  auth: { fontWeight: "600", textDecoration: 'none', color: '#222', cursor: 'pointer' },
+  layout: { display: "flex", padding: "20px 60px" },
+  left: { width: "70%", paddingRight: "40px" },
+  right: { width: "30%", padding: "20px", borderRadius: "24px", backgroundColor: "#ffffff", border: "1px solid #eaeaea", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", height: "fit-content", position: 'sticky', top: '20px' },
+  rowSection: { marginBottom: "20px" },
+  rowLabel: { fontSize: "14px", color: "#666", fontWeight: "600", marginBottom: "10px" },
+  scrollRow: { display: "flex", gap: "12px", overflowX: "auto", paddingBottom: '10px' },
+  card: { minWidth: "140px", padding: "10px", borderRadius: "16px", textAlign: "center", cursor: "pointer", backgroundColor: "#fff" },
+  imagePlaceholder: { width: '100%', height: '60px', backgroundColor: '#f0f0f0', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  itemName: { fontSize: "12px", marginTop: "6px" },
+  summaryContainer: { backgroundColor: '#fff', padding: '15px', borderRadius: '20px', border: '1px solid #eee' },
+  checkoutBtn: { width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #222', background: '#fff', cursor: 'pointer', marginBottom: '10px', fontWeight: '600' },
+  authContainer: { display: 'flex', justifyContent: 'center', minHeight: '70vh', alignItems: 'center' },
+  authCard: { width: '380px', padding: '30px', border: '1px solid #eee', borderRadius: '24px', textAlign: 'center' },
+  input: { width: '100%', padding: '12px', margin: '8px 0', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box' },
+  authButton: { width: '100%', padding: '12px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
+  socialButton: { width: '100%', padding: '12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', marginBottom: '10px', textAlign: 'center' },
+  formSectionTitle: { fontSize: '13px', fontWeight: '800', marginTop: '20px', borderBottom: '1px solid #eee', paddingBottom: '5px', textTransform: 'uppercase' },
+  uploadBox: { border: '1px solid #eaeaea', borderRadius: '12px', padding: '20px', textAlign: 'center', backgroundColor: '#ffffff', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' },
+  dumaCard: { backgroundColor: '#ffffff', border: '1px solid #eaeaea', borderRadius: '16px', padding: '20px', marginBottom: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' },
+  typeTag: { background: '#222', color: '#fff', padding: '4px 10px', borderRadius: '20px', fontSize: '10px' },
+  voteBtn: { padding: '6px 14px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer', fontSize: '12px', fontWeight: '600' },
+  generalSecretaryBadge: { boxShadow: '0 0 8px rgba(255,215,0,0.7)', background: 'linear-gradient(90deg,#b8860b,#ffd700,#b8860b)', color: '#fff', border: 'none' }
+};

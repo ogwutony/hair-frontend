@@ -60,7 +60,7 @@ const RANK_TIERS = [
   { title: "Secretary of Majorities Committees of Provinces", min: 5000000  },
 
   // --- HEROIC ORDERS & LABOR TITLES ---
-  { title: "Champion of the The Majorities",                min: 4500000 },
+  { title: "Champion of the The Majorities",                   min: 4500000 },
   { title: "Hero of the Majorities",                    min: 4000000 },
   { title: "Order of The Majorities",                   min: 3500000 },
   { title: "Order of the October Revolution",           min: 3000000 },
@@ -293,14 +293,14 @@ const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks 
       </span>
       {rankScore != null && (
         <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', padding: '4px 10px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px', backgroundColor: '#f5f5f5', color: '#d4af37', border: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>
-          â {(rankScore || 1).toLocaleString()} pts
+          ★ {(rankScore || 1).toLocaleString()} pts
         </span>
       )}
       {socialLinks && (
         <>
-          {socialLinks.instagram && <a href={safeSocialUrl(socialLinks.instagram)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: '15px' }} title="Instagram">ð·</a>}
-          {socialLinks.tiktok && <a href={safeSocialUrl(socialLinks.tiktok)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: '15px' }} title="TikTok">ðµ</a>}
-          {socialLinks.facebook && <a href={safeSocialUrl(socialLinks.facebook)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: '11px', color: '#1877F2', fontWeight: '600' }} title="Facebook">Facebook</a>}
+          {socialLinks.instagram && <a href={safeSocialUrl(socialLinks.instagram)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: '15px' }} title="Instagram">📷</a>}
+          {socialLinks.tiktok && <a href={safeSocialUrl(socialLinks.tiktok)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: '15px' }} title="TikTok">🎵</a>}
+          {socialLinks.snapchat && <a href={safeSocialUrl(socialLinks.snapchat)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: '15px' }} title="Snapchat">👻</a>}
         </>
       )}
     </div>
@@ -308,9 +308,9 @@ const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks 
 };
 
 const SOCIAL_FIELDS = [
-  { key: 'instagram', label: 'ð· Instagram', placeholder: 'instagram.com/yourprofile' },
-  { key: 'tiktok', label: 'ðµ TikTok', placeholder: 'tiktok.com/@yourprofile' },
-  { key: 'facebook', label: 'ð Facebook', placeholder: 'facebook.com/yourprofile' },
+  { key: 'instagram', label: '📷 Instagram', placeholder: 'instagram.com/yourprofile' },
+  { key: 'tiktok', label: '🎵 TikTok', placeholder: 'tiktok.com/@yourprofile' },
+  { key: 'snapchat', label: '👻 Snapchat', placeholder: 'snapchat.com/add/yourprofile' },
 ];
 
 const SocialInputRow = ({ socialKey, label, placeholder, initialValue, onSave, onChangeGlobal, saveStatus }) => {
@@ -321,7 +321,7 @@ const SocialInputRow = ({ socialKey, label, placeholder, initialValue, onSave, o
   const isSocialSaveDisabled = saveStatus === "saving" || !localVal.trim();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '14px', border: '1px solid #eaeaea', borderRadius: '10px', backgroundColor: '#fff' }}>
       <label style={{ fontSize: '13px', fontWeight: '600', color: '#222', display: 'block' }}>{label}</label>
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
         <input type="text" placeholder={placeholder} value={localVal} onChange={(e) => setLocalVal(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box' }} />
@@ -335,7 +335,7 @@ const SocialInputRow = ({ socialKey, label, placeholder, initialValue, onSave, o
           disabled={isSocialSaveDisabled}
           style={{ padding: '10px 16px', backgroundColor: saveStatus === "saved" ? '#27ae60' : saveStatus === "error" ? '#e74c3c' : '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: isSocialSaveDisabled ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '12px', minWidth: '85px' }}
         >
-          {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "â Linked" : "Save"}
+          {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "✓ Linked" : "Save"}
         </button>
       </div>
     </div>
@@ -375,11 +375,11 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     { id: 12, text: "What TV show or series are you currently binge-watching that everyone needs to check out?" },
     { id: 13, text: "What is a movie you can watch over and over again without ever getting tired of it?" },
     { id: 14, text: "Recommend an underrated movie or show that doesn't get enough hype!" },
-    { id: 15, text: "Post Anything! Share whatever is on your mind todayâa random thought, life update, or funny hot take." }
+    { id: 15, text: "Post Anything! Share whatever is on your mind today—a random thought, life update, or funny hot take." }
   ];
 
-  const [socialLinks, setSocialLinks] = useState({ instagram: "", tiktok: "", facebook: "" });
-  const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", facebook: "idle" });
+  const [socialLinks, setSocialLinks] = useState({ instagram: "", tiktok: "", snapchat: "" });
+  const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", snapchat: "idle" });
 
   useEffect(() => {
     const resolvedScore = rankScore || 1;
@@ -541,7 +541,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         }
       }
 
-      const promptText = selectedPrompt ? selectedPrompt.text : "Post My Anything";
+      const promptText = selectedPrompt ? selectedPrompt.text : "Post About Anything";
 
       if (authToken) {
         const res = await fetch(`${BACKEND_URL}/api/duma/culture`, {
@@ -580,7 +580,8 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         });
       }
 
-      if (onAddPoints) onAddPoints(100);
+      const pointsAwarded = selectedPrompt ? 120 : 100;
+      if (onAddPoints) onAddPoints(pointsAwarded);
       setCultureSubmitStatus("saved");
       setTimeout(() => { navigate("/duma"); }, 2000);
     } catch {
@@ -666,13 +667,13 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                 <img src={activeThumbnail} alt="Main Avatar" style={{ width: '130px', height: '130px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #222', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', marginBottom: '10px' }} />
                 <div>
                   <span style={{ fontSize: '11px', fontWeight: '700', backgroundColor: '#222', color: '#fff', padding: '4px 10px', borderRadius: '12px' }}>
-                    â Active Thumbnail
+                    ★ Active Avatar
                   </span>
                 </div>
               </div>
             ) : (
               <div style={{ padding: '20px', color: '#888' }}>
-                <span style={{ fontSize: '40px', display: 'block' }}>ð¤</span>
+                <span style={{ fontSize: '40px', display: 'block' }}>👤</span>
                 <p style={{ fontSize: '13px', margin: 0 }}>No profile picture selected yet.</p>
               </div>
             )}
@@ -688,12 +689,12 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                 const isSelected = photo === activeThumbnail;
                 return (
                   <div key={index} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: isSelected ? '3px solid #27ae60' : '1px solid #ddd', background: '#fff', padding: '4px', textAlign: 'center' }}>
-                    <img src={photo} alt={`Profile ${index + 1}`} style={{ width: '100%', height: '85px', objectFit: 'cover', borderRadius: '6px' }} />
-                    <button type="button" onClick={() => handleSelectThumbnail(photo)} style={{ width: '100%', marginTop: '4px', padding: '4px 0', fontSize: '10px', fontWeight: '700', border: 'none', borderRadius: '4px', backgroundColor: isSelected ? '#27ae60' : '#222', color: '#fff', cursor: 'pointer' }}>
-                      {isSelected ? 'â Selected' : 'Set as Main'}
+                    <img src={photo} alt={`Profile ${index + 1}`} style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '6px' }} />
+                    <button type="button" onClick={() => handleSelectThumbnail(photo)} onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85'; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }} style={{ width: '100%', marginTop: '4px', padding: '4px 0', fontSize: '10px', fontWeight: '700', border: 'none', borderRadius: '6px', backgroundColor: isSelected ? '#27ae60' : '#222', color: '#fff', cursor: 'pointer', transition: 'opacity 0.15s ease' }}>
+                      {isSelected ? '✓ Selected' : 'Set as Main'}
                     </button>
-                    <button type="button" onClick={() => handleRemovePhoto(photo)} style={{ position: 'absolute', top: '6px', right: '6px', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: '20px', height: '20px', cursor: 'pointer', fontSize: '11px' }}>
-                      â
+                    <button type="button" onClick={() => handleRemovePhoto(photo)} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.85)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.6)'; }} style={{ position: 'absolute', top: '6px', right: '6px', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '6px', width: '22px', height: '22px', cursor: 'pointer', fontSize: '11px', transition: 'background 0.15s ease' }}>
+                      ✕
                     </button>
                   </div>
                 );
@@ -701,20 +702,36 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
             </div>
           )}
 
-          <div style={{ textAlign: 'center' }}>
-            <input ref={photoInputRef} type="file" accept="image/jpeg,image/png" multiple onChange={handleProfilePhotosUpload} style={{ display: 'none' }} />
-            <button type="button" disabled={profilePhotos.length >= 6 || uploadStatus === "uploading"} onClick={() => photoInputRef.current && photoInputRef.current.click()} style={{ ...styles.authButton, width: 'auto', padding: '10px 20px', opacity: profilePhotos.length >= 6 ? 0.5 : 1 }}>
-              {uploadStatus === "uploading" ? "Uploading..." : profilePhotos.length >= 6 ? "Max 6 Photos Reached" : "+ Add Profile Pictures (JPG/PNG, Max 6)"}
-            </button>
+          <input ref={photoInputRef} type="file" accept="image/jpeg,image/png" multiple onChange={handleProfilePhotosUpload} style={{ display: 'none' }} />
+          <div
+            onClick={() => { if (profilePhotos.length < 6 && uploadStatus !== "uploading" && photoInputRef.current) photoInputRef.current.click(); }}
+            onMouseEnter={(e) => { if (profilePhotos.length < 6) e.currentTarget.style.borderColor = '#222'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#ccc'; }}
+            style={{
+              border: '2px dashed #ccc',
+              borderRadius: '12px',
+              padding: '24px',
+              textAlign: 'center',
+              backgroundColor: '#fff',
+              cursor: (profilePhotos.length >= 6 || uploadStatus === "uploading") ? 'not-allowed' : 'pointer',
+              opacity: profilePhotos.length >= 6 ? 0.5 : 1,
+              transition: 'border-color 0.15s ease'
+            }}
+          >
+            <div style={{ fontSize: '28px', marginBottom: '8px' }}>📸</div>
+            <h4 style={{ fontSize: '14px', fontWeight: '700', margin: '0 0 4px' }}>
+              {uploadStatus === "uploading" ? "Uploading..." : profilePhotos.length >= 6 ? "Max 6 Photos Reached" : "Upload Profile Pictures"}
+            </h4>
+            <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>JPG/PNG, Max 6 photos, 5MB each</p>
           </div>
         </div>
       </section>
 
-      {/* 2. SOCIALS SECTION (MOVED DIRECTLY BELOW PROFILE PICTURES) */}
+      {/* 2. SOCIALS SECTION */}
       <section style={{ marginBottom: '40px' }}>
         <h2 style={{ fontSize: '20px', marginBottom: '16px', fontWeight: '600' }}>Socials</h2>
         <div style={styles.dumaCard}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
             {SOCIAL_FIELDS.map(social => (
               <SocialInputRow key={social.key} socialKey={social.key} label={social.label} placeholder={social.placeholder} initialValue={socialLinks[social.key]} saveStatus={socialSaveStatus[social.key]} onChangeGlobal={(k, v) => setSocialLinks(prev => ({ ...prev, [k]: v }))} onSave={handleSaveSocialLink} />
             ))}
@@ -722,16 +739,16 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         </div>
       </section>
 
-      {/* 3. POST MY ANYTHING SECTION */}
+      {/* 3. POST ABOUT ANYTHING SECTION */}
       <section style={{ marginBottom: '50px' }}>
-        <h2 style={{ fontSize: '20px', marginBottom: '8px', fontWeight: '600' }}>Post My Anything</h2>
+        <h2 style={{ fontSize: '20px', marginBottom: '8px', fontWeight: '600' }}>Post About Anything</h2>
         <p style={{ color: '#666', fontSize: '13px', marginBottom: '20px' }}>
-          Share your thoughts or photos/videos directly to the Duma. Optionally select a prompt below to earn extra points!
+          Share your thoughts or photos/videos directly to the Duma (+100 points). Optionally select a prompt below to earn bonus points (+120 points)!
         </p>
 
         {cultureSubmitStatus === "saved" ? (
           <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '40px' }}>
-            <div style={{ fontSize: '36px', marginBottom: '12px' }}>â</div>
+            <div style={{ fontSize: '36px', marginBottom: '12px' }}>✅</div>
             <h2>Post Shared!</h2>
             <p style={{ color: '#666' }}>Your entry was published to the Duma. Redirecting...</p>
           </div>
@@ -762,24 +779,25 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
             {/* Answer Prompts for Points */}
             <div style={{ marginTop: '24px' }}>
               <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#000', textTransform: 'uppercase', marginBottom: '4px' }}>
-                Answer Prompts for Points (Optional)
+                Answer Prompts for Points (Complete all for speical Reward)
               </h3>
               <p style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>
-                Click any prompt below to attach it to your post and earn bonus points! (Scroll to view all 15 prompts)
+                Click any prompt below to attach it to your post and earn 120 points! (Scroll to view all 15 prompts)
               </p>
 
-              {/* SCROLLABLE CONTAINER (FITS 4 PROMPTS AT A TIME) */}
-              <div style={{
+              {/* SCROLLABLE CONTAINER */}
+              <div className="prompt-scroll" style={{
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '8px',
-                height: '215px',          // Displays ~4 prompt items simultaneously
-                overflowY: 'auto',        // Allows scrolling through all 15 prompts
+                height: '215px',
+                overflowY: 'auto',
                 paddingRight: '6px',
-                border: '1px solid #eee',
+                border: '1px solid #eaeaea',
                 borderRadius: '10px',
                 padding: '10px',
-                backgroundColor: '#fafafa'
+                backgroundColor: '#ffffff',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
               }}>
                 {perspectivePrompts.map((p) => {
                   const isSelected = selectedPrompt?.id === p.id;
@@ -792,8 +810,9 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                         textAlign: 'left',
                         padding: '10px 14px',
                         borderRadius: '8px',
-                        border: isSelected ? '2px solid #222' : '1px solid #ddd',
-                        backgroundColor: isSelected ? '#f0f0f0' : '#fff',
+                        border: isSelected ? '2px solid #d4af37' : '1px solid #ddd',
+                        backgroundColor: isSelected ? '#fdf6e3' : '#fff',
+                        boxShadow: isSelected ? '0 0 0 1px #d4af37' : 'none',
                         color: '#000',
                         fontWeight: isSelected ? '700' : '400',
                         cursor: 'pointer',
@@ -945,14 +964,14 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                       <RankBadge rankTitle={item.submitterRank || "Comrade"} />
                       {isOwner && (
                         <button onClick={() => handleDeletePost(itemId)} style={{ background: '#fff0f0', border: '1px solid #e74c3c', color: '#e74c3c', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '600' }}>
-                          ð Delete
+                          🗑 Delete
                         </button>
                       )}
                     </div>
                   </div>
 
                   {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} avatarUrl={item.submitterAvatar || null} />}
-                  <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'Post My Anything'}"</h4>
+                  <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'Post About Anything'}"</h4>
                   <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6' }}>{item.response || item.desc}</p>
 
                   {item.mediaUrls?.length > 0 && (
@@ -963,11 +982,11 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                     </div>
                   )}
 
-                  {/* CULTURE VOTING: LIKE & ABSTAIN ONLY */}
+                  {/* CULTURE VOTING */}
                   {authToken && (
                     <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
                       <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[itemId] === 'yes' ? 1 : 0.7 }}>
-                        ð Like
+                        👍 Like
                       </button>
                       <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[itemId] === 'abstain' ? 1 : 0.7 }}>
                         Abstain
@@ -995,7 +1014,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                       {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
                       {isOwner && (
                         <button onClick={() => handleDeletePost(itemId)} style={{ background: '#fff0f0', border: '1px solid #e74c3c', color: '#e74c3c', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '600' }}>
-                          ð Delete
+                          🗑 Delete
                         </button>
                       )}
                     </div>
@@ -1004,14 +1023,14 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                   <h3>{item.name || item.product} by {item.company}</h3>
                   <p style={{ color: '#666', fontSize: '14px' }}>{item.reason || item.desc}</p>
 
-                  {/* RECOMMENDATION VOTING: THUMBS UP & THUMBS DOWN */}
+                  {/* RECOMMENDATION VOTING */}
                   {authToken && (
                     <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
                       <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[itemId] === 'yes' ? 1 : 0.7 }}>
-                        ð Up
+                        👍 Up
                       </button>
                       <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[itemId] === 'no' ? 1 : 0.7 }}>
-                        ð Down
+                        👎 Down
                       </button>
                       <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[itemId] === 'abstain' ? 1 : 0.7 }}>
                         Abstain
@@ -1024,7 +1043,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
           </div>
         )}
 
-        {/* PARTNER HIGHLIGHTS / FEED (MOVED TO VERY BOTTOM) */}
+        {/* PARTNER HIGHLIGHTS */}
         {activeSection === "Partners" && (
           <div>
             {partnerItems.length === 0 ? (
@@ -1039,11 +1058,6 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
             )}
           </div>
         )}
-
-        {/* AD SPACE IN MIDDLE AT VERY BOTTOM */}
-        <div style={{ marginTop: '40px', textAlign: 'center' }}>
-          <AdMonetization placement="duma_bottom_banner" />
-        </div>
       </main>
 
       {/* RIGHT AD SIDEBAR */}
@@ -1054,7 +1068,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
   );
 };
 
-// --- PERSPECTIVES / CULTURE PAGE (WITH LEFT & RIGHT AD SIDEBARS) ---
+// --- PERSPECTIVES / CULTURE PAGE ---
 const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, following, onFollowUser, onUnfollowUser, userAvatar }) => {
   const [allItems, setAllItems] = useState(items);
 
@@ -1119,7 +1133,7 @@ const AdminOrdersPage = ({ authToken, userEmail }) => {
 // --- MODEL-FRIENDLY PAGE ---
 const ModelFriendlyPage = () => (
   <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}>
-    <h1>The Majorities â Structured Site Data</h1>
+    <h1>The Majorities — Structured Site Data</h1>
   </div>
 );
 
@@ -1235,7 +1249,7 @@ const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToke
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    addDumaItem({ id: Date.now(), type: "Culture", prompt: "Post My Anything", response, submittedBy: userEmail, submitterRank: rankTitle || 'Comrade' });
+    addDumaItem({ id: Date.now(), type: "Culture", prompt: "Post About Anything", response, submittedBy: userEmail, submitterRank: rankTitle || 'Comrade' });
     if (onAddPoints) onAddPoints(100);
     navigate("/duma");
   };
@@ -1471,7 +1485,7 @@ export default function App() {
             {isLoggedIn ? (
               <>
                 <Link to="/perspectives" style={styles.navLink}>Culture</Link>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: '1px solid #eee', paddingLeft: '15px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', borderLeft: '1px solid #eee', paddingLeft: '15px' }}>
                   <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
                   {rankTitle && <RankBadge rankTitle={rankTitle} />}
                   <span style={styles.auth} onClick={handleLogout}>Logout</span>
@@ -1545,14 +1559,14 @@ const PrivacyPolicyPage = () => {
 // --- STYLES OBJECT ---
 const styles = {
   pageWrapper: { fontFamily: 'Inter, sans-serif', color: '#222' },
-  header: { display: "flex", justifyContent: "space-between", padding: "15px 60px", borderBottom: "1px solid #eee", alignItems: 'center' },
+  header: { display: "flex", justifyContent: "space-between", padding: "15px 60px", borderBottom: "1px solid #eee", alignItems: 'center', gap: '20px' },
   logo: { fontSize: "18px", fontWeight: "700" },
   nav: { display: "flex", gap: "25px", fontSize: "13px", alignItems: 'center' },
   navLink: { textDecoration: 'none', color: '#222', fontWeight: '500' },
   auth: { fontWeight: "600", textDecoration: 'none', color: '#222', cursor: 'pointer' },
   layout: { display: "flex", padding: "20px 60px" },
   left: { width: "70%", paddingRight: "40px" },
-  right: { width: "30%", padding: "20px", borderRadius: "24px", backgroundColor: "#f9f9f9", height: "fit-content", position: 'sticky', top: '20px' },
+  right: { width: "30%", padding: "20px", borderRadius: "24px", backgroundColor: "#ffffff", border: "1px solid #eaeaea", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", height: "fit-content", position: 'sticky', top: '20px' },
   rowSection: { marginBottom: "20px" },
   rowLabel: { fontSize: "14px", color: "#666", fontWeight: "600", marginBottom: "10px" },
   scrollRow: { display: "flex", gap: "12px", overflowX: "auto", paddingBottom: '10px' },
@@ -1567,8 +1581,8 @@ const styles = {
   authButton: { width: '100%', padding: '12px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
   socialButton: { width: '100%', padding: '12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', marginBottom: '10px', textAlign: 'center' },
   formSectionTitle: { fontSize: '13px', fontWeight: '800', marginTop: '20px', borderBottom: '1px solid #eee', paddingBottom: '5px', textTransform: 'uppercase' },
-  uploadBox: { border: '2px dashed #ddd', borderRadius: '12px', padding: '20px', textAlign: 'center', backgroundColor: '#fafafa' },
-  dumaCard: { backgroundColor: '#fff', border: '1px solid #eee', borderRadius: '16px', padding: '20px', marginBottom: '20px' },
+  uploadBox: { border: '1px solid #eaeaea', borderRadius: '12px', padding: '20px', textAlign: 'center', backgroundColor: '#ffffff', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' },
+  dumaCard: { backgroundColor: '#ffffff', border: '1px solid #eaeaea', borderRadius: '16px', padding: '20px', marginBottom: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' },
   typeTag: { background: '#222', color: '#fff', padding: '4px 10px', borderRadius: '20px', fontSize: '10px' },
   voteBtn: { padding: '6px 14px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer', fontSize: '12px', fontWeight: '600' },
   generalSecretaryBadge: { boxShadow: '0 0 8px rgba(255,215,0,0.7)', background: 'linear-gradient(90deg,#b8860b,#ffd700,#b8860b)', color: '#fff', border: 'none' }

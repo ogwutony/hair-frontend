@@ -589,6 +589,30 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     }
   };
 
+  const handleSaveSocialLink = async (key, valueOverride) => {
+    if (!authToken) return;
+    const resolvedValue = typeof valueOverride === "string" ? valueOverride : socialLinks[key];
+    if (typeof valueOverride === "string") setSocialLinks(prev => ({ ...prev, [key]: valueOverride }));
+    setSocialSaveStatus(prev => ({ ...prev, [key]: "saving" }));
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ socialLinks: { [key]: resolvedValue } })
+      });
+      if (response.ok) {
+        setSocialSaveStatus(prev => ({ ...prev, [key]: "saved" }));
+        setTimeout(() => setSocialSaveStatus(prev => ({ ...prev, [key]: "idle" })), 3000);
+      } else {
+        setSocialSaveStatus(prev => ({ ...prev, [key]: "error" }));
+        setTimeout(() => setSocialSaveStatus(prev => ({ ...prev, [key]: "idle" })), 3000);
+      }
+    } catch {
+      setSocialSaveStatus(prev => ({ ...prev, [key]: "error" }));
+      setTimeout(() => setSocialSaveStatus(prev => ({ ...prev, [key]: "idle" })), 3000);
+    }
+  };
+
   const displayRankScore = backendRankScore || 1;
   const displayRankTitle = backendRankTitle || 'Comrade';
   const pointsToNextRank = getPointsToNextRank(displayRankScore, displayRankTitle);
@@ -1100,6 +1124,139 @@ const ModelFriendlyPage = () => (
 );
 
 // --- MAIN APP COMPONENT ---
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+};
+
+const productsData = {
+  shampoos: [{ name: "The Majorities Shampoo", desc: <p>Reset and revive stressed hair with a salon-grade deep cleansing wash.</p> }],
+  conditioners: [{ name: "The Majorities Conditioner", desc: <p>Rescue and restore dry hair with rich botanical therapy.</p> }],
+  oils: [{ name: "The Majorities Hair Oil", desc: <p>Lightweight elixir for a sleek, high-gloss finish.</p> }],
+  faceScrubs: [{ name: "The Majorities Facial Scrub", desc: <p>Dual-action polish to gently refine skin texture.</p> }],
+  toners: [{ name: "The Majorities Face Toner", desc: <p>Refreshing hydration splash that tightens pores.</p> }],
+  faceCreams: [{ name: "The Majorities Moisturizing Lotion", desc: <p>Nourishing lotion with Ceramides and Vitamin E.</p> }]
+};
+
+function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
+  const [selection, setSelection] = useState([]);
+  const [focusedItem, setFocusedItem] = useState(null);
+  const isSetComplete = selection.length === 6;
+  const setTotals = calculateSetTotals(selection);
+
+  const handleSelect = (item) => {
+    setFocusedItem(item);
+    setSelection(prev => (prev.some(i => i.name === item.name) ? prev.filter(i => i.name !== item.name) : prev.length >= 6 ? prev : [...prev, item]));
+  };
+
+  return (
+    <div style={{ ...styles.layout, padding: '20px 60px' }}>
+      <div style={{ ...styles.left, width: '70%' }}>
+        {Object.keys(productsData).map(category => (
+          <div key={category} style={styles.rowSection}>
+            <h3 style={styles.rowLabel}>Pick {category}</h3>
+            <div style={styles.scrollRow}>
+              {productsData[category].map(item => (
+                <div key={item.name} onClick={() => handleSelect(item)} style={{ ...styles.card, border: selection.some(i => i.name === item.name) ? "2px solid #222" : "1px solid #eee" }}>
+                  <div style={styles.imagePlaceholder}>{item.name[0]}</div>
+                  <div style={styles.itemName}>{item.name}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <aside style={{ ...styles.right, width: '30%' }}>
+        <h4>Your Custom Set ({selection.length}/6)</h4>
+        {isSetComplete && <button style={styles.checkoutBtn} onClick={() => submitShopifyCheckout(selection, "one-time")}>Checkout ({formatCurrency(setTotals.oneTime)})</button>}
+      </aside>
+    </div>
+  );
+}
+
+const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, userAvatar }) => {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({ name: "", company: "", productType: "", websiteLink: "", whyRecommend: "" });
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    addDumaItem({ ...formData, id: Date.now(), type: "Product Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'Comrade' });
+    setSubmitted(true);
+  };
+
+  if (submitted) return <div style={{ padding: '50px', textAlign: 'center' }}><h2>Recommendation Submitted!</h2><button onClick={() => navigate("/duma")}>View Duma</button></div>;
+
+  return (
+    <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+      <h2>Submit Product Recommendation</h2>
+      <form style={styles.dumaCard} onSubmit={handleSubmit}>
+        <input required placeholder="Product Name *" style={styles.input} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+        <input required placeholder="Company Name *" style={styles.input} value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
+        <input required placeholder="Product Type *" style={styles.input} value={formData.productType} onChange={e => setFormData({...formData, productType: e.target.value})} />
+        <input required placeholder="Website Link *" style={styles.input} value={formData.websiteLink} onChange={e => setFormData({...formData, websiteLink: e.target.value})} />
+        <textarea required placeholder="Why Recommend? *" style={{ ...styles.input, height: '100px' }} value={formData.whyRecommend} onChange={e => setFormData({...formData, whyRecommend: e.target.value})} />
+        <button type="submit" style={styles.authButton}>Submit to Duma</button>
+      </form>
+    </div>
+  );
+};
+
+const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, userAvatar }) => {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({ company: "", productType: "", productDescription: "" });
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    addDumaItem({ ...formData, id: Date.now(), type: "Partner", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'Comrade' });
+    setSubmitted(true);
+  };
+
+  if (submitted) return <div style={{ padding: '50px', textAlign: 'center' }}><h2>Partner Application Submitted!</h2><button onClick={() => navigate("/duma")}>View Duma</button></div>;
+
+  return (
+    <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+      <h2>Partner with The Majorities</h2>
+      <form style={styles.dumaCard} onSubmit={handleSubmit}>
+        <input required placeholder="Company Name *" style={styles.input} value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
+        <input required placeholder="Product Type *" style={styles.input} value={formData.productType} onChange={e => setFormData({...formData, productType: e.target.value})} />
+        <textarea required placeholder="Product Description *" style={{ ...styles.input, height: '100px' }} value={formData.productDescription} onChange={e => setFormData({...formData, productDescription: e.target.value})} />
+        <button type="submit" style={styles.authButton}>Submit Partnership</button>
+      </form>
+    </div>
+  );
+};
+
+const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, onAddPoints, userAvatar }) => {
+  const navigate = useNavigate();
+  const [response, setResponse] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    addDumaItem({ id: Date.now(), type: "Culture", prompt: "Post My Anything", response, submittedBy: userEmail, submitterRank: rankTitle || 'Comrade' });
+    if (onAddPoints) onAddPoints(100);
+    navigate("/duma");
+  };
+
+  return (
+    <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+      <h2>Share Your Perspective</h2>
+      <form style={styles.dumaCard} onSubmit={handleSubmit}>
+        <textarea required placeholder="Type your response here..." style={{ ...styles.input, height: '120px' }} value={response} onChange={(e) => setResponse(e.target.value)} />
+        <button type="submit" style={styles.authButton}>Submit to Duma (+100 pts)</button>
+      </form>
+    </div>
+  );
+};
+
+const LoginPage = () => <div><h2>Login Page</h2></div>;
+const SignupPage = () => <div><h2>Sign Up Page</h2></div>;
+const OAuthCallbackPage = () => <div><h2>Authenticating...</h2></div>;
+const ForgotPasswordPage = () => <div><h2>Forgot Password</h2></div>;
+const ResetPasswordPage = () => <div><h2>Reset Password</h2></div>;
+
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState("");

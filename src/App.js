@@ -2739,6 +2739,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
   const partnerItems = dumaItems.filter(item => item.type === "Partner");
 
   return (
+    <div style={{ display: 'flex', justifyContent: 'center', width: '100%', minHeight: '80vh' }}>
     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '30px' }}>
         <div>
@@ -3075,7 +3076,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
       )}
     </div>
       <div style={{ width: '160px', flexShrink: 0 }}><AdMonetization placement="duma_right_sidebar" /></div>
-        </div>
+    </div>
   );
 };
 

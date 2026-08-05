@@ -533,63 +533,107 @@ const SocialInputRow = ({ socialKey, label, placeholder, initialValue, onSave, o
     </div>
   );
 };
-// --- PROFILE PAGE COMPONENT - Enhanced with Photo & Video Features ---
+// --- PROFILE PAGE COMPONENT ---
 const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar, tokens, addDumaItem }) => {
   const navigate = useNavigate();
   const [avatarUrl, setAvatarUrl] = useState(userAvatar || null);
+  const [avatarFiles, setAvatarFiles] = useState([]);
+  const [avatarPreviews, setAvatarPreviews] = useState([]);
   const [backendRankScore, setBackendRankScore] = useState(rankScore || 1);
   const [backendRankTitle, setBackendRankTitle] = useState(rankTitle || "Comrade");
-  const [avatarSaveStatus, setAvatarSaveStatus] = useState("idle"); // idle | saving | saved | error
-  const [hadExistingAvatar, setHadExistingAvatar] = useState(false);
+  const [avatarSaveStatus, setAvatarSaveStatus] = useState("idle");
+
   const avatarInputRef = React.useRef(null);
 
-  // --- NEW: Share Your Perspective Media States ---
-  const [cultureResponse, setCultureResponse] = useState("");
-  const [cultureMediaFiles, setCultureMediaFiles] = useState([]);
-  const [cultureMediaPreviews, setCultureMediaPreviews] = useState([]);
-  const [cultureSubmitStatus, setCultureSubmitStatus] = useState("idle");
-  const [cultureErrorMsg, setCultureErrorMsg] = useState("");
+  // --- Post About Anything States ---
+  const [postDescription, setCultureResponse] = useState("");
+  const [postMediaFiles, setCultureMediaFiles] = useState([]);
+  const [postMediaPreviews, setCultureMediaPreviews] = useState([]);
+  const [selectedPromptIndex, setSelectedPromptIndex] = useState(null);
+  const [postSubmitStatus, setCultureSubmitStatus] = useState("idle");
+  const [postErrorMsg, setCultureErrorMsg] = useState("");
 
   const perspectivePrompts = [
-    // 🍽️ RESTAURANTS & BARS
     { id: 1, text: "What's the best restaurant or local hidden gem you've eaten at recently? What should we order?" },
     { id: 2, text: "Share your top bar or cocktail lounge recommendation. What's the go-to drink there?" },
     { id: 3, text: "What is your absolute favorite brunch spot, and what makes it a must-visit?" },
     { id: 4, text: "What's the coolest coffee shop or late-night dessert place in your area?" },
-
-    // ✈️ VACATIONS & FUN PLACES TO GO
     { id: 5, text: "If you could recommend one vacation destination for a quick weekend getaway, where are we going?" },
     { id: 6, text: "Drop your ultimate dream vacation spot or a past trip that blew your expectations away!" },
     { id: 7, text: "What's a fun local spot or unique activity in your city that tourists usually miss out on?" },
     { id: 8, text: "Share a photo or clip from your favorite travel memory or outdoor adventure." },
-
-    // 🛍️ SHOPPING & OUTFITS
     { id: 9, text: "Show us your current OOTD (Outfit of the Day) or favorite wardrobe piece right now!" },
     { id: 10, text: "What is your favorite brand or boutique to shop at for quality clothes or accessories?" },
     { id: 11, text: "Drop your best budget fashion or shopping hack. How do you build killer looks for less?" },
-
-    // 🍿 MOVIES & TV SHOWS
     { id: 12, text: "What TV show or series are you currently binge-watching that everyone needs to check out?" },
     { id: 13, text: "What is a movie you can watch over and over again without ever getting tired of it?" },
     { id: 14, text: "Recommend an underrated movie or show that doesn't get enough hype!" },
-
-    // ✨ ANYTHING GOES (WILDCARD)
     { id: 15, text: "Post Anything! Share whatever is on your mind today—a random thought, life update, or funny hot take." }
-  ]
-  const [activePromptIndex, setActivePromptIndex] = useState(0);
+  ];
 
-  const rotatePrompt = (direction) => {
-    setActivePromptIndex((prev) => {
-      if (direction === "random") {
-        if (perspectivePrompts.length <= 1) return prev;
-        let nextIndex = prev;
-        while (nextIndex === prev) { nextIndex = Math.floor(Math.random() * perspectivePrompts.length); }
-        return nextIndex;
+  // --- Multi Avatar Upload (Images Only) ---
+  const handleAvatarUpload = async (e) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const selectedFiles = Array.from(e.target.files).slice(0, 6);
+
+    // Validate that all files are images
+    for (const file of selectedFiles) {
+      if (!file.type.startsWith('image/')) {
+        alert('Please upload image files only (JPG, PNG, HEIC, WEBP).');
+        return;
       }
-      return (prev + direction + perspectivePrompts.length) % perspectivePrompts.length;
-    });
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Images must be smaller than 5MB.');
+        return;
+      }
+    }
+
+    setAvatarSaveStatus("saving");
+    const firstFile = selectedFiles[0];
+    const previewUrl = URL.createObjectURL(firstFile);
+    setAvatarUrl(previewUrl);
+    setAvatarPreviews(selectedFiles.map(f => URL.createObjectURL(f)));
+
+    if (!authToken) {
+      setAvatarSaveStatus("idle");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("file", firstFile);
+      formData.append("type", "avatar");
+
+      const response = await fetch(`${BACKEND_URL}/api/media/upload`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${authToken}` },
+        body: formData
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const cloudUrl = data.storageUrl || data.url || data.secure_url;
+        setAvatarUrl(cloudUrl);
+        if (onAvatarUpdate) onAvatarUpdate(cloudUrl);
+
+        await fetch(`${BACKEND_URL}/api/profile`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+          body: JSON.stringify({ avatar: cloudUrl })
+        });
+
+        setAvatarSaveStatus("saved");
+        if (onAddPoints) onAddPoints(25);
+        setTimeout(() => setAvatarSaveStatus("idle"), 3000);
+      } else {
+        setAvatarSaveStatus("error");
+      }
+    } catch {
+      setAvatarSaveStatus("error");
+    }
   };
 
+  // --- Duma Mixed Media Selection ---
   const handleCultureMediaChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
       const selectedFiles = Array.from(e.target.files).slice(0, 6);
@@ -602,22 +646,23 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     }
   };
 
+  // --- Submit Post to Duma ---
   const handleCultureSubmit = async (e) => {
     e.preventDefault();
-    const selectedPrompt = perspectivePrompts[activePromptIndex]?.text || "";
-    const selectedPromptId = perspectivePrompts[activePromptIndex]?.id;
-    if (!selectedPrompt || !cultureResponse.trim()) {
-      setCultureErrorMsg("Please select a prompt and provide your response.");
+    if (!postDescription.trim()) {
+      setCultureErrorMsg("Please write a description for your post.");
       return;
     }
     setCultureErrorMsg("");
     setCultureSubmitStatus("uploading");
 
+    const activePrompt = selectedPromptIndex !== null ? perspectivePrompts[selectedPromptIndex] : null;
+
     try {
       let uploadedMediaUrls = [];
 
-      if (cultureMediaFiles.length > 0 && authToken) {
-        for (const file of cultureMediaFiles) {
+      if (postMediaFiles.length > 0 && authToken) {
+        for (const file of postMediaFiles) {
           const formData = new FormData();
           formData.append("file", file);
           formData.append("type", file.type.startsWith("video/") ? "video" : "image");
@@ -635,25 +680,16 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       }
 
       if (authToken) {
-        const res = await fetch(`${BACKEND_URL}/api/duma/culture`, {
+        await fetch(`${BACKEND_URL}/api/duma/culture`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${authToken}`
-          },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
           body: JSON.stringify({
-            prompt: selectedPrompt,
-            response: cultureResponse,
+            prompt: activePrompt ? activePrompt.text : "General Post",
+            response: postDescription,
             category: "Culture",
             mediaUrls: uploadedMediaUrls
           })
         });
-        const data = await res.json();
-        if (!res.ok) {
-          setCultureErrorMsg(data.error || 'Submission failed');
-          setCultureSubmitStatus("error");
-          return;
-        }
       }
 
       if (addDumaItem) {
@@ -661,383 +697,25 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
           id: Date.now(),
           type: "Culture",
           category: "Culture",
-          prompt: selectedPrompt,
-          response: cultureResponse,
-          mediaUrls: uploadedMediaUrls.length > 0 ? uploadedMediaUrls : cultureMediaPreviews.map(p => p.url),
+          prompt: activePrompt ? activePrompt.text : "General Post",
+          response: postDescription,
+          mediaUrls: uploadedMediaUrls.length > 0 ? uploadedMediaUrls : postMediaPreviews.map(p => p.url),
           submittedBy: userEmail,
           submitterRank: rankTitle || 'Comrade',
-          submitterAvatar: userAvatar || null,
+          submitterAvatar: avatarUrl || null,
           votes: { yes: 0 }
         });
       }
 
-      if (onAddPoints) onAddPoints(100);
-      if (userEmail && selectedPromptId) markPromptCompleted(userEmail, selectedPromptId);
+      const pointsEarned = activePrompt ? 120 : 100;
+      if (onAddPoints) onAddPoints(pointsEarned);
+      if (userEmail && activePrompt?.id) markPromptCompleted(userEmail, activePrompt.id);
+
       setCultureSubmitStatus("saved");
-      setTimeout(() => { navigate("/duma"); }, 2000);
-    } catch (err) {
+      setTimeout(() => { navigate("/duma"); }, 1500);
+    } catch {
       setCultureSubmitStatus("error");
-      setCultureErrorMsg("Server error trying to process submission.");
-    }
-  };
-
-    const [perspective, setPerspective] = useState({
-    box1: { videoUrl: null, description: "", videoFile: null },
-    box2: { videoUrl: null, description: "", videoFile: null },
-    box3: { videoUrl: null, description: "", videoFile: null },
-    box4: { videoUrl: null, description: "", videoFile: null }
-  });
-  const [videoSaveStatus, setVideoSaveStatus] = useState({}); // { box1: "idle"|"saving"|"saved"|"error" }
-  const [socialLinks, setSocialLinks] = useState({
-    instagram: "",
-    tiktok: "",
-    facebook: ""
-  });
-  const [editingBox, setEditingBox] = useState(null);
-  const [saveStatus, setSaveStatus] = useState("");
-  const [dumaSubmitStatus, setDumaSubmitStatus] = useState({});
-  const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", facebook: "idle" });
-  const [anyVideoPushed, setAnyVideoPushed] = useState(false);
-  const [socialConnected, setSocialConnected] = useState({ instagram: false, tiktok: false, facebook: false });
-  const [socialShareStatus, setSocialShareStatus] = useState({ Instagram: 'idle', TikTok: 'idle', Facebook: 'idle' });
-
-  const blobAvatarUrlRef = React.useRef(null);
-
-  useEffect(() => {
-    return () => {
-      if (blobAvatarUrlRef.current) {
-        URL.revokeObjectURL(blobAvatarUrlRef.current);
-        blobAvatarUrlRef.current = null;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    const resolvedScore = rankScore || 1;
-    setBackendRankScore(resolvedScore);
-    setBackendRankTitle(getRankTitle(resolvedScore));
-  }, [rankScore, rankTitle]);
-
-  useEffect(() => {
-    if (!authToken) return;
-    fetch(`${BACKEND_URL}/api/profile`, {
-      headers: { Authorization: `Bearer ${authToken}` }
-    }).then(r => { if (!r.ok) throw new Error('Failed to fetch profile'); return r.json(); }).then(data => {
-      const resolvedScore = data.rank_score || 1;
-      setBackendRankScore(resolvedScore);
-      setBackendRankTitle(getRankTitle(resolvedScore));
-      if (data.avatar) {
-        setAvatarUrl(data.avatar);
-        setHadExistingAvatar(true);
-        if (onAvatarUpdate) onAvatarUpdate(data.avatar);
-      }
-      if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
-      if (data.perspective) {
-        setPerspective(prev => {
-          const updated = { ...prev };
-          for (const key in data.perspective) {
-            if (updated[key]) updated[key] = { ...updated[key], ...data.perspective[key] };
-          }
-          return updated;
-        });
-      }
-      if (data.perspective && Object.keys(data.perspective).length > 0) {
-        setAnyVideoPushed(true);
-      }
-    }).catch(() => {});
-  }, [authToken, onAvatarUpdate]);
-
-  useEffect(() => {
-    if (!authToken) return;
-    fetch(`${BACKEND_URL}/api/social/status`, {
-      headers: { Authorization: `Bearer ${authToken}` }
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (data && typeof data === 'object') {
-          setSocialConnected(prev => ({ ...prev, ...data }));
-        }
-      })
-      .catch(() => {});
-  }, [authToken]);
-
-  const handleSocialChange = (key, value) => {
-    setSocialLinks(prev => ({ ...prev, [key]: value }));
-  };
-
-  const handleSaveSocialLink = async (key, valueOverride) => {
-    if (!authToken) return;
-    const resolvedValue = typeof valueOverride === "string" ? valueOverride : socialLinks[key];
-    if (typeof valueOverride === "string") {
-      setSocialLinks(prev => ({ ...prev, [key]: valueOverride }));
-    }
-    setSocialSaveStatus(prev => ({ ...prev, [key]: "saving" }));
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/profile`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify({ socialLinks: { [key]: resolvedValue } })
-      });
-      if (response.ok) {
-        setSocialSaveStatus(prev => ({ ...prev, [key]: "saved" }));
-        setTimeout(() => setSocialSaveStatus(prev => ({ ...prev, [key]: "idle" })), 3000);
-      } else {
-        setSocialSaveStatus(prev => ({ ...prev, [key]: "error" }));
-        setTimeout(() => setSocialSaveStatus(prev => ({ ...prev, [key]: "idle" })), 3000);
-      }
-    } catch {
-      setSocialSaveStatus(prev => ({ ...prev, [key]: "error" }));
-      setTimeout(() => setSocialSaveStatus(prev => ({ ...prev, [key]: "idle" })), 3000);
-    }
-  };
-
-  const handleAvatarUpload = async (e) => {
-    if (!e.target.files || !e.target.files[0]) return;
-    const file = e.target.files[0];
-    // Reset input so the same file can be re-selected if needed
-    e.target.value = "";
-    if (!['image/jpeg', 'image/png'].includes(file.type)) {
-      alert('Please upload a JPG or PNG image only.');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image must be smaller than 5MB.');
-      return;
-    }
-    // Show local preview immediately
-    const previewUrl = URL.createObjectURL(file);
-    blobAvatarUrlRef.current = previewUrl;
-    setAvatarUrl(previewUrl);
-    setAvatarSaveStatus("saving"); // triggers "Uploading…" overlay
-
-    if (!authToken) {
-      // Not logged in — keep local preview only
-      setAvatarSaveStatus("idle");
-      return;
-    }
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("type", "avatar");
-      const response = await fetch(`${BACKEND_URL}/api/media/upload`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${authToken}` },
-        body: formData
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const cloudUrl = data.storageUrl || data.url || data.secure_url;
-        // Replace blob with permanent cloud URL before revoking to prevent ERR_FILE_NOT_FOUND
-        setAvatarUrl(cloudUrl);
-        if (onAvatarUpdate) onAvatarUpdate(cloudUrl);
-        // Cleanup the temporary blob URL to prevent memory leaks
-        if (blobAvatarUrlRef.current) {
-          URL.revokeObjectURL(blobAvatarUrlRef.current);
-          blobAvatarUrlRef.current = null;
-        }
-        // Persist the new avatar URL to the user's profile record
-        const profileRes = await fetch(`${BACKEND_URL}/api/profile`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
-          body: JSON.stringify({ avatar: cloudUrl })
-        });
-        if (!profileRes.ok) {
-          setAvatarSaveStatus("error");
-          setTimeout(() => setAvatarSaveStatus("idle"), 3000);
-          return;
-        }
-        setAvatarSaveStatus("saved");
-        if (!hadExistingAvatar && onAddPoints) {
-          onAddPoints(25);
-          setHadExistingAvatar(true);
-        }
-        setTimeout(() => setAvatarSaveStatus("idle"), 3000);
-      } else {
-        setAvatarSaveStatus("error");
-        setTimeout(() => setAvatarSaveStatus("idle"), 3000);
-      }
-    } catch (err) {
-      setAvatarSaveStatus("error");
-      setTimeout(() => setAvatarSaveStatus("idle"), 3000);
-    }
-  };
-
-  const handleVideoUpload = (boxKey, e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (!['video/mp4', 'video/quicktime'].includes(file.type)) {
-        alert('Please upload an MP4 or MOV video.');
-        return;
-      }
-      if (file.size > 100 * 1024 * 1024) {
-        alert('Video must be smaller than 100MB.');
-        return;
-      }
-      const objectUrl = URL.createObjectURL(file);
-      const videoEl = document.createElement('video');
-      videoEl.preload = 'metadata';
-      videoEl.onloadedmetadata = () => {
-        if (videoEl.duration > 60) {
-          URL.revokeObjectURL(objectUrl);
-          alert('Video must be 60 seconds or less.');
-          return;
-        }
-        window.dataLayer = window.dataLayer || [];
-        window.dataLayer.push({ event: 'video_upload_start' });
-        setPerspective(prev => {
-          if (prev[boxKey].videoUrl && prev[boxKey].videoUrl.startsWith('blob:')) {
-            URL.revokeObjectURL(prev[boxKey].videoUrl);
-          }
-          return { ...prev, [boxKey]: { ...prev[boxKey], videoUrl: objectUrl, videoFile: file } };
-        });
-        setVideoSaveStatus(prev => ({ ...prev, [boxKey]: "idle" }));
-      };
-      videoEl.src = objectUrl;
-    }
-  };
-
-  const handleSaveVideo = async (boxKey) => {
-    if (!perspective[boxKey].videoFile || !authToken) return;
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push({ event: 'video_upload_start' });
-    setVideoSaveStatus(prev => ({ ...prev, [boxKey]: "saving" }));
-    try {
-      const formData = new FormData();
-      formData.append("file", perspective[boxKey].videoFile);
-      formData.append("type", "video");
-      formData.append("boxKey", boxKey);
-      const uploadRes = await fetch(`${BACKEND_URL}/api/media/upload`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${authToken}` },
-        body: formData
-      });
-      const data = uploadRes.ok ? await uploadRes.json() : null;
-      // Multi-key safety check for varying cloud production storage signatures
-      const savedVideoUrl = data?.storageUrl || data?.secure_url || data?.url || perspective[boxKey].videoUrl;
-      const updatedPerspective = {
-        ...perspective,
-        [boxKey]: { ...perspective[boxKey], videoUrl: savedVideoUrl }
-      };
-      const videoPerspectives = {};
-      for (const key in updatedPerspective) {
-        if (updatedPerspective[key].videoUrl) {
-          videoPerspectives[key] = {
-            videoUrl: updatedPerspective[key].videoUrl,
-            description: updatedPerspective[key].description
-          };
-        }
-      }
-      const profileRes = await fetch(`${BACKEND_URL}/api/profile`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify({ perspective: videoPerspectives })
-      });
-      if (profileRes.ok) {
-        setPerspective(updatedPerspective);
-        if (onAddPoints) onAddPoints(100);
-        setAnyVideoPushed(true);
-        window.dataLayer = window.dataLayer || [];
-        window.dataLayer.push({
-          event: 'video_upload_success',
-          author_name: userEmail || '',
-          article_title: perspective[boxKey].description || '',
-          content_category: 'Duma'
-        });
-        setVideoSaveStatus(prev => ({ ...prev, [boxKey]: "saved" }));
-      } else {
-        setVideoSaveStatus(prev => ({ ...prev, [boxKey]: "error" }));
-        setTimeout(() => setVideoSaveStatus(prev => ({ ...prev, [boxKey]: "idle" })), 3000);
-      }
-    } catch {
-      setVideoSaveStatus(prev => ({ ...prev, [boxKey]: "error" }));
-      setTimeout(() => setVideoSaveStatus(prev => ({ ...prev, [boxKey]: "idle" })), 3000);
-    }
-  };
-
-  const handleSendToDuma = async (boxKey) => {
-    if (!perspective[boxKey].videoUrl) {
-      alert('Please upload a video first before sending to the Duma.');
-      return;
-    }
-    setDumaSubmitStatus(prev => ({ ...prev, [boxKey]: "Submitting..." }));
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/duma/culture/submit`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`
-        },
-        body: JSON.stringify({
-          boxKey,
-          videoUrl: perspective[boxKey].videoUrl,
-          description: perspective[boxKey].description,
-          socialLinks
-        })
-      });
-      if (response.ok) {
-        setDumaSubmitStatus(prev => ({ ...prev, [boxKey]: "Sent to Duma!" }));
-        setAnyVideoPushed(true);
-        if (onAddPoints) onAddPoints(100);
-        setTimeout(() => setDumaSubmitStatus(prev => ({ ...prev, [boxKey]: "" })), 3000);
-      } else {
-        setDumaSubmitStatus(prev => ({ ...prev, [boxKey]: "Submission failed" }));
-        setTimeout(() => setDumaSubmitStatus(prev => ({ ...prev, [boxKey]: "" })), 3000);
-      }
-    } catch (err) {
-      setDumaSubmitStatus(prev => ({ ...prev, [boxKey]: "Error submitting" }));
-      setTimeout(() => setDumaSubmitStatus(prev => ({ ...prev, [boxKey]: "" })), 3000);
-    }
-  };
-
-  const handleDescriptionChange = (boxKey, text) => {
-    setPerspective(prev => ({
-      ...prev,
-      [boxKey]: { ...prev[boxKey], description: text }
-    }));
-  };
-
-  const boxes = [
-    { key: "box1", label: "Introduce yourself", icon: "\u{1F3AC}" },
-    { key: "box2", label: "Tell us what you do", icon: "\u{1F3AC}" },
-    { key: "box3", label: "What are your thoughts on what makes someone beautiful?", icon: "\u{1F3AC}" },
-    { key: "box4", label: "Ideas about anything else", icon: "\u{1F3AC}" }
-  ];
-
-  const handleSaveProfile = async () => {
-    if (!authToken) return;
-    setSaveStatus("Saving...");
-    try {
-      // Build video perspectives payload
-      const videoPerspectives = {};
-      for (const boxKey in perspective) {
-        if (perspective[boxKey].videoUrl) {
-          videoPerspectives[boxKey] = {
-            videoUrl: perspective[boxKey].videoUrl,
-            description: perspective[boxKey].description
-          };
-        }
-      }
-      
-      const response = await fetch(`${BACKEND_URL}/api/profile`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`
-        },
-        body: JSON.stringify({ 
-          perspective: videoPerspectives, 
-          avatar: avatarUrl
-        })
-      });
-      if (response.ok) {
-        setSaveStatus("Culture saved successfully!");
-        setTimeout(() => setSaveStatus(""), 3000);
-      } else {
-        setSaveStatus("Failed to save profile");
-      }
-    } catch (err) {
-      setSaveStatus("Server error");
+      setCultureErrorMsg("Server error processing your post.");
     }
   };
 
@@ -1046,338 +724,176 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   const pointsToNextRank = getPointsToNextRank(displayRankScore, displayRankTitle);
   const nextRankTitle = getNextRankTitle(displayRankTitle);
   const { currentMin, nextMin, progressPercent } = getRankProgress(displayRankScore, displayRankTitle);
-  const getAuthUserId = () => {
-    if (!authToken) return "";
-    try {
-      const payload = authToken.split(".")[1];
-      const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
-      const decoded = JSON.parse(atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=")));
-      return decoded.userId || "";
-    } catch {
-      return "";
-    }
-  };
-
-  const handleSocialConnect = (platform) => {
-    const userId = getAuthUserId();
-    if (!userId) {
-      alert("Please log in again before connecting social accounts.");
-      return;
-    }
-    // Instagram Graph API auth runs through Meta/Facebook Login for Business
-    const targetPlatform = platform === 'instagram' ? 'facebook' : platform;
-    window.location.href = `${BACKEND_URL}/api/auth/${targetPlatform}`;
-  };
-
-  const handleSocialShare = async (platform, socialUrl) => {
-    if (!socialUrl) {
-      alert(`Connect your ${platform} account first in Social Links above.`);
-      return;
-    }
-
-    // Use the first preview URL from multi-file uploads for social sharing
-    const realVideoUrl = cultureMediaPreviews[0]?.url || "";
-
-    if (!realVideoUrl) {
-      alert('No active video URL found to share. Please save a perspective video first.');
-      return;
-    }
-
-    setSocialShareStatus(prev => ({ ...prev, [platform]: 'sharing' }));
-
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/profile/share`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}`
-        },
-        body: JSON.stringify({
-          videoUrl: realVideoUrl,
-          platforms: [platform.toLowerCase()],
-          caption: ''
-        })
-      });
-      const data = await res.json();
-      if (res.ok && data.results?.[platform.toLowerCase()]?.success) {
-        setSocialShareStatus(prev => ({ ...prev, [platform]: 'shared' }));
-        setTimeout(() => setSocialShareStatus(prev => ({ ...prev, [platform]: 'idle' })), 3000);
-      } else {
-        const err = data.results?.[platform.toLowerCase()]?.error || 'Share failed';
-        if (err.includes('not connected') || err.includes('token expired')) {
-          setSocialShareStatus(prev => ({ ...prev, [platform]: 'reconnect' }));
-        } else {
-          setSocialShareStatus(prev => ({ ...prev, [platform]: 'error' }));
-        }
-        setTimeout(() => setSocialShareStatus(prev => ({ ...prev, [platform]: 'idle' })), 5000);
-      }
-    } catch (e) {
-      setSocialShareStatus(prev => ({ ...prev, [platform]: 'error' }));
-      setTimeout(() => setSocialShareStatus(prev => ({ ...prev, [platform]: 'idle' })), 5000);
-    }
-  };
 
   return (
-    <div style={{ padding: '40px 60px', maxWidth: '1000px', margin: '0 auto' }}>
-      {/* HEADER SECTION */}
-      <div style={{ marginBottom: '50px' }}>
+    <div style={{ padding: '40px 60px', maxWidth: '900px', margin: '0 auto' }}>
+
+      {/* 1. WELCOME & RANK PROGRESS */}
+      <div style={{ marginBottom: '40px' }}>
         <h1 style={{ fontSize: '32px', marginBottom: '8px', fontWeight: '700' }}>Welcome</h1>
         {displayRankTitle && (
-          <div style={{ marginTop: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+          <div style={{ marginTop: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
               <RankBadge rankTitle={displayRankTitle} />
               <span style={{ fontSize: '13px', color: '#666' }}>{displayRankScore.toLocaleString()} points</span>
             </div>
-            <div style={{ marginBottom: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '11px', color: '#666', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                <span>Rank progress</span>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#666', marginBottom: '4px' }}>
+                <span>RANK PROGRESS</span>
                 <span>{progressPercent.toFixed(0)}%</span>
               </div>
-              <div style={{ width: '100%', height: '10px', background: '#ececec', borderRadius: '999px', overflow: 'hidden' }}>
-                <div
-                  aria-label="Rank progress"
-                  role="progressbar"
-                  aria-valuemin={currentMin}
-                  aria-valuemax={nextMin}
-                  aria-valuenow={displayRankScore}
-                  style={{ width: `${progressPercent}%`, height: '100%', background: 'linear-gradient(90deg, #222 0%, #d4af37 100%)' }}
-                />
+              <div style={{ width: '100%', height: '8px', background: '#ececec', borderRadius: '999px', overflow: 'hidden' }}>
+                <div style={{ width: `${progressPercent}%`, height: '100%', background: 'linear-gradient(90deg, #222 0%, #d4af37 100%)' }} />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '11px', color: '#888', marginTop: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#888', marginTop: '4px' }}>
                 <span>{currentMin.toLocaleString()} pts</span>
-                <span>{nextRankTitle ? `${nextMin.toLocaleString()} pts` : 'Top rank reached'}</span>
+                <span>{nextMin.toLocaleString()} pts</span>
               </div>
             </div>
             {nextRankTitle && (
-              <div style={{ fontSize: '12px', color: '#888', marginTop: '8px' }}>
+              <div style={{ fontSize: '11px', color: '#888', marginTop: '6px' }}>
                 <strong>{pointsToNextRank.toLocaleString()}</strong> points to your next rank ({nextRankTitle})
-              </div>
-            )}
-            {tokens > 0 && (
-              <div style={{ fontSize: '12px', color: '#888', marginTop: '8px' }}>
-                🪙 <strong>{tokens}</strong> {tokens === 1 ? 'token' : 'tokens'} earned from rank-ups
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* AVATAR UPLOAD SECTION */}
-      <section style={{ marginBottom: '50px' }}>
-        <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Your Profile Avatar</h2>
-        <div style={styles.uploadBox}>
-          <div style={{ textAlign: 'center' }}>
-            {avatarUrl ? (
-              <div style={{ marginBottom: '16px', position: 'relative', display: 'inline-block' }}>
-                <img
-                  src={avatarUrl}
-                  alt="Avatar Preview"
-                  title="Click to change avatar"
-                  role="button"
-                  tabIndex={avatarSaveStatus === "saving" ? -1 : 0}
-                  onClick={() => avatarSaveStatus !== "saving" && avatarInputRef.current && avatarInputRef.current.click()}
-                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && avatarSaveStatus !== "saving" && avatarInputRef.current && avatarInputRef.current.click()}
-                  style={{ width: '150px', height: '150px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px', cursor: avatarSaveStatus === "saving" ? 'default' : 'pointer', opacity: avatarSaveStatus === "saving" ? 0.6 : 1 }}
-                />
-                {avatarSaveStatus === "saving" && (
-                  <div style={{ position: 'absolute', top: 0, left: 0, width: '150px', height: '150px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ color: '#fff', fontSize: '13px', fontWeight: '600' }}>Uploading…</span>
-                  </div>
-                )}
-                {avatarSaveStatus !== "saving" && (
-                  <p style={{ fontSize: '13px', color: '#666' }}>
-                    {avatarSaveStatus === "saved" ? "✓ Uploaded" : avatarSaveStatus === "error" ? "Upload failed — click to retry" : "Click avatar to change"}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div
-                role="button"
-                tabIndex={avatarSaveStatus === "saving" ? -1 : 0}
-                style={{ padding: '30px', textAlign: 'center', cursor: avatarSaveStatus === "saving" ? 'default' : 'pointer' }}
-                onClick={() => avatarSaveStatus !== "saving" && avatarInputRef.current && avatarInputRef.current.click()}
-                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && avatarSaveStatus !== "saving" && avatarInputRef.current && avatarInputRef.current.click()}>
-                <span style={{ fontSize: '48px', marginBottom: '12px', display: 'block' }}>{avatarSaveStatus === "saving" ? "⏳" : "\u{1F464}"}</span>
-                <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>
-                  {avatarSaveStatus === "saving" ? "Uploading…" : "No avatar uploaded yet — click to upload"}
-                </p>
-              </div>
-            )}
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <label style={{ cursor: 'pointer', display: 'inline-block' }}>
-                <input ref={avatarInputRef} type="file" accept="image/*, image/heic, image/jpeg, image/png, image/webp" onChange={handleAvatarUpload} style={{ display: 'none' }} />
-                <button
-                  type="button"
-                  disabled={avatarSaveStatus === "saving"}
-                  style={{ ...styles.authButton, width: '200px', opacity: avatarSaveStatus === "saving" ? 0.6 : 1, cursor: avatarSaveStatus === "saving" ? 'not-allowed' : 'pointer' }}
-                  onClick={() => avatarSaveStatus !== "saving" && avatarInputRef.current && avatarInputRef.current.click()}>
-                  {avatarSaveStatus === "saving" ? "Uploading…" : "Upload Avatar (JPG/PNG, max 5MB)"}
-                </button>
-              </label>
-
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SHARE YOUR PERSPECTIVE SECTION - UPGRADED WITH MEDIA */}
-      <section style={{ marginBottom: '50px' }}>
-        <h2 style={{ fontSize: '20px', marginBottom: '8px', fontWeight: '600' }}>Share Your Perspective</h2>
-        <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
-          Contribute to our Culture section by answering one of these prompts with text, image views, or recorded clips. Submit your response to the Duma for community voting and earn <strong>+100 points!</strong>
+      {/* 2. PROFILE PICTURES (UP TO 6) */}
+      <section style={{ marginBottom: '40px' }}>
+        <h2 style={{ fontSize: '18px', marginBottom: '6px', fontWeight: '600' }}>Profile Pictures (Up to 6)</h2>
+        <p style={{ color: '#888', fontSize: '12px', marginBottom: '16px' }}>
+          Upload up to 6 pictures and select your active main avatar thumbnail.
         </p>
 
-        {cultureSubmitStatus === "saved" ? (
-          <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
-            <div style={{ fontSize: '40px', marginBottom: '16px' }}>&#x2705;</div>
-            <h2 style={{ marginBottom: '10px' }}>Perspective Shared!</h2>
-            <p style={{ color: '#666', marginBottom: '20px' }}>
-              Your response has been processed and safely pushed to The Majorities' Culture section inside the Duma for community voting.
-            </p>
-            <p style={{ fontSize: '12px', color: '#888' }}>You earned 100 points! Redirecting to Duma…</p>
+        <div style={{ border: '1px solid #e0e0e0', borderRadius: '16px', padding: '30px', textAlign: 'center', backgroundColor: '#fff' }}>
+          {avatarUrl ? (
+            <div style={{ marginBottom: '16px' }}>
+              <img src={avatarUrl} alt="Main Avatar" style={{ width: '100px', height: '100px', borderRadius: '50%', objectFit: 'cover' }} />
+            </div>
+          ) : (
+            <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#eee', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', color: '#888', marginBottom: '12px' }}>👤</div>
+          )}
+
+          <div style={{ border: '2px dashed #ddd', borderRadius: '12px', padding: '20px', backgroundColor: '#fafafa', cursor: 'pointer' }}
+               onClick={() => avatarInputRef.current && avatarInputRef.current.click()}>
+            <span style={{ fontSize: '24px', display: 'block', marginBottom: '6px' }}>📷</span>
+            <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#222' }}>Upload Profile Pictures</p>
+            <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#888' }}>JPG/PNG/HEIC, Max 6 photos, 5MB each</p>
           </div>
-        ) : (
-          <>
-            {cultureErrorMsg && <div style={styles.errorMsg}>{cultureErrorMsg}</div>}
-            <form style={{ ...styles.dumaCard, position: 'relative' }} onSubmit={handleCultureSubmit}>
 
-              {/* LOADING OVERLAY */}
-              {cultureSubmitStatus === "uploading" && (
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: '32px', marginBottom: '10px' }}>&#x23F3;</span>
-                  <span style={{ color: '#222', fontSize: '16px', fontWeight: '700' }}>Publishing Your Perspective...</span>
-                  <span style={{ color: '#666', fontSize: '12px', marginTop: '4px' }}>Uploading media files to master server storage logs</span>
-                </div>
-              )}
-
-              <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Choose a Prompt</h3>
-              <div style={{ marginBottom: '24px' }}>
-                <div style={{ padding: '20px', border: '2px solid #222', borderRadius: '12px', backgroundColor: '#f9f9f9', marginBottom: '14px' }}>
-                  <p style={{ margin: 0, fontSize: '15px', lineHeight: 1.6, color: '#222', fontWeight: 600 }}>
-                    {perspectivePrompts[activePromptIndex]?.text}
-                  </p>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
-                  <button type="button" onClick={() => rotatePrompt(-1)} style={{ ...styles.authButton, width: 'auto', padding: '10px 16px' }}>Previous</button>
-                  <button type="button" onClick={() => rotatePrompt("random")} style={{ ...styles.authButton, width: 'auto', padding: '10px 16px', backgroundColor: '#666' }}>Shuffle Prompt</button>
-                  <button type="button" onClick={() => rotatePrompt(1)} style={{ ...styles.authButton, width: 'auto', padding: '10px 16px' }}>Next</button>
-                  <span style={{ fontSize: '12px', color: '#666' }}>Prompt {activePromptIndex + 1} of {perspectivePrompts.length}</span>
-                </div>
-              </div>
-
-              <h3 style={{ marginTop: '24px', marginBottom: '8px' }}>Attach Photos or Videos (Up to 6)</h3>
-              <p style={{ fontSize: '12px', color: '#666', margin: '0 0 12px 0' }}>Share photos or clips of restaurants, outfits, vacation spots, or favorite media.</p>
-
-              <input type="file" accept="image/*, image/heic, video/*, video/mp4, video/quicktime, video/webm" multiple onChange={handleCultureMediaChange} style={{ ...styles.input, padding: '8px' }} />
-
-              {cultureMediaPreviews.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '8px', marginTop: '15px', marginBottom: '15px' }}>
-                  {cultureMediaPreviews.map((preview, idx) => (
-                    <div key={idx} style={{ background: '#fafafa', padding: '6px', borderRadius: '8px', border: '1px solid #eee', textAlign: 'center' }}>
-                      {preview.type === "image" ? (
-                        <img src={preview.url} alt={`Preview ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '6px' }} />
-                      ) : (
-                        <video src={preview.url} style={{ width: '100%', height: '100px', borderRadius: '6px' }} controls />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <h3 style={{ marginTop: '24px', marginBottom: '12px' }}>Your Response</h3>
-              <textarea required placeholder="Type your context or response thoughts here..." style={{ ...styles.input, height: '120px' }} value={cultureResponse} onChange={(e) => setCultureResponse(e.target.value)} />
-
-              <button type="submit" style={{ ...styles.authButton, marginTop: '15px' }}>
-                Submit Perspective to Duma (+100 points)
-              </button>
-            </form>
-          </>
-        )}
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*, image/heic, image/jpeg, image/png, image/webp"
+            multiple
+            onChange={handleAvatarUpload}
+            style={{ display: 'none' }}
+          />
+        </div>
       </section>
 
-      {/* SOCIAL LINKS SECTION */}
+      {/* 3. SOCIALS */}
+      <section style={{ marginBottom: '40px' }}>
+        <h2 style={{ fontSize: '18px', marginBottom: '16px', fontWeight: '600' }}>Socials</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px' }}>
+          {SOCIAL_FIELDS.map(social => (
+            <SocialInputRow
+              key={social.key}
+              socialKey={social.key}
+              label={social.label}
+              placeholder={social.placeholder}
+              initialValue={socialLinks[social.key]}
+              saveStatus={socialSaveStatus[social.key]}
+              onChangeGlobal={handleSocialChange}
+              onSave={handleSaveSocialLink}
+             />
+          ))}
+        </div>
+      </section>
+
+      {/* 4. POST ABOUT ANYTHING */}
       <section style={{ marginBottom: '50px' }}>
-        <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Connect Your Social Profiles</h2>
-        <div style={styles.dumaCard}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
-            {/* CONNECT YOUR SOCIAL PROFILES LOOhP */}
-            {SOCIAL_FIELDS.map(social => (
-              <SocialInputRow
-                key={social.key}
-                socialKey={social.key}
-                label={social.label}
-                placeholder={social.placeholder}
-                initialValue={socialLinks[social.key]}
-                saveStatus={socialSaveStatus[social.key]}
-                onChangeGlobal={handleSocialChange}
-                onSave={handleSaveSocialLink} />
+        <h2 style={{ fontSize: '18px', marginBottom: '4px', fontWeight: '600' }}>Post About Anything</h2>
+        <p style={{ color: '#888', fontSize: '12px', marginBottom: '20px' }}>
+          Share your thoughts or photos/videos directly to the Duma (+100 points). Optionally select a prompt below to earn bonus points (+120 points)!
+        </p>
+
+        <form onSubmit={handleCultureSubmit} style={{ ...styles.dumaCard, border: '1px solid #e0e0e0', padding: '24px', borderRadius: '16px' }}>
+
+          <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '8px' }}>Attach Photos or Videos (Up to 6)</label>
+          <input
+            type="file"
+            accept="image/*, image/heic, video/*, video/mp4, video/quicktime, video/webm"
+            multiple
+            onChange={handleCultureMediaChange}
+            style={{ ...styles.input, padding: '8px' }}
+          />
+
+          {postMediaPreviews.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '8px', margin: '12px 0' }}>
+              {postMediaPreviews.map((preview, idx) => (
+                <div key={idx} style={{ height: '80px', borderRadius: '6px', overflow: 'hidden', border: '1px solid #ddd' }}>
+                  {preview.type === "image" ? (
+                    <img src={preview.url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <video src={preview.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginTop: '16px', marginBottom: '8px' }}>Write a description *</label>
+          <textarea
+            required
+            placeholder="Write your post details here..."
+            style={{ ...styles.input, height: '100px', fontSize: '13px' }}
+            value={postDescription}
+            onChange={(e) => setCultureResponse(e.target.value)}
+          />
+
+          <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginTop: '16px', marginBottom: '8px' }}>
+            ANSWER PROMPTS FOR POINTS (COMPLETE ALL FOR SPECIAL REWARD)
+          </label>
+          <p style={{ fontSize: '11px', color: '#888', margin: '0 0 10px 0' }}>
+            Click any prompt below to attach it to your post and earn 120 points! (Scroll to view all 15 prompts)
+          </p>
+
+          {/* SCROLLABLE PROMPT CONTAINER */}
+          <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '8px', marginBottom: '20px', backgroundColor: '#fafafa' }}>
+            {perspectivePrompts.map((prompt, idx) => (
+              <div
+                key={prompt.id}
+                onClick={() => setSelectedPromptIndex(selectedPromptIndex === idx ? null : idx)}
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: '6px',
+                  border: selectedPromptIndex === idx ? '2px solid #222' : '1px solid #e0e0e0',
+                  backgroundColor: selectedPromptIndex === idx ? '#fff' : '#fff',
+                  cursor: 'pointer',
+                  marginBottom: '6px',
+                  fontSize: '12px',
+                  color: '#333'
+                }}
+              >
+                {prompt.id}. {prompt.text}
+              </div>
             ))}
           </div>
-        </div>
+
+          <button type="submit" style={{ ...styles.authButton, background: '#222', color: '#fff', padding: '12px' }}>
+            {postSubmitStatus === "uploading" ? "Publishing..." : "Submit Post to Duma"}
+          </button>
+        </form>
       </section>
 
-      {/* OAUTH CONNECT SECTION */}
-      <section style={{ marginBottom: '50px' }}>
-        <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Share to Your Socials</h2>
-        <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '30px' }}>
-          <p style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>Push your latest Perspective video to your connected social accounts</p>
-          {!anyVideoPushed && (
-            <p style={{ fontSize: '13px', color: '#aaa', marginBottom: '16px', fontStyle: 'italic' }}>Save & publish a Culture video above to unlock sharing.</p>
-          )}
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button
-              disabled={!anyVideoPushed}
-              onClick={() => handleSocialShare('Instagram', socialLinks.instagram)}
-              style={{ ...styles.socialButton, maxWidth: '180px', background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)', color: '#fff', border: 'none', opacity: anyVideoPushed ? 1 : 0.4, cursor: anyVideoPushed ? 'pointer' : 'not-allowed' }}>
-              {socialShareStatus.Instagram === 'sharing' ? 'Sharing...' : socialShareStatus.Instagram === 'shared' ? '✓ Shared!' : socialShareStatus.Instagram === 'error' ? 'Error - Retry' : socialShareStatus.Instagram === 'reconnect' ? 'Reconnect Instagram' : '📷 Share to Instagram'}
-            </button>
-            <button
-              disabled={!anyVideoPushed}
-              onClick={() => handleSocialShare('TikTok', socialLinks.tiktok)}
-              style={{ ...styles.socialButton, maxWidth: '180px', background: '#000', color: '#fff', border: 'none', opacity: anyVideoPushed ? 1 : 0.4, cursor: anyVideoPushed ? 'pointer' : 'not-allowed' }}>
-              {socialShareStatus.TikTok === 'sharing' ? 'Sharing...' : socialShareStatus.TikTok === 'shared' ? '✓ Shared!' : socialShareStatus.TikTok === 'error' ? 'Error - Retry' : socialShareStatus.TikTok === 'reconnect' ? 'Reconnect TikTok' : '🎵 Share to TikTok'}
-            </button>
-            <button
-              disabled={!anyVideoPushed}
-              onClick={() => handleSocialShare('Facebook', socialLinks.facebook)}
-              style={{ ...styles.socialButton, maxWidth: '180px', background: '#1877F2', color: '#fff', border: 'none', opacity: anyVideoPushed ? 1 : 0.4, cursor: anyVideoPushed ? 'pointer' : 'not-allowed' }}>
-              {socialShareStatus.Facebook === 'sharing' ? 'Sharing...' : socialShareStatus.Facebook === 'shared' ? '✓ Shared!' : socialShareStatus.Facebook === 'error' ? 'Error - Retry' : socialShareStatus.Facebook === 'reconnect' ? 'Reconnect Facebook' : '📘 Share to Facebook'}
-            </button>
-          </div>
-          <p style={{ fontSize: '11px', color: '#aaa', marginTop: '12px' }}>Connect accounts using the OAuth buttons below to unlock sharing.</p>
-
-          {/* Fix 2: Added missing Facebook OAuth connect button to lower shelf */}
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '18px' }}>
-            <button
-              type="button"
-              onClick={() => handleSocialConnect('instagram')}
-              style={{ ...styles.socialButton, maxWidth: '190px', background: socialConnected.instagram ? '#27ae60' : 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)', color: '#fff', border: 'none' }}>
-              {socialConnected.instagram ? '✓ Instagram Connected' : 'Connect Instagram'}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSocialConnect('tiktok')}
-              style={{ ...styles.socialButton, maxWidth: '190px', background: socialConnected.tiktok ? '#27ae60' : '#000', color: '#fff', border: 'none' }}>
-              {socialConnected.tiktok ? '✓ TikTok Connected' : 'Connect TikTok'}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSocialConnect('facebook')}
-              style={{ ...styles.socialButton, maxWidth: '190px', background: socialConnected.facebook ? '#27ae60' : '#1877F2', color: '#fff', border: 'none' }}>
-              {socialConnected.facebook ? '✓ Facebook Connected' : 'Connect Facebook'}
-            </button>
-          </div>
-        </div>
-      </section>
-
-      
-
-      {/* SAVED FORMULAS SECTION */}
+      {/* 5. YOUR SAVED FORMULAS */}
       <section>
-        <h2 style={{ fontSize: '20px', marginBottom: '24px', fontWeight: '600' }}>Your Saved Formulas</h2>
+        <h2 style={{ fontSize: '18px', marginBottom: '16px', fontWeight: '600' }}>Your Saved Formulas</h2>
         {savedSets.length === 0 ? (
           <div style={styles.dumaCard}>
-            <p style={{ color: '#888', marginBottom: '12px' }}>You haven't saved any custom sets yet. Head home to build your first one!</p>
+            <p style={{ color: '#888', fontSize: '13px', marginBottom: '12px' }}>You haven't saved any custom sets yet. Head home to build your first one!</p>
             <Link to="/"><button style={{ ...styles.authButton, width: '200px' }}>Start Building</button></Link>
           </div>
         ) : (
@@ -1398,6 +914,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
           ))
         )}
       </section>
+
     </div>
   );
 };

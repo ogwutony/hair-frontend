@@ -2157,12 +2157,12 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, 
 // --- SIDEBAR AD (Google AdSense skyscraper, desktop-only) ---
 function SidebarAd({ slot }) {
   const [isWide, setIsWide] = React.useState(
-    typeof window !== 'undefined' ? window.innerWidth >= 1300 : false
+    typeof window !== 'undefined' ? window.innerWidth >= 1024 : false
   );
 
   React.useEffect(() => {
     function handleResize() {
-      setIsWide(window.innerWidth >= 1300);
+      setIsWide(window.innerWidth >= 1024);
     }
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);

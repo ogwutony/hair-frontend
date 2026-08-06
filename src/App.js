@@ -57,6 +57,71 @@ const useAdSense = () => {
   }, []);
 };
 
+// --- LOCATION AUTOCOMPLETE COMPONENT (OpenStreetMap / Nominatim) ---
+const LocationAutocomplete = ({ value, onChange, placeholder, style }) => {
+  const [query, setQuery] = useState(value || "");
+  const [suggestions, setSuggestions] = useState([]);
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => { setQuery(value || ""); }, [value]);
+
+  useEffect(() => {
+    if (!query || query === value) { setSuggestions([]); return; }
+    const delayDebounceFn = setTimeout(() => {
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`)
+        .then(res => res.json())
+        .then(data => {
+          const uniqueNames = Array.from(new Set(data.map(item => {
+            const parts = item.display_name.split(', ');
+            return parts.length > 3 ? `${parts[0]}, ${parts[parts.length - 2]}, ${parts[parts.length - 1]}` : item.display_name;
+          })));
+          setSuggestions(uniqueNames);
+          setIsOpen(true);
+        }).catch(() => {});
+    }, 500);
+    return () => clearTimeout(delayDebounceFn);
+  }, [query, value]);
+
+  const handleSelect = (suggestion) => {
+    setQuery(suggestion);
+    onChange(suggestion);
+    setIsOpen(false);
+  };
+
+  return (
+    <div style={{ position: 'relative', width: '100%' }}>
+      <input
+        type="text"
+        placeholder={placeholder}
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          if (!e.target.value) onChange("");
+        }}
+        onFocus={() => suggestions.length > 0 && setIsOpen(true)}
+        onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+        style={{ ...style, width: '100%', boxSizing: 'border-box' }}
+      />
+      {isOpen && suggestions.length > 0 && (
+        <ul style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #ddd',
+          borderRadius: '8px', zIndex: 10, listStyle: 'none', padding: 0, margin: '4px 0 0 0',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxHeight: '200px', overflowY: 'auto'
+        }}>
+          {suggestions.map((s, i) => (
+            <li key={i} onMouseDown={(e) => { e.preventDefault(); handleSelect(s); }} style={{
+              padding: '10px 12px', cursor: 'pointer', borderBottom: i < suggestions.length - 1 ? '1px solid #eee' : 'none',
+              fontSize: '12px', color: '#333'
+            }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#fff'}>
+              {s}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
 // --- 3. RANK SYSTEM (50-Tier Hierarchy) ---
 const RANK_TIERS = [
   { title: "Nice and Helpful", min: 75000000 },
@@ -267,8 +332,9 @@ const safeSocialUrl = (raw) => {
   return `https://${raw}`;
 };
 
-const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks = {} }) => {
-  const initial = (email || 'C')[0].toUpperCase();
+const CredentialHeader = ({ email, displayName, rankTitle, rankScore, avatarUrl, socialLinks = {} }) => {
+  const nameToDisplay = displayName || email;
+  const initial = (nameToDisplay || 'C')[0].toUpperCase();
   const color = getRankColor(rankTitle || 'Comrade');
   const isTopRank = rankTitle === "Nice and Helpful";
   const formattedRankTitle = getFormattedRankTitle(rankTitle || 'Comrade', getCompletedPromptIds(email).length);
@@ -295,7 +361,7 @@ const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks 
           : initial}
       </div>
       <span style={{ fontWeight: '600', fontSize: '14px', color: '#333', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '220px' }}>
-        {email}
+        {nameToDisplay}
       </span>
       <span style={{
         fontSize: rankTitle && rankTitle.length > 20 ? '9px' : '11px',
@@ -546,6 +612,10 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   const [backendRankTitle, setBackendRankTitle] = useState(rankTitle || "Comrade");
   const [avatarSaveStatus, setAvatarSaveStatus] = useState("idle");
 
+  const [displayName, setDisplayName] = useState("");
+  const [userLocation, setUserLocation] = useState("");
+  const [profileSaveStatus, setProfileSaveStatus] = useState({ name: "idle", location: "idle" });
+
   const [socialLinks, setSocialLinks] = useState({
     instagram: "",
     tiktok: "",
@@ -584,9 +654,33 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         setHadExistingAvatar(true);
         if (onAvatarUpdate) onAvatarUpdate(data.avatar);
       }
+      if (data.displayName) setDisplayName(data.displayName);
+      if (data.location) setUserLocation(data.location);
       if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
     }).catch(() => {});
   }, [authToken, onAvatarUpdate]);
+
+  const handleSaveProfileField = async (field, val) => {
+    if (!authToken) return;
+    setProfileSaveStatus(prev => ({ ...prev, [field]: "saving" }));
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ [field]: val })
+      });
+      if (response.ok) {
+        setProfileSaveStatus(prev => ({ ...prev, [field]: "saved" }));
+        setTimeout(() => setProfileSaveStatus(prev => ({ ...prev, [field]: "idle" })), 3000);
+      } else {
+        setProfileSaveStatus(prev => ({ ...prev, [field]: "error" }));
+        setTimeout(() => setProfileSaveStatus(prev => ({ ...prev, [field]: "idle" })), 3000);
+      }
+    } catch {
+      setProfileSaveStatus(prev => ({ ...prev, [field]: "error" }));
+      setTimeout(() => setProfileSaveStatus(prev => ({ ...prev, [field]: "idle" })), 3000);
+    }
+  };
 
   const handleSocialChange = (key, value) => {
     setSocialLinks(prev => ({ ...prev, [key]: value }));
@@ -623,6 +717,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
 
   // --- Post About Anything States ---
   const [postDescription, setCultureResponse] = useState("");
+  const [postLocation, setPostLocation] = useState("");
   const [dumaSlots, setDumaSlots] = useState(Array(6).fill(null)); 
   const [selectedPromptIndex, setSelectedPromptIndex] = useState(null);
   const [postSubmitStatus, setCultureSubmitStatus] = useState("idle");
@@ -852,6 +947,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
             prompt: activePrompt ? activePrompt.text : "General Post",
             response: postDescription,
             category: "Culture",
+            location: postLocation,
             mediaUrls: uploadedMediaUrls
           })
         });
@@ -866,6 +962,8 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
           response: postDescription,
           mediaUrls: uploadedMediaUrls.length > 0 ? uploadedMediaUrls : filledDumaSlots.map(s => s.url),
           submittedBy: userEmail,
+          location: postLocation,
+          submitterDisplayName: displayName,
           submitterRank: rankTitle || 'Comrade',
           submitterAvatar: avatarUrl || null,
           votes: { yes: 0 }
@@ -1008,7 +1106,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                 ) : (
                   <label style={{ cursor: 'pointer', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                     <span style={{ fontSize: '18px', color: '#aaa' }}>+</span>
-                    <span style={{ fontSize: '10px', color: '#666', fontWeight: '600', marginTop: '2px' }}>Terminal #{idx + 1}</span>
+                    <span style={{ fontSize: '10px', color: '#666', fontWeight: '600', marginTop: '2px' }}>Slot #{idx + 1}</span>
                     <input
                       type="file"
                       accept="image/*, image/heic, video/*, video/mp4, video/quicktime"
@@ -1021,6 +1119,31 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
             ))}
           </div>
 
+        </div>
+      </section>
+
+      {/* NEW: PROFILE DETAILS */}
+      <section style={{ marginBottom: '40px' }}>
+        <h2 style={{ fontSize: '18px', marginBottom: '16px', fontWeight: '600' }}>Profile Details</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '13px', fontWeight: '600', color: '#222', display: 'block' }}>Account / Display Name</label>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input type="text" placeholder="How you appear to others" value={displayName} onChange={(e) => setDisplayName(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box' }} />
+              <button type="button" onClick={() => handleSaveProfileField("displayName", displayName)} disabled={profileSaveStatus.name === "saving"} style={{ padding: '10px 16px', backgroundColor: profileSaveStatus.name === "saved" ? '#27ae60' : profileSaveStatus.name === "error" ? '#e74c3c' : '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '12px', minWidth: '85px' }}>
+                {profileSaveStatus.name === "saving" ? "Saving..." : profileSaveStatus.name === "saved" ? "Saved" : "Save"}
+              </button>
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '13px', fontWeight: '600', color: '#222', display: 'block' }}>Your Location</label>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <LocationAutocomplete value={userLocation} onChange={setUserLocation} placeholder="City, State, or Country" style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} />
+              <button type="button" onClick={() => handleSaveProfileField("location", userLocation)} disabled={profileSaveStatus.location === "saving"} style={{ padding: '10px 16px', backgroundColor: profileSaveStatus.location === "saved" ? '#27ae60' : profileSaveStatus.location === "error" ? '#e74c3c' : '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '12px', minWidth: '85px' }}>
+                {profileSaveStatus.location === "saving" ? "Saving..." : profileSaveStatus.location === "saved" ? "Saved" : "Save"}
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1074,7 +1197,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
             style={{ display: 'none' }}
           />
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '8px', margin: '12px 0' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px', margin: '12px 0' }}>
             {dumaSlots.map((slot, idx) => (
               <div
                 key={idx}
@@ -1121,6 +1244,9 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
               </div>
             ))}
           </div>
+
+          <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginTop: '20px', marginBottom: '8px' }}>Location (Optional)</label>
+          <LocationAutocomplete value={postLocation} onChange={setPostLocation} placeholder="Tag a location for this post..." style={{ padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '16px' }} />
 
           <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginTop: '16px', marginBottom: '8px' }}>Write a description *</label>
           <textarea
@@ -2240,11 +2366,18 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                   {item.submittedBy && (
                     <CredentialHeader
                       email={item.submittedBy}
+                      displayName={item.submitterDisplayName || null}
                       rankTitle={verifiedRank}
                       rankScore={item.rankScore || null}
                       avatarUrl={item.submitterAvatar || null}
                       socialLinks={item.submitterSocialLinks || null}
                     />
+                  )}
+
+                  {item.location && (
+                    <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
+                      📍 {item.location}
+                    </div>
                   )}
 
                   <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
@@ -2334,7 +2467,12 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                   <span style={styles.typeTag}>{item.type}</span>
                   {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
                 </div>
-                {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
+                {item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
+                {item.location && (
+                  <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
+                    📍 {item.location}
+                  </div>
+                )}
                 <h3 style={{ marginTop: '8px', marginBottom: '6px' }}>{item.name || item.product} by {item.company}</h3>
                 <p style={{ color: '#666', fontSize: '14px', marginBottom: '14px' }}>{item.reason || item.desc}</p>
                 
@@ -2402,7 +2540,12 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                   <span style={styles.typeTag}>{item.type}</span>
                   {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
                 </div>
-                {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
+                {item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
+                {item.location && (
+                  <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
+                    📍 {item.location}
+                  </div>
+                )}
 
                 <h3 style={{ marginTop: '12px', marginBottom: '12px' }}>{item.productType} - {item.company}</h3>
 
@@ -2641,7 +2784,12 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
                   <span style={styles.typeTag}>Perspective</span>
                   {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
                 </div>
-                {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
+                {item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
+                {item.location && (
+                  <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
+                    📍 {item.location}
+                  </div>
+                )}
                 <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
                 <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6' }}>{item.response || item.reason || item.desc}</p>
               </div>
@@ -3053,6 +3201,8 @@ const ModelFriendlyPage = () => {
           ];
       const [activePromptIndex, setActivePromptIndex] = useState(0);
       const [response, setResponse] = useState("");
+      const [postLocation, setPostLocation] = useState("");
+      const [displayName, setDisplayName] = useState("");
       const [submitted, setSubmitted] = useState(false);
       const [errorMsg, setErrorMsg] = useState("");
       const [communitySocials, setCommunitySocials] = useState([]);
@@ -3080,7 +3230,15 @@ const ModelFriendlyPage = () => {
                               setCommunitySocials(socials);
                     })
                     .catch(err => console.error("Failed to load community socials:", err));
-      }, []);
+      
+
+      if (authToken) {
+        fetch(`${BACKEND_URL}/api/profile`, { headers: { Authorization: `Bearer ${authToken}` } })
+          .then(r => r.json())
+          .then(data => { if (data.displayName) setDisplayName(data.displayName); })
+          .catch(() => {});
+      }
+    }, [authToken]);
     
       const activePrompt = prompts[activePromptIndex];
     
@@ -3166,6 +3324,7 @@ const ModelFriendlyPage = () => {
                                                         prompt: activePrompt ? activePrompt.text : "General Post",
                                                         response: response,
                                                         category: "Culture",
+                                                        location: postLocation,
                                                         mediaUrls: uploadedMediaUrls
                                           })
                               });
@@ -3179,6 +3338,8 @@ const ModelFriendlyPage = () => {
                                           response: response,
                                           mediaUrls: uploadedMediaUrls.length > 0 ? uploadedMediaUrls : filledDumaSlots.map(s => s.url),
                                           submittedBy: userEmail,
+                                          location: postLocation,
+                                          submitterDisplayName: displayName,
                                           submitterRank: rankTitle || 'Comrade',
                                           submitterAvatar: userAvatar || null,
                                           votes: { yes: 0 }
@@ -3222,7 +3383,7 @@ const ModelFriendlyPage = () => {
           </p>
 {userEmail && rankTitle && (
           <div style={{ marginBottom: '30px' }}>
-          <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
+          <CredentialHeader email={userEmail} displayName={displayName} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
   </div>
         )}
       <AdMonetization placement="culture_page" />
@@ -3246,7 +3407,7 @@ const ModelFriendlyPage = () => {
                                                                     onChange={handleDumaBatchUpload}
                                                                                 style={{ display: 'none' }}
         />
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '8px', margin: '12px 0' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px', margin: '12px 0' }}>
 {dumaSlots.map((slot, idx) => (
               <div
                 key={idx}
@@ -3293,6 +3454,8 @@ const ModelFriendlyPage = () => {
 </div>
             ))}
 </div>
+          <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginTop: '20px', marginBottom: '8px' }}>Location (Optional)</label>
+          <LocationAutocomplete value={postLocation} onChange={setPostLocation} placeholder="Tag a location for this post..." style={{ padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '16px' }} />
           <h3 style={{ marginTop: '24px', marginBottom: '12px' }}>Your Response</h3>
           <p style={{ fontSize: '12px', color: '#666', margin: '0 0 12px 0' }}>Share your thoughts (recommended: 45 seconds of speaking if recorded)</p>
           <textarea

@@ -43,66 +43,18 @@ const PRODUCT_VARIANT_MAP = {
 // --- 2. BACKEND CONFIGURATION ---
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://hair-backend-1.onrender.com";
 
-// --- ADSENSE SIDEBAR AD COMPONENT ---
-const SidebarAd = ({ position = "left" }) => {
-  const [isVisible, setIsVisible] = useState(
-    typeof window !== 'undefined' ? window.innerWidth >= 1024 : false
-  );
-
+// --- GOOGLE ADSENSE AUTO ADS HOOK ---
+// Safely injects the Auto Ads script into the <head> for specific pages
+const useAdSense = () => {
   useEffect(() => {
-    const handleResize = () => setIsVisible(window.innerWidth >= 1024);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  useEffect(() => {
-    if (!isVisible) return;
-    try {
-      if (!document.querySelector('script[data-adsbygoogle-loader]')) {
-        const script = document.createElement('script');
-        script.async = true;
-        script.crossOrigin = 'anonymous';
-        script.setAttribute('data-adsbygoogle-loader', 'true');
-        script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7165853329123168';
-        document.head.appendChild(script);
-      }
-      (window.adsbygoogle = window.adsbygoogle || []).push({});
-    } catch (e) {
-      console.error("AdSense push error:", e);
+    if (!document.querySelector('script[src*="pagead2.googlesyndication.com"]')) {
+      const script = document.createElement("script");
+      script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7165853329123168";
+      script.async = true;
+      script.crossOrigin = "anonymous";
+      document.head.appendChild(script);
     }
-  }, [isVisible]);
-
-  if (!isVisible) return null;
-
-  return (
-    <aside
-      className="sidebar-ad-container"
-      style={{
-        width: "160px",
-        minWidth: "160px",
-        height: "600px",
-        position: "sticky",
-        top: "20px",
-        alignSelf: "flex-start",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "#fcfcfc",
-        border: "1px dashed #e0e0e0",
-        borderRadius: "8px",
-        overflow: "hidden"
-      }}
-    >
-      <ins
-        className="adsbygoogle"
-        style={{ display: "inline-block", width: "160px", height: "600px" }}
-        data-ad-client="ca-pub-7165853329123168"
-        data-ad-slot="YOUR_AD_SLOT_ID_HERE" // <-- ADD YOUR AD SLOT ID HERE
-        data-ad-format="vertical"
-        data-full-width-responsive="false"
-      />
-    </aside>
-  );
+  }, []);
 };
 
 // --- 3. RANK SYSTEM (50-Tier Hierarchy) ---
@@ -2192,6 +2144,7 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, 
 
 // --- DUMA PAGE ---
 const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints, userAvatar }) => {
+  useAdSense(); // Trigger Auto Ads script strictly on this page
   const [dumaItems, setDumaItems] = useState(items);
   const [userVotes, setUserVotes] = useState({});
   const [showScores, setShowScores] = useState({});
@@ -2250,8 +2203,6 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
   const partnerItems = dumaItems.filter(item => item.type === "Partner");
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', width: '100%' }}>
-      <SidebarAd position="left" />
       <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto', flex: '1 1 auto', minWidth: 0 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '30px' }}>
         <div>
@@ -2582,13 +2533,12 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
         </div>
       )}
     </div>
-      <SidebarAd position="right" />
-    </div>
   );
 };
 
 // --- PERSPECTIVES PAGE (CULTURE FEED WITH SIDEBAR ADS) ---
 const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, following, onFollowUser, onUnfollowUser, onAddPoints, userAvatar }) => {
+  useAdSense(); // Trigger Auto Ads script strictly on this page
   const [followingList, setFollowingList] = useState([]);
   const [selectedFollowing, setSelectedFollowing] = useState(following || []);
   const [filteredItems, setFilteredItems] = useState([]);
@@ -2628,12 +2578,7 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
   }, [selectedFollowing, allItems]);
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', maxWidth: '1400px', margin: '0 auto', padding: '40px 10px' }}>
-      {/* LEFT AD SIDEBAR */}
-      <SidebarAd position="left" />
-
-      {/* MAIN CONTENT AREA */}
-      <div style={{ flex: 1, maxWidth: '900px', minWidth: 0 }}>
+    <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
         <div style={{ marginBottom: '30px' }}>
           <h2 style={{ marginBottom: '6px' }}>My Perspectives</h2>
           <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
@@ -2703,10 +2648,6 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
             ))
           )}
         </div>
-      </div>
-
-      {/* RIGHT AD SIDEBAR */}
-      <SidebarAd position="right" />
     </div>
   );
 };
@@ -3092,6 +3033,7 @@ const ModelFriendlyPage = () => {
 // --- CULTURE LAB PAGE (Share Your Perspective) ---
   export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, onAddPoints, userAvatar }) => {
       const navigate = useNavigate();
+  useAdSense(); // Trigger Auto Ads script strictly on this page
       const prompts = [
         { id: 1, text: "What's the best restaurant or local hidden gem you've eaten at recently? What should we order?" },
         { id: 2, text: "Share your top bar or cocktail lounge recommendation. What's the go-to drink there?" },
@@ -3272,8 +3214,6 @@ const ModelFriendlyPage = () => {
 }
 
   return (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', width: '100%' }}>
-      <SidebarAd position="left" />
           <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto', flex: '1 1 auto', minWidth: 0 }}>
       <h2>Share Your Perspective</h2>
           <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
@@ -3436,8 +3376,6 @@ const ModelFriendlyPage = () => {
                                                           </div>
                                                                   )}
                                                                     </section>
-                                                                    </div>
-                                                                          <SidebarAd position="right" />
                                                                     </div>
                                                                       );
 };

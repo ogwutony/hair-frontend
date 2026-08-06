@@ -43,12 +43,71 @@ const PRODUCT_VARIANT_MAP = {
 // --- 2. BACKEND CONFIGURATION ---
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://hair-backend-1.onrender.com";
 
+// --- ADSENSE SIDEBAR AD COMPONENT ---
+const SidebarAd = ({ position = "left" }) => {
+  const [isVisible, setIsVisible] = useState(
+    typeof window !== 'undefined' ? window.innerWidth >= 1024 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => setIsVisible(window.innerWidth >= 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible) return;
+    try {
+      if (!document.querySelector('script[data-adsbygoogle-loader]')) {
+        const script = document.createElement('script');
+        script.async = true;
+        script.crossOrigin = 'anonymous';
+        script.setAttribute('data-adsbygoogle-loader', 'true');
+        script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7165853329123168';
+        document.head.appendChild(script);
+      }
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    } catch (e) {
+      console.error("AdSense push error:", e);
+    }
+  }, [isVisible]);
+
+  if (!isVisible) return null;
+
+  return (
+    <aside
+      className="sidebar-ad-container"
+      style={{
+        width: "160px",
+        minWidth: "160px",
+        height: "600px",
+        position: "sticky",
+        top: "20px",
+        alignSelf: "flex-start",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#fcfcfc",
+        border: "1px dashed #e0e0e0",
+        borderRadius: "8px",
+        overflow: "hidden"
+      }}
+    >
+      <ins
+        className="adsbygoogle"
+        style={{ display: "inline-block", width: "160px", height: "600px" }}
+        data-ad-client="ca-pub-7165853329123168"
+        data-ad-slot="YOUR_AD_SLOT_ID_HERE" // <-- ADD YOUR AD SLOT ID HERE
+        data-ad-format="vertical"
+        data-full-width-responsive="false"
+      />
+    </aside>
+  );
+};
+
 // --- 3. RANK SYSTEM (50-Tier Hierarchy) ---
 const RANK_TIERS = [
-  // --- SUPREME COMMAND ---  
   { title: "Nice and Helpful", min: 75000000 },
-
-  // --- EXECUTIVE COMMAND (5M Point Increments) ---
   { title: "Servant of the People",                         min: 50000000 },
   { title: "Servant of the Majorities",                     min: 45000000 },
   { title: "General Secretary of The Majorities",           min: 40000000 },
@@ -59,8 +118,6 @@ const RANK_TIERS = [
   { title: "Secretary of the Central Commission for Discipline Inspection", min: 15000000 },
   { title: "Politburo Member of The Majorities",            min: 10000000 },
   { title: "Secretary of Majorities Committees of Provinces", min: 5000000  },
-
-  // --- HEROIC ORDERS & LABOR TITLES ---
   { title: "Champion of the The Majorities",                   min: 4500000 },
   { title: "Hero of the Majorities",                    min: 4000000 },
   { title: "Order of The Majorities",                   min: 3500000 },
@@ -69,8 +126,6 @@ const RANK_TIERS = [
   { title: "Order of Friendship of Peoples",            min: 2000000 },
   { title: "Order of the Badge of Honor",               min: 1500000 },
   { title: "the Salvation of the Drowning",             min: 1000000 },
-
-  // --- LOWER HIERARCHY (Russian Gods) ---
   { title: "Perun",             min: 900000  },
   { title: "Veles",             min: 800000  },
   { title: "Svarog",            min: 700000  },
@@ -137,7 +192,7 @@ const markPromptCompleted = (userEmail, promptId) => {
 const isPolitburoOrHigher = (score) => score >= 10000000;
 
 const getPointsToNextRank = (currentScore, currentRankTitle) => {
-    const currentIndex = RANK_TIERS.findIndex(r => r.title === currentRankTitle);
+  const currentIndex = RANK_TIERS.findIndex(r => r.title === currentRankTitle);
   if (currentIndex <= 0) return 0;
   const nextRank = RANK_TIERS[currentIndex - 1];
   return Math.max(0, nextRank.min - currentScore);
@@ -405,7 +460,7 @@ const productsData = {
           <p>Perfect for restoring natural bounce, strength, and resilience, it leaves hair effortlessly detangled, silky-smooth, and deeply repaired from root to tip.</p>
           <p><strong>Hair Benefits:</strong> Ultimate detangling, breakage defense, and extreme cuticle smoothing.</p>
           <p><strong>Ingredient Highlights:</strong> Pure Argan Oil, Coconut Oil, Olive Oil, and Provitamin B5.</p>
-          <p><strong>Ingredients:</strong> Water, Stearyl Alcohol, Cetyl Alcohol, Glycine Soja (Soybean) Oil, Brassicamidopropyl Dimethylamine, Polysorbate 80, Cocos Nucifera (Coconut) Oil, Argania Spinosa (Argan) Kernel Oil, Olea Europaea (Olive Fruit Oil, Panthenol, Fragrance, Benzyl Alcohol, Benzoic Acid, Sorbic Acid, Citric Acid, Tetrasodium Glutamate Diacetate, Sodium Hydroxide, Blue 1</p>
+          <p><strong>Ingredients:</strong> Water, Stearyl Alcohol, Cetyl Alcohol, Glycine Soja (Soybean) Oil, Brassicamidopropyl Dimethylamine, Polysorbate 80, Cocos Nucifera (Coconut) Oil, Argania Spinosa (Argan) Kernel Oil, Olea Europaea (Olive) Fruit Oil, Panthenol, Fragrance, Benzyl Alcohol, Benzoic Acid, Sorbic Acid, Citric Acid, Tetrasodium Glutamate Diacetate, Sodium Hydroxide, Blue 1</p>
         </>
       )
     }
@@ -546,7 +601,6 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   });
   
   const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", facebook: "idle" });
-  const [socialConnected, setSocialConnected] = useState({ instagram: false, tiktok: false, facebook: false });
 
   const blobAvatarUrlRef = React.useRef(null);
 
@@ -581,20 +635,6 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
     }).catch(() => {});
   }, [authToken, onAvatarUpdate]);
-
-  useEffect(() => {
-    if (!authToken) return;
-    fetch(`${BACKEND_URL}/api/social/status`, {
-      headers: { Authorization: `Bearer ${authToken}` }
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (data && typeof data === 'object') {
-          setSocialConnected(prev => ({ ...prev, ...data }));
-        }
-      })
-      .catch(() => {});
-  }, [authToken]);
 
   const handleSocialChange = (key, value) => {
     setSocialLinks(prev => ({ ...prev, [key]: value }));
@@ -686,7 +726,10 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
               body: JSON.stringify({ avatar: cloudUrl })
             });
 
-            if (onAddPoints) onAddPoints(25);
+            if (!hadExistingAvatar && onAddPoints) {
+              onAddPoints(25);
+              setHadExistingAvatar(true);
+            }
           }
         }
         setAvatarSaveStatus("saved");
@@ -699,7 +742,6 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     }
   };
 
-  // --- Multi Avatar Upload (Images Only) ---
   const handleAvatarBatchUpload = (e) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const files = Array.from(e.target.files);
@@ -783,7 +825,6 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     }
   };
 
-  // --- Duma Mixed Media Selection ---
   const handleDumaBatchUpload = (e) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const files = Array.from(e.target.files);
@@ -817,7 +858,6 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     setDumaSlots(updatedSlots);
   };
 
-  // --- Submit Post to Duma ---
   const handleCultureSubmit = async (e) => {
     e.preventDefault();
     if (!postDescription.trim()) {
@@ -942,7 +982,6 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
 
         <div style={{ border: '1px solid #e0e0e0', borderRadius: '16px', padding: '24px', backgroundColor: '#fff' }}>
 
-          {/* Main Avatar Display */}
           <div style={{ textAlign: 'center', marginBottom: '20px' }}>
             {avatarUrl ? (
               /\.(mp4|mov|webm)$/i.test(avatarUrl) ? (
@@ -955,7 +994,6 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
             )}
           </div>
 
-          {/* BATCH UPLOAD DROPZONE */}
           <div
             style={{ border: '2px dashed #bbb', borderRadius: '12px', padding: '16px', backgroundColor: '#fafafa', cursor: 'pointer', textAlign: 'center', marginBottom: '20px' }}
             onClick={() => avatarBatchInputRef.current && avatarBatchInputRef.current.click()}
@@ -974,7 +1012,6 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
             style={{ display: 'none' }}
           />
 
-          {/* 6 INDIVIDUAL TERMINAL SLOTS GRID */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '12px' }}>
             {avatarSlots.map((slot, idx) => (
               <div
@@ -1149,7 +1186,6 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
             Click any prompt below to attach it to your post and earn 120 points! (Scroll to view all 15 prompts)
           </p>
 
-          {/* SCROLLABLE PROMPT CONTAINER */}
           <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '8px', marginBottom: '20px', backgroundColor: '#fafafa' }}>
             {perspectivePrompts.map((prompt, idx) => (
               <div
@@ -2154,384 +2190,6 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, 
   );
 };
 
-// --- SIDEBAR AD (Google AdSense skyscraper, desktop-only) ---
-function SidebarAd({ slot }) {
-  const [isWide, setIsWide] = React.useState(
-    typeof window !== 'undefined' ? window.innerWidth >= 1024 : false
-  );
-
-  React.useEffect(() => {
-    function handleResize() {
-      setIsWide(window.innerWidth >= 1024);
-    }
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  React.useEffect(() => {
-    if (!isWide) return;
-    if (!document.querySelector('script[data-adsbygoogle-loader]')) {
-      const script = document.createElement('script');
-      script.async = true;
-      script.crossOrigin = 'anonymous';
-      script.setAttribute('data-adsbygoogle-loader', 'true');
-      script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7165853329123168';
-      document.head.appendChild(script);
-    }
-    try {
-      (window.adsbygoogle = window.adsbygoogle || []).push({});
-    } catch (e) {}
-  }, [isWide]);
-
-  if (!isWide) return null;
-
-  return (
-    <div style={{ width: '160px', flex: '0 0 160px', minHeight: '600px' }}>
-      <ins
-        className="adsbygoogle"
-        style={{ display: 'inline-block', width: '160px', height: '600px' }}
-        data-ad-client="ca-pub-7165853329123168"
-        data-ad-slot={slot || ''}
-      ></ins>
-    </div>
-  );
-}
-
-// --- CULTURE LAB PAGE (Share Your Perspective) ---
-export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, onAddPoints, userAvatar }) => {
-  const navigate = useNavigate();
-  const prompts = [
-    // 🍽️ RESTAURANTS & BARS
-    { id: 1, text: "What's the best restaurant or local hidden gem you've eaten at recently? What should we order?" },
-    { id: 2, text: "Share your top bar or cocktail lounge recommendation. What's the go-to drink there?" },
-    { id: 3, text: "What is your absolute favorite brunch spot, and what makes it a must-visit?" },
-    { id: 4, text: "What's the coolest coffee shop or late-night dessert place in your area?" },
-
-    // ✈️ VACATIONS & FUN PLACES TO GO
-    { id: 5, text: "If you could recommend one vacation destination for a quick weekend getaway, where are we going?" },
-    { id: 6, text: "Drop your ultimate dream vacation spot or a past trip that blew your expectations away!" },
-    { id: 7, text: "What's a fun local spot or unique activity in your city that tourists usually miss out on?" },
-    { id: 8, text: "Share a photo or clip from your favorite travel memory or outdoor adventure." },
-
-    // 🛍️ SHOPPING & OUTFITS
-    { id: 9, text: "Show us your current OOTD (Outfit of the Day) or favorite wardrobe piece right now!" },
-    { id: 10, text: "What is your favorite brand or boutique to shop at for quality clothes or accessories?" },
-    { id: 11, text: "Drop your best budget fashion or shopping hack. How do you build killer looks for less?" },
-
-    // 🍿 MOVIES & TV SHOWS
-    { id: 12, text: "What TV show or series are you currently binge-watching that everyone needs to check out?" },
-    { id: 13, text: "What is a movie you can watch over and over again without ever getting tired of it?" },
-    { id: 14, text: "Recommend an underrated movie or show that doesn't get enough hype!" },
-
-    // ✨ ANYTHING GOES (WILDCARD)
-    { id: 15, text: "Post Anything! Share whatever is on your mind today—a random thought, life update, or funny hot take." }
-  ]
-  const [activePromptIndex, setActivePromptIndex] = useState(0);
-  const [response, setResponse] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [mediaFiles, setMediaFiles] = useState([]);
-  const [mediaPreviews, setMediaPreviews] = useState([]);
-  const [communitySocials, setCommunitySocials] = useState([]);
-
-  useEffect(() => {
-    fetch(`${BACKEND_URL}/api/duma`)
-      .then(r => { if (!r.ok) throw new Error('Failed to fetch duma'); return r.json(); })
-      .then(data => {
-        if (!Array.isArray(data)) return;
-        const seen = new Set();
-        const socials = [];
-        data.forEach(item => {
-          const email = item.submittedBy;
-          const links = item.submitterSocialLinks;
-          if (email && links && !seen.has(email) && (links.instagram || links.tiktok || links.facebook)) {
-            seen.add(email);
-            socials.push({ email, links, avatar: item.submitterAvatar || null, rank: item.submitterRank || 'Comrade' });
-          }
-        });
-        setCommunitySocials(socials);
-      })
-      .catch(err => console.error("Failed to load community socials:", err));
-  }, []);
-
-  const activePrompt = prompts[activePromptIndex];
-
-  const selectedPrompt = activePrompt?.text || "";
-const selectedPromptId = activePrompt?.id;
-
-  const rotatePrompt = (direction) => {
-    setActivePromptIndex((prev) => {
-      if (direction === "random") {
-        if (prompts.length <= 1) return prev;
-        let nextIndex = prev;
-        while (nextIndex === prev) {
-          nextIndex = Math.floor(Math.random() * prompts.length);
-        }
-        return nextIndex;
-      }
-      return (prev + direction + prompts.length) % prompts.length;
-    });
-  };
-
-  const handleMediaChange = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const selectedFiles = Array.from(e.target.files).slice(0, 6);
-      setMediaFiles(selectedFiles);
-      const previews = selectedFiles.map((file) => ({
-        url: URL.createObjectURL(file),
-        type: file.type.startsWith("video/") ? "video" : "image",
-      }));
-      setMediaPreviews(previews);
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedPrompt || !response.trim()) {
-      setErrorMsg("Please select a prompt and provide your response.");
-      return;
-    }
-    
-    setErrorMsg("");
-    
-    try {
-      let uploadedMediaUrls = [];
-
-      if (mediaFiles.length > 0 && authToken) {
-        for (const file of mediaFiles) {
-          const formData = new FormData();
-          formData.append("file", file);
-          formData.append("type", file.type.startsWith("video/") ? "video" : "image");
-          const uploadRes = await fetch(`${BACKEND_URL}/api/media/upload`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${authToken}` },
-            body: formData
-          });
-          if (uploadRes.ok) {
-            const uploadData = await uploadRes.json();
-            const cloudUrl = uploadData.storageUrl || uploadData.secure_url || uploadData.url;
-            if (cloudUrl) uploadedMediaUrls.push(cloudUrl);
-          }
-        }
-      }
-
-      if (authToken) {
-        const res = await fetch(`${BACKEND_URL}/api/duma/culture`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-          body: JSON.stringify({
-            prompt: selectedPrompt,
-            response: response,
-            category: "Culture",
-            mediaUrls: uploadedMediaUrls
-          })
-        });
-        const data = await res.json();
-        if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); return; }
-      }
-
-      // Add to local Duma and award points
-      addDumaItem({
-        id: Date.now(),
-        type: "Culture",
-        category: "Culture",
-        prompt: selectedPrompt,
-        response: response,
-        mediaUrls: uploadedMediaUrls.length > 0 ? uploadedMediaUrls : mediaPreviews.map(p => p.url),
-        submittedBy: userEmail,
-        submitterRank: rankTitle || 'Comrade',
-        submitterAvatar: userAvatar || null,
-        votes: { yes: 0 }
-      });
-
-      if (onAddPoints) onAddPoints(100);
-        if (userEmail && selectedPromptId) markPromptCompleted(userEmail, selectedPromptId);
-      
-      setSubmitted(true);
-      setTimeout(() => {
-        navigate("/duma");
-      }, 2000);
-    } catch (err) {
-      // Fallback to local only
-      addDumaItem({
-        id: Date.now(),
-        type: "Culture",
-        category: "Culture",
-        prompt: selectedPrompt,
-        response: response,
-        mediaUrls: mediaPreviews.map(p => p.url),
-        submittedBy: userEmail,
-        submitterRank: rankTitle || 'Comrade',
-        submitterAvatar: userAvatar || null,
-        votes: { yes: 0 }
-      });
-      if (onAddPoints) onAddPoints(100);
-if (userEmail && selectedPromptId) markPromptCompleted(userEmail, selectedPromptId);
-      setSubmitted(true);
-    }
-  };
-
-  if (submitted) {
-    return (
-      <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
-        <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
-          <div style={{ fontSize: '40px', marginBottom: '16px' }}></div>
-          <h2 style={{ marginBottom: '10px' }}>Perspective Shared!</h2>
-          <p style={{ color: '#666', marginBottom: '20px' }}>
-            Your response has been submitted to The Majorities' Culture section and appears in the Duma for community voting.
-          </p>
-          <p style={{ fontSize: '12px', color: '#888' }}>You earned 1 point!</p>
-          {rankTitle && <RankBadge rankTitle={rankTitle} />}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', width: '100%' }}>
-      <SidebarAd />
-      <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto', flex: '1 1 auto', minWidth: 0 }}>
-      <h2>Share Your Perspective</h2>
-      <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
-        Contribute to our Culture section by answering one of these prompts. 
-        Submit your response to the Duma for community voting and earn points!
-      </p>
-
-      {userEmail && rankTitle && (
-        <div style={{ marginBottom: '30px' }}>
-          <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
-        </div>
-      )}
-
-      <AdMonetization placement="culture_page" />
-
-      {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
-
-      <form style={styles.dumaCard} onSubmit={handleSubmit}>
-        <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Choose a Prompt</h3>
-        {activePrompt && (
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{
-              padding: '20px',
-              border: '2px solid #222',
-              borderRadius: '12px',
-              backgroundColor: '#f9f9f9',
-              marginBottom: '14px'
-            }}>
-              <p style={{ margin: 0, fontSize: '15px', lineHeight: 1.6, color: '#222', fontWeight: 600 }}>
-                {activePrompt.text}
-              </p>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
-              <button
-                type="button"
-                onClick={() => rotatePrompt(-1)}
-                style={{ ...styles.authButton, width: 'auto', padding: '10px 16px' }}
-              >
-                Previous
-              </button>
-              <button
-                type="button"
-                onClick={() => rotatePrompt("random")}
-                style={{ ...styles.authButton, width: 'auto', padding: '10px 16px', backgroundColor: '#666' }}
-              >
-                Shuffle Prompt
-              </button>
-              <button
-                type="button"
-                onClick={() => rotatePrompt(1)}
-                style={{ ...styles.authButton, width: 'auto', padding: '10px 16px' }}
-              >
-                Next
-              </button>
-              <span style={{ fontSize: '12px', color: '#666' }}>
-                Prompt {activePromptIndex + 1} of {prompts.length}
-              </span>
-            </div>
-          </div>
-        )}
-
-        <h3 style={{ marginTop: '24px', marginBottom: '8px' }}>Attach Photos or Videos (Up to 6)</h3>
-        <p style={{ fontSize: '12px', color: '#666', margin: '0 0 12px 0' }}>Share photos or clips of restaurants, outfits, vacation spots, or favorite media.</p>
-        <input type="file" accept="image/*, image/heic, video/*, video/mp4, video/quicktime, video/webm" multiple onChange={handleMediaChange} style={{ ...styles.input, padding: '8px' }} />
-        {mediaPreviews.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '8px', marginTop: '15px', marginBottom: '15px' }}>
-            {mediaPreviews.map((preview, idx) => (
-              <div key={idx} style={{ background: '#fafafa', padding: '6px', borderRadius: '8px', border: '1px solid #eee', textAlign: 'center' }}>
-                {preview.type === "image" ? (
-                  <img src={preview.url} alt={`Preview ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '6px' }} />
-                ) : (
-                  <video src={preview.url} style={{ width: '100%', height: '100px', borderRadius: '6px' }} controls />
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        <h3 style={{ marginTop: '24px', marginBottom: '12px' }}>Your Response</h3>
-        <p style={{ fontSize: '12px', color: '#666', margin: '0 0 12px 0' }}>Share your thoughts (recommended: 45 seconds of speaking if recorded)</p>
-        <textarea
-          required
-          placeholder="Type your response here..."
-          style={{ ...styles.input, height: '140px' }}
-          value={response}
-          onChange={(e) => setResponse(e.target.value)}
-        />
-
-        <button type="submit" style={styles.authButton}>Submit to the Duma (+100 points)</button>
-      </form>
-
-      {/* COMMUNITY SOCIAL FEED */}
-      <section style={{ marginTop: '50px' }}>
-        <h2 style={{ fontSize: '20px', marginBottom: '8px', fontWeight: '600' }}>Community Social Links</h2>
-        <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Connect with other members of The Majorities.</p>
-        {communitySocials.length === 0 ? (
-          <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888', padding: '30px' }}>
-            No social links shared yet. Be the first — add yours in your Profile settings!
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
-            {communitySocials.map(member => (
-              <div key={member.email} style={{ ...styles.dumaCard, padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  {member.avatar ? (
-                    <img src={member.avatar} alt="avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
-                  ) : (
-                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>👤</div>
-                  )}
-                  <div>
-                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#222' }}>{member.email.split('@')[0]}</div>
-                    <RankBadge rankTitle={member.rank} />
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {member.links.instagram && (
-                    <a href={safeSocialUrl(member.links.instagram)} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#c13584', textDecoration: 'none', fontWeight: '500' }}>
-                      📸 Instagram
-                    </a>
-                  )}
-                  {member.links.tiktok && (
-                    <a href={safeSocialUrl(member.links.tiktok)} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#222', textDecoration: 'none', fontWeight: '500' }}>
-                      🎵 TikTok
-                    </a>
-                  )}
-                  {member.links.facebook && (
-                    <a href={safeSocialUrl(member.links.facebook)} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#1877F2', textDecoration: 'none', fontWeight: '500' }}>
-                      👍 Facebook
-                    </a>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-    </div>
-      <SidebarAd />
-    </div>
-  );
-};
-
 // --- DUMA PAGE ---
 const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints, userAvatar }) => {
   const [dumaItems, setDumaItems] = useState(items);
@@ -2593,7 +2251,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', width: '100%' }}>
-      <SidebarAd />
+      <SidebarAd position="left" />
       <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto', flex: '1 1 auto', minWidth: 0 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '30px' }}>
         <div>
@@ -2729,7 +2387,6 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                 <h3 style={{ marginTop: '8px', marginBottom: '6px' }}>{item.name || item.product} by {item.company}</h3>
                 <p style={{ color: '#666', fontSize: '14px', marginBottom: '14px' }}>{item.reason || item.desc}</p>
                 
-                {/* VOTING SECTION */}
                 {authToken && (
                   <div>
                     <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
@@ -2738,7 +2395,6 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                       <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[item.id || item._id] === 'abstain' ? 1 : 0.7 }}>Abstain</button>
                     </div>
                     
-                    {/* VOTE SCORES - VISIBLE ONLY AFTER VOTING */}
                     {showScores[item.id || item._id] && (
                       <div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
                         <p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>Vote Results:</p>
@@ -2748,12 +2404,10 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                       </div>
                     )}
                     
-                    {/* COMMENTS SECTION - VISIBLE AFTER VOTING */}
                     {showComments[item.id || item._id] && (
                       <div style={{ borderTop: '2px solid #eee', paddingTop: '12px' }}>
                         <h4 style={{ fontSize: '13px', color: '#555', marginBottom: '12px', fontWeight: '700' }}>Comments:</h4>
                         
-                        {/* EXISTING COMMENTS */}
                         {comments[item.id || item._id]?.length > 0 && (
                           <div style={{ marginBottom: '12px' }}>
                             {comments[item.id || item._id].map((comment, idx) => (
@@ -2766,7 +2420,6 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                           </div>
                         )}
                         
-                        {/* ADD COMMENT */}
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <input type="text" placeholder="Add a comment..." style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px' }} value={commentText[item.id || item._id] || ''} onChange={(e) => setCommentText(prev => ({ ...prev, [item.id || item._id]: e.target.value }))} />
                           <button onClick={() => handleCommentSubmit(item.id || item._id)} style={{ padding: '8px 16px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Post</button>
@@ -2929,12 +2582,12 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
         </div>
       )}
     </div>
-      <SidebarAd />
+      <SidebarAd position="right" />
     </div>
   );
 };
 
-// --- PERSPECTIVES PAGE (Personalized Feed from Following) ---
+// --- PERSPECTIVES PAGE (CULTURE FEED WITH SIDEBAR ADS) ---
 const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, following, onFollowUser, onUnfollowUser, onAddPoints, userAvatar }) => {
   const [followingList, setFollowingList] = useState([]);
   const [selectedFollowing, setSelectedFollowing] = useState(following || []);
@@ -2951,7 +2604,6 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
   }, []);
 
   useEffect(() => {
-    // Extract unique submitters from Duma posts
     const uniqueSubmitters = [...new Set(allItems.map(item => item.submittedBy))].filter(Boolean).filter(p => p !== userEmail);
     setFollowingList(uniqueSubmitters);
   }, [allItems, userEmail]);
@@ -2976,80 +2628,85 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
   }, [selectedFollowing, allItems]);
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', width: '100%' }}>
-      <SidebarAd />
-      <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto', flex: '1 1 auto', minWidth: 0 }}>
-      <div style={{ marginBottom: '30px' }}>
-        <h2 style={{ marginBottom: '6px' }}>My Perspectives</h2>
-        <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
-          Follow people from The Duma to see their perspectives in your personalized feed. Earn +1 point for each person you follow!
-        </p>
-      </div>
+    <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', maxWidth: '1400px', margin: '0 auto', padding: '40px 10px' }}>
+      {/* LEFT AD SIDEBAR */}
+      <SidebarAd position="left" />
 
-      {userEmail && rankTitle && (
-        <div style={{ marginBottom: '20px' }}>
-          <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
+      {/* MAIN CONTENT AREA */}
+      <div style={{ flex: 1, maxWidth: '900px', minWidth: 0 }}>
+        <div style={{ marginBottom: '30px' }}>
+          <h2 style={{ marginBottom: '6px' }}>My Perspectives</h2>
+          <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
+            Follow people from The Duma to see their perspectives in your personalized feed. Earn +1 point for each person you follow!
+          </p>
         </div>
-      )}
 
-      <div style={{ ...styles.dumaCard, marginBottom: '30px' }}>
-        <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Who You Follow ({selectedFollowing.length}/{followingList.length})</h3>
-        {followingList.length === 0 ? (
-          <p style={{ color: '#888', fontSize: '13px' }}>No people yet. Submit to the Duma to build your community!</p>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px' }}>
-            {followingList.map(person => (
-              <button
-                key={person}
-                onClick={() => handleFollowingToggle(person)}
-                style={{
-                  padding: '12px',
-                  border: selectedFollowing.includes(person) ? '2px solid #222' : '1px solid #ddd',
-                  borderRadius: '8px',
-                  backgroundColor: selectedFollowing.includes(person) ? '#f9f9f9' : '#fff',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                  fontWeight: selectedFollowing.includes(person) ? '600' : '400',
-                  color: '#222',
-                  textAlign: 'center',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {person}
-              </button>
-            ))}
+        {userEmail && rankTitle && (
+          <div style={{ marginBottom: '20px' }}>
+            <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
           </div>
         )}
-      </div>
 
-      <div>
-        <h3 style={{ marginBottom: '16px' }}>Perspectives Feed ({filteredItems.length})</h3>
-        {filteredItems.length === 0 && selectedFollowing.length === 0 ? (
-          <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>
-            Select people you follow to see their perspectives here.
-          </div>
-        ) : selectedFollowing.length > 0 && filteredItems.length === 0 ? (
-          <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>
-            No perspectives yet from people you follow.
-          </div>
-        ) : (
-          filteredItems.map(item => (
-            <div key={item.id || item._id} style={styles.dumaCard}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                <span style={styles.typeTag}>Perspective</span>
-                {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
-              </div>
-              {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
-              <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
-              <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6' }}>{item.response || item.reason || item.desc}</p>
+        <div style={{ ...styles.dumaCard, marginBottom: '30px' }}>
+          <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Who You Follow ({selectedFollowing.length}/{followingList.length})</h3>
+          {followingList.length === 0 ? (
+            <p style={{ color: '#888', fontSize: '13px' }}>No people yet. Submit to the Duma to build your community!</p>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px' }}>
+              {followingList.map(person => (
+                <button
+                  key={person}
+                  onClick={() => handleFollowingToggle(person)}
+                  style={{
+                    padding: '12px',
+                    border: selectedFollowing.includes(person) ? '2px solid #222' : '1px solid #ddd',
+                    borderRadius: '8px',
+                    backgroundColor: selectedFollowing.includes(person) ? '#f9f9f9' : '#fff',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: selectedFollowing.includes(person) ? '600' : '400',
+                    color: '#222',
+                    textAlign: 'center',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {person}
+                </button>
+              ))}
             </div>
-          ))
-        )}
+          )}
+        </div>
+
+        <div>
+          <h3 style={{ marginBottom: '16px' }}>Perspectives Feed ({filteredItems.length})</h3>
+          {filteredItems.length === 0 && selectedFollowing.length === 0 ? (
+            <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>
+              Select people you follow to see their perspectives here.
+            </div>
+          ) : selectedFollowing.length > 0 && filteredItems.length === 0 ? (
+            <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>
+              No perspectives yet from people you follow.
+            </div>
+          ) : (
+            filteredItems.map(item => (
+              <div key={item.id || item._id} style={styles.dumaCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                  <span style={styles.typeTag}>Perspective</span>
+                  {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
+                </div>
+                {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
+                <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
+                <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6' }}>{item.response || item.reason || item.desc}</p>
+              </div>
+            ))
+          )}
+        </div>
       </div>
-    </div>
-      <SidebarAd />
+
+      {/* RIGHT AD SIDEBAR */}
+      <SidebarAd position="right" />
     </div>
   );
 };
@@ -3061,7 +2718,6 @@ const AdminOrdersPage = ({ authToken, userEmail }) => {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
 
-  // Security Gate: Replace with your exact company owner email address
   const isOwner = userEmail === "YOUR_EMAIL@domain.com";
 
   const fetchAllOrders = useCallback(async () => {
@@ -3099,7 +2755,6 @@ const AdminOrdersPage = ({ authToken, userEmail }) => {
       });
 
       if (response.ok) {
-        // Optimistically swap status locally on the layout row
         setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status: nextStatus } : o));
       } else {
         alert("Server rejected status transition update.");
@@ -3127,7 +2782,7 @@ const AdminOrdersPage = ({ authToken, userEmail }) => {
   const getStatusColor = (status) => {
     if (status === "Shipped") return { background: '#d1ecf1', color: '#0c5460', border: '1px solid #bee5eb' };
     if (status === "Delivered") return { background: '#d4edda', color: '#155724', border: '1px solid #c3e6cb' };
-    return { background: '#fff3cd', color: '#856404', border: '1px solid #ffeeba' }; // Pending state
+    return { background: '#fff3cd', color: '#856404', border: '1px solid #ffeeba' };
   };
 
   return (
@@ -3142,7 +2797,6 @@ const AdminOrdersPage = ({ authToken, userEmail }) => {
         </button>
       </div>
 
-      {/* FILTERS TOOLBAR */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '25px', borderBottom: '2px solid #eee', paddingBottom: '15px' }}>
         {["All", "Pending", "Shipped", "Delivered"].map(status => (
           <button key={status} onClick={() => setFilterStatus(status)}
@@ -3162,7 +2816,6 @@ const AdminOrdersPage = ({ authToken, userEmail }) => {
         ))}
       </div>
 
-      {/* GRID LOG DATA MATCH */}
       {loading ? (
         <p style={{ textAlign: 'center', color: '#888' }}>Querying master business ledger...</p>
       ) : filteredOrders.length === 0 ? (
@@ -3204,7 +2857,6 @@ const AdminOrdersPage = ({ authToken, userEmail }) => {
                 </div>
               </div>
 
-              {/* ACTION PIPELINE ROUTERS */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderTop: '1px solid #f0f0f0', paddingTop: '15px' }}>
                 <span style={{ fontSize: '12px', fontWeight: '600', color: '#555' }}>Workflow Controls:</span>
                 <button disabled={updatingId === order._id || order.status === "Pending"} onClick={() => handleUpdateStatus(order._id, "Pending")}
@@ -3231,11 +2883,7 @@ const AdminOrdersPage = ({ authToken, userEmail }) => {
   );
 };
 
-// --- MAIN APP COMPONENT ---
-
 // --- MODEL-FRIENDLY PAGE ---
-// This page renders a clean, structured, text-based representation of the site
-// optimized for AI models, crawlers, and accessibility tools.
 const ModelFriendlyPage = () => {
   const products = Object.keys(PRODUCT_VARIANT_MAP).map(name => {
     const config = PRODUCT_VARIANT_MAP[name];
@@ -3387,30 +3035,6 @@ const ModelFriendlyPage = () => {
             <div style={valueStyle}>{product.keyIngredients.join(", ")}</div>
             <span style={labelStyle}>Benefits</span>
             <div style={valueStyle}>{product.benefits.join(" · ")}</div>
-            {product.hairType && (
-              <>
-                <span style={labelStyle}>Hair Type</span>
-                <div style={valueStyle}>{product.hairType}</div>
-              </>
-            )}
-            {product.targetConcerns && (
-              <>
-                <span style={labelStyle}>Target Concerns</span>
-                <div style={valueStyle}>{product.targetConcerns.join(", ")}</div>
-              </>
-            )}
-            {product.scentProfile && (
-              <>
-                <span style={labelStyle}>Scent</span>
-                <div style={valueStyle}>{product.scentProfile}</div>
-              </>
-            )}
-            {product.applicationType && (
-              <>
-                <span style={labelStyle}>Application Type</span>
-                <div style={valueStyle}>{product.applicationType}</div>
-              </>
-            )}
             <span style={labelStyle}>Shopify Merchandise ID</span>
             <div style={valueStyle}>{product.merchandiseId}</div>
           </div>
@@ -3476,9 +3100,11 @@ export default function App() {
   const [userAvatar, setUserAvatar] = useState("");
   const [dumaItems, setDumaItems] = useState([{ id: 1, type: "Partner", company: "EcoHair Labs", product: "Silk Serum", desc: "Organic serum for hair.", section: "Commerce", submitterRank: "Comrade" }]);
   const [following, setFollowing] = useState([]);
+
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/health`, { method: "GET" }).catch(() => {});
   }, []);
+
   useEffect(() => {
     const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
     const email = localStorage.getItem("userEmail") || sessionStorage.getItem("userEmail");
@@ -3492,22 +3118,27 @@ export default function App() {
       }).catch(() => { if (email) { setIsLoggedIn(true); setUserEmail(email); setAuthToken(token); const storedRank = localStorage.getItem("rankTitle") || sessionStorage.getItem("rankTitle"); const storedScore = parseInt(localStorage.getItem("rankScore") || sessionStorage.getItem("rankScore") || "1"); if (storedRank) setRankTitle(storedRank); setRankScore(storedScore); } });
     }
   }, []);
+
   const handleLoginSuccess = (email, token, rememberMe, rank, score) => {
     setIsLoggedIn(true); setUserEmail(email); setAuthToken(token); const resolvedScore = score || 1; const resolvedRank = getRankTitle(resolvedScore); setRankTitle(resolvedRank); setRankScore(resolvedScore);
     const storage = rememberMe ? localStorage : sessionStorage; storage.setItem("authToken", token); storage.setItem("userEmail", email); storage.setItem("rankTitle", resolvedRank); storage.setItem("rankScore", String(resolvedScore));
   };
+
   const handleLogout = () => {
     setIsLoggedIn(false); setUserEmail(""); setAuthToken(""); setRankTitle("Comrade"); setRankScore(1); setUserAvatar("");
     localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); localStorage.removeItem("rankTitle"); localStorage.removeItem("rankScore"); localStorage.removeItem("userAvatar");
     sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); sessionStorage.removeItem("rankTitle"); sessionStorage.removeItem("rankScore"); sessionStorage.removeItem("userAvatar");
   };
+
   const handleAvatarUpdate = (url) => {
     setUserAvatar(url);
     const storage = localStorage.getItem("authToken") ? localStorage : sessionStorage;
     if (url) { storage.setItem("userAvatar", url); } else { storage.removeItem("userAvatar"); }
   };
+
   const saveSetToProfile = (items) => { const newSet = { items, date: new Date().toLocaleDateString() }; const updatedSets = [newSet, ...savedSets]; setSavedSets(updatedSets); localStorage.setItem("savedSets", JSON.stringify(updatedSets)); };
   const addDumaItem = (item) => setDumaItems(prev => [item, ...prev]);
+
   const addPoints = useCallback((points) => {
     setRankScore(prevScore => {
       const newScore = prevScore + points;
@@ -3531,8 +3162,7 @@ export default function App() {
   const followUser = useCallback((personEmail) => {
     if (!following.includes(personEmail)) {
       setFollowing(prev => [...prev, personEmail]);
-      addPoints(1); // +1 point for following someone
-      // Notify backend to award +4 points to the person being followed
+      addPoints(1);
       if (authToken) {
         fetch(`${BACKEND_URL}/api/profile/follow`, {
           method: 'POST',
@@ -3557,45 +3187,44 @@ export default function App() {
             <Link to="/" style={styles.navLink}>Home</Link>
             <Link to="/recommend" style={styles.navLink}>Recommend</Link>
             <Link to="/partner" style={styles.navLink}>Partner</Link>
-            {/* <Link to="/model" style={styles.navLink}>Model View</Link> */}
-            {/* Publicly visible links */}
-              <Link to="/duma" style={styles.navLink}>The Duma</Link>
-{isLoggedIn ? (
-            <>
-              <Link to="/perspectives" style={styles.navLink}>Culture</Link>
- {isLoggedIn && userEmail === "YOUR_EMAIL@domain.com" && (
-                 <Link to="/admin/orders" style={{ ...styles.navLink, color: '#e74c3c', fontWeight: '700' }}>
-                   ⚙️ Admin Control
-                     </Link>
-                                 )}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: '1px solid #eee', paddingLeft: '15px' }}>
-                    <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
-                    {rankTitle && <RankBadge rankTitle={rankTitle} />}
-                    <span style={styles.auth} onClick={handleLogout}>Logout</span>
-                  </div>
-                </>
-              ) : (
-                <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                  <Link to="/signup" style={styles.auth}>Sign Up</Link>
-                  <Link to="/login" style={styles.auth}>Login</Link>
+            <Link to="/duma" style={styles.navLink}>The Duma</Link>
+            {isLoggedIn ? (
+              <>
+                <Link to="/perspectives" style={styles.navLink}>Culture</Link>
+                {isLoggedIn && userEmail === "YOUR_EMAIL@domain.com" && (
+                  <Link to="/admin/orders" style={{ ...styles.navLink, color: '#e74c3c', fontWeight: '700' }}>
+                    ⚙️ Admin Control
+                  </Link>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: '1px solid #eee', paddingLeft: '15px' }}>
+                  <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
+                  {rankTitle && <RankBadge rankTitle={rankTitle} />}
+                  <span style={styles.auth} onClick={handleLogout}>Logout</span>
                 </div>
-              )}
+              </>
+            ) : (
+              <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                <Link to="/signup" style={styles.auth}>Sign Up</Link>
+                <Link to="/login" style={styles.auth}>Login</Link>
+              </div>
+            )}
           </nav>
         </header>
         <Routes>
           <Route path="/" element={<LandingPage saveSetToProfile={saveSetToProfile} onAddPoints={addPoints} savedSets={savedSets} />} />
           <Route path="/login" element={<LoginPage onLogin={handleLoginSuccess} />} />
           <Route path="/auth/google/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="google" />} />
-          <Route path="/auth/instagram/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="instagram" />} />              <Route path="/oauth/callback/:provider" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="instagram" />} />
+          <Route path="/auth/instagram/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="instagram" />} />
+          <Route path="/oauth/callback/:provider" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="instagram" />} />
           <Route path="/auth/tiktok/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="tiktok" />} />
           <Route path="/signup" element={<SignupPage onLogin={handleLoginSuccess} />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           <Route path="/recommend" element={<RecommendPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
           <Route path="/partner" element={<PartnerPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
-                  <Route path="/culture" element={isLoggedIn ? <CultureLabPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
+          <Route path="/culture" element={isLoggedIn ? <CultureLabPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
           <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} />} />
-                  <Route path="/perspectives" element={isLoggedIn ? <PerspectivesPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} following={following} onFollowUser={followUser} onUnfollowUser={unfollowUser} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
+          <Route path="/perspectives" element={isLoggedIn ? <PerspectivesPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} following={following} onFollowUser={followUser} onUnfollowUser={unfollowUser} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
           <Route path="/legislature" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} />} />
           <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={handleAvatarUpdate} tokens={tokens} addDumaItem={addDumaItem} />} />
           <Route path="/orders" element={<div style={{ padding: '60px', textAlign: 'center' }}><h2>Payment Received!</h2><p>Your custom hair set is being prepared. Check your Profile to see your formula.</p><Link to="/profile">Go to Profile</Link></div>} />
@@ -3604,10 +3233,10 @@ export default function App() {
           <Route path="/TermsofService" element={<TermsOfServicePage />} />
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
         </Routes>
-      <footer style={{ marginTop: '60px', padding: '20px 60px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'center', gap: '30px', fontSize: '12px' }}>
-        <Link to="/TermsofService" style={{ color: '#666', textDecoration: 'none' }}>Terms of Service</Link>
-        <Link to="/Privacy" style={{ color: '#666', textDecoration: 'none' }}>Privacy Policy</Link>
-      </footer>
+        <footer style={{ marginTop: '60px', padding: '20px 60px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'center', gap: '30px', fontSize: '12px' }}>
+          <Link to="/TermsofService" style={{ color: '#666', textDecoration: 'none' }}>Terms of Service</Link>
+          <Link to="/Privacy" style={{ color: '#666', textDecoration: 'none' }}>Privacy Policy</Link>
+        </footer>
       </div>
     </Router>
   );
@@ -3624,40 +3253,19 @@ const TermsOfServicePage = () => {
       <p style={{ color: '#888', fontSize: '13px', marginBottom: '40px' }}>Last updated: June 22, 2026</p>
 
       <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>1. Acceptance of Terms</h2>
-      <p>aBy accessing or using The Majorities ecosystem, web interface, custom formulas, or network features (collectively, the "Service"), you explicitly agree to be bound by these Terms of Service. If you do not accept these conditions, you are prohibited from utilizing our custom product builder or participating in our governance structures. ("Terms"). If you do not agree to all of the terms and conditions of this agreement, you may not access or use the Service. These Terms apply to all visitors, users, and others who access the Service.</p>
+      <p>By accessing or using The Majorities ecosystem, web interface, custom formulas, or network features (collectively, the "Service"), you explicitly agree to be bound by these Terms of Service. If you do not accept these conditions, you are prohibited from utilizing our custom product builder or participating in our governance structures.</p>
 
       <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>2. Custom Formulation E-Commerce</h2>
-      <p>The Majorities provides an active custom assembly framework allowing users to choose exactly six (6) items across distinct hair and face categories to complete an authorized set. All primary collection variations are uniformly priced on our marketplace as follows: One-Time Selection Sets at $7.00 per standard unit volume ($42.00 total package valuation); Monthly Reoccurring Subscriptions automatically discounted to $6.00 per unit selection ($36.00 total monthly collection billing loop). All subscription models automatically bill every 30 days to your secure payment instrument on file until paused or canceled natively through your user dashboard. The Service also includes community engagement features such as perspective sharing, community rankings, and social profile integration. We reserve the right to modify, suspend, or discontinue the Service (or any part thereof) at any time with or without notice.</p>
+      <p>The Majorities provides an active custom assembly framework allowing users to choose exactly six (6) items across distinct hair and face categories to complete an authorized set.</p>
 
       <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>3. The Duma Ledger & Governance Tokens</h2>
-      <p>Our platforms host a digital community ledger called the Duma. By interacting with the Duma, including uploading user avatars, publishing custom media context, following creators, or casting platform recommendations, you gain experience points that directly adjust your community tier (from a baseline Comrade tier scaling up to executive command designations). Progression through certain tiers awards specific utility tokens. You recognize that points and tokens inside our platform are purely gamified community rewards, possess exactly zero financial cash-out value, and cannot be traded on external exchanges., you may be required to register for an account. You agree to provide accurate, current, and complete information during registration and to update such information to keep it accurate, current, and complete. You are solely responsible for safeguarding your account credentials and for all activity that occurs under your account. You agree to notify us immediately at support@themajorities.com of any unauthorized use of your account.</p>
+      <p>Our platforms host a digital community ledger called the Duma. By interacting with the Duma, including uploading user avatars, publishing custom media context, following creators, or casting platform recommendations, you gain experience points that directly adjust your community tier.</p>
 
       <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>4. Partner Distribution Marketplace</h2>
-      <p>Third-party manufacturing groups applying for official platform retail listings must adhere to our global logistics rules. Partners must ensure initial stock allocations meet or exceed a minimum baseline threshold of 500 units for standard 3.4-ounce container volumes. The Majorities retains a fixed 25% marketplace distribution fee on every processing customer transaction. Partners receive exactly 75% of net revenues from their assigned custom line items. Partners explicitly consent to give customers singular promotional checkout benefits equal to the Subscription unit price whenever a consumer unlocks an influential new rank milestone in the Duma network. (USD) and are subject to change without notice. When you initiate a purchase, you represent and warrant that you are authorized to use the payment method you provide. By submitting a subscription order, you authorize us to charge your payment method on a recurring basis at the then-current subscription rate. You may cancel a subscription at any time through your account dashboard; cancellations will take effect at the end of the then-current billing period. All sales are final unless the product is defective or damaged upon arrival.</p>
+      <p>Third-party manufacturing groups applying for official platform retail listings must adhere to our global logistics rules.</p>
 
       <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>5. User-Submitted Media and Content Rights</h2>
-      <p>When you post a 60-second video view snippet, custom hair profile, or feedback justification to the Duma, you grant The Majorities an unrestricted, global, royalty-free license to host, display, and analyze that file. You certify your submission does not infringe on third-party intellectual property or privacy scopes. ("User Content"). By submitting User Content, you grant The Majorities a non-exclusive, worldwide, royalty-free, irrevocable license to use, reproduce, modify, adapt, publish, translate, distribute, and display such content in connection with the Service and our marketing activities. You represent and warrant that you own or have the necessary rights to grant this license and that your User Content does not violate any third-party rights or applicable laws.</p>
-
-      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>6. Limitation of Liability & Contact</h2>
-      <p>Products, treatments, and software routines are provided "As Is" without underlying therapeutic warranties. The Majorities and its primary logistics suppliers (including ShipBob processing endpoints) shall not be liable for delivery blockages beyond our direct server operations. For corporate inquiries, contact: legal@themajorities.com: (a) use the Service for any unlawful purpose or in violation of any applicable regulations; (b) post content that is defamatory, obscene, harassing, or infringes on the rights of others; (c) attempt to gain unauthorized access to any portion of the Service or its related systems; (d) use any automated tools, scrapers, or bots to interact with the Service; (e) interfere with the proper functioning of the Service or impose an unreasonable load on our infrastructure.</p>
-
-      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}></h2>
-      <p>All content, trademarks, logos, and intellectual property associated with The Majorities brand, products, and Service are the exclusive property of The Majorities or its licensors. Nothing in these Terms grants you a right or license to use any trademark, logo, or brand feature of The Majorities. Unauthorized use of any proprietary content is strictly prohibited.</p>
-
-      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}></h2>
-      <p>THE SERVICE IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS WITHOUT ANY WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, OR FREE OF VIRUSES OR OTHER HARMFUL COMPONENTS.</p>
-
-      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}></h2>
-      <p>, THE MAJORITIES AND ITS AFFILIATES, DIRECTORS, EMPLOYEES, AND AGENTS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, DATA, OR GOODWILL, ARISING OUT OF OR IN CONNECTION WITH YOUR USE OF THE SERVICE.</p>
-
-      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}></h2>
-      <p>, without regard to its conflict of law provisions. Any dispute arising from these Terms or your use of the Service shall be resolved through binding arbitration in accordance with the rules of the American Arbitration Association.</p>
-
-      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}></h2>
-      <p>. We will notify registered users of material changes by email or by posting a prominent notice on the Service. Your continued use of the Service after such changes constitutes your acceptance of the revised Terms. We encourage you to review these Terms periodically.</p>
-
-      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}></h2>
-      <p></p>
+      <p>When you post a video view snippet, custom hair profile, or feedback justification to the Duma, you grant The Majorities an unrestricted, global, royalty-free license to host, display, and analyze that file.</p>
     </div>
   );
 };
@@ -3673,41 +3281,13 @@ const PrivacyPolicyPage = () => {
       <p style={{ color: '#888', fontSize: '13px', marginBottom: '40px' }}>Last updated: June 22, 2026</p>
 
       <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>1. Information We Collect Natively</h2>
-      <p>To safely fulfill custom cosmetic selections and compute user tier algorithms, we process and log the following data classes: Account email addresses, unique password configurations, custom profile avatars, user points tallies, and logged system formulas. Consumer shipping locations, target delivery addresses, and mobile contact lines managed directly via secure permalinks handed over to Shopify commerce servers. We never cache or collect raw credit card variables internally on our Render backend servers. Text thoughts, image attachments, and custom video voice notes up to 60 seconds posted directly into our public culture forums. Secure access authorization parameters from connecting identity networks, including Google open profiles, Instagram links, and secure TikTok verification streams.</p>
+      <p>To safely fulfill custom cosmetic selections and compute user tier algorithms, we process and log account email addresses, unique password configurations, custom profile avatars, user points tallies, and logged system formulas.</p>
 
       <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>2. How Your Private Records are Handled</h2>
-      <p>We restrict utilization of logged variables strictly to core operational mechanics: To execute fast delivery packaging metrics through third-party optimization services like ShipBob. To instantly sync dynamic rank progress matrices (+25 pts for avatar assets, +100 pts for perspective publishing). To authenticate and confirm active platform identity properties throughout our routing files., including: (a) <strong>Personal Identification Information</strong>: name, email address, shipping address, and phone number provided during account registration or checkout; (b) <strong>Payment Information</strong>: billing details processed securely through our payment processor (Shopify Payments); we do not store raw credit card data on our servers; (c) <strong>User Content</strong>: photos, videos, text, and other content you voluntarily submit through our perspective sharing and community features; (d) <strong>Usage Data</strong>: IP address, browser type, pages visited, time spent on pages, and other diagnostic data collected automatically when you access the Service; (e) <strong>Social Profile Data</strong>: public profile information from third-party social accounts you choose to connect to our platform.</p>
-
-      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>3. How We Use Your Information</h2>
-      <p>We use the information we collect for the following purposes: to process and fulfill your orders and subscriptions; to manage your account and provide customer support; to personalize your experience on our platform; to send you transactional emails (order confirmations, shipping updates); to send you promotional communications, subject to your opt-in preferences; to improve our products, services, and website functionality; to detect, prevent, and address technical issues and fraudulent activity; and to comply with our legal obligations.</p>
-
-      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>4. Sharing Your Information</h2>
-      <p>We do not sell, trade, or rent your personal identification information to third parties. We may share your data with trusted service providers who assist us in operating our business, including: payment processors (Shopify), cloud storage and hosting providers, email service providers, and analytics platforms. All such service providers are contractually obligated to use your data only for the purposes we specify and to maintain appropriate security measures.</p>
-
-      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>5. Cookies and Tracking Technologies</h2>
-      <p>We use cookies and similar tracking technologies to enhance your experience on our Service. Cookies are small data files stored on your device. We use both session cookies (which expire when you close your browser) and persistent cookies (which remain on your device for a set period). You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent; however, some features of our Service may not function properly without cookies.</p>
-
-      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>6. Data Retention</h2>
-      <p>We retain your personal information for as long as your account is active or as needed to provide you with our services. We will also retain and use your information as necessary to comply with our legal obligations, resolve disputes, and enforce our agreements. If you wish to delete your account or request that we no longer use your information, please contact us at privacy@themajorities.com.</p>
-
-      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>7. Data Security</h2>
-      <p>We implement commercially reasonable security measures to protect your personal information from unauthorized access, alteration, disclosure, or destruction. These measures include encrypted data transmission (SSL/TLS), access controls, and regular security assessments. However, no method of transmission over the Internet or electronic storage is 100% secure, and we cannot guarantee absolute security.</p>
-
-      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>8. Your Rights</h2>
-      <p>Depending on your location, you may have certain rights regarding your personal data, including: the right to access and receive a copy of your personal data; the right to correct inaccurate or incomplete data; the right to request deletion of your personal data; the right to restrict or object to our processing of your data; and the right to data portability. To exercise any of these rights, please contact us at privacy@themajorities.com. We will respond to all requests within 30 days.</p>
-
-      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>9. Children's Privacy</h2>
-      <p>Our Service is not directed to individuals under the age of 13. We do not knowingly collect personal information from children under 13. If we become aware that a child under 13 has provided us with personal information, we will take steps to delete such information. If you believe we may have collected information from a child under 13, please contact us immediately.</p>
-
-      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>10. Changes to This Policy</h2>
-      <p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date. For significant changes, we will provide a more prominent notice, such as an email notification to registered users. We encourage you to review this Privacy Policy periodically to stay informed.</p>
-
-      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>11. Contact Us</h2>
-      <p>If you have any questions or concerns about this Privacy Policy, please contact us at: <strong>privacy@themajorities.com</strong></p>
+      <p>We restrict utilization of logged variables strictly to core operational mechanics: To execute fast delivery packaging metrics through third-party optimization services like ShipBob.</p>
     </div>
   );
 };
-
 
 const styles = {
   pageWrapper: { fontFamily: 'Inter, sans-serif', color: '#222' },

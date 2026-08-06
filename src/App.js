@@ -57,67 +57,54 @@ const useAdSense = () => {
   }, []);
 };
 
-// --- LOCATION AUTOCOMPLETE COMPONENT (OpenStreetMap / Nominatim) ---
+// --- LOCATION AUTOCOMPLETE COMPONENT (Google Places) ---
 const LocationAutocomplete = ({ value, onChange, placeholder, style }) => {
-  const [query, setQuery] = useState(value || "");
-  const [suggestions, setSuggestions] = useState([]);
-  const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => { setQuery(value || ""); }, [value]);
+  const inputRef = React.useRef(null);
 
   useEffect(() => {
-    if (!query || query === value) { setSuggestions([]); return; }
-    const delayDebounceFn = setTimeout(() => {
-      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`)
-        .then(res => res.json())
-        .then(data => {
-          const uniqueNames = Array.from(new Set(data.map(item => {
-            const parts = item.display_name.split(', ');
-            return parts.length > 3 ? `${parts[0]}, ${parts[parts.length - 2]}, ${parts[parts.length - 1]}` : item.display_name;
-          })));
-          setSuggestions(uniqueNames);
-          setIsOpen(true);
-        }).catch(() => {});
-    }, 500);
-    return () => clearTimeout(delayDebounceFn);
-  }, [query, value]);
+    let cancelled = false;
 
-  const handleSelect = (suggestion) => {
-    setQuery(suggestion);
-    onChange(suggestion);
-    setIsOpen(false);
-  };
+    function initAutocomplete() {
+      if (cancelled || !window.google || !window.google.maps || !inputRef.current) return;
+      const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
+        types: ['(regions)'],
+      });
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        onChange(place.formatted_address || place.name || '');
+      });
+    }
+
+    if (typeof window !== 'undefined' && !window.google) {
+      const existingScript = document.getElementById('google-places-script');
+      if (existingScript) {
+        existingScript.addEventListener('load', initAutocomplete);
+      } else {
+        const script = document.createElement('script');
+        script.id = 'google-places-script';
+        const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+        script.async = true;
+        script.onload = initAutocomplete;
+        document.head.appendChild(script);
+      }
+    } else {
+      initAutocomplete();
+    }
+
+    return () => { cancelled = true; };
+  }, [onChange]);
 
   return (
     <div style={{ position: 'relative', width: '100%' }}>
       <input
+        ref={inputRef}
         type="text"
         placeholder={placeholder}
-        value={query}
-        onChange={(e) => {
-          setQuery(e.target.value);
-          if (!e.target.value) onChange("");
-        }}
-        onFocus={() => suggestions.length > 0 && setIsOpen(true)}
-        onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+        defaultValue={value}
+        onChange={(e) => onChange(e.target.value)}
         style={{ ...style, width: '100%', boxSizing: 'border-box' }}
       />
-      {isOpen && suggestions.length > 0 && (
-        <ul style={{
-          position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #ddd',
-          borderRadius: '8px', zIndex: 10, listStyle: 'none', padding: 0, margin: '4px 0 0 0',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxHeight: '200px', overflowY: 'auto'
-        }}>
-          {suggestions.map((s, i) => (
-            <li key={i} onMouseDown={(e) => { e.preventDefault(); handleSelect(s); }} style={{
-              padding: '10px 12px', cursor: 'pointer', borderBottom: i < suggestions.length - 1 ? '1px solid #eee' : 'none',
-              fontSize: '12px', color: '#333'
-            }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#fff'}>
-              {s}
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 };
@@ -419,14 +406,14 @@ const CredentialHeader = ({ email, displayName, rankTitle, rankScore, avatarUrl,
               title="TikTok"
             >{"\u{1F3B5}"}</a>
           ) : null}
-          {socialLinks.facebook ? (
+          {socialLinks.snapchat ? (
             <a
-              href={safeSocialUrl(socialLinks.facebook)}
+              href={safeSocialUrl(socialLinks.snapchat)}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ textDecoration: 'none', fontSize: '11px', color: '#1877F2', fontWeight: '600' }}
-              title="Facebook"
-            >Facebook</a>
+              style={{ textDecoration: 'none', fontSize: '11px', color: '#000000', backgroundColor: '#FFFC00', padding: '2px 8px', borderRadius: '6px', fontWeight: '600' }}
+              title="Snapchat"
+            >👻 Snapchat</a>
           ) : null}
         </>
       )}
@@ -544,7 +531,7 @@ const productsData = {
 const SOCIAL_FIELDS = [
   { key: 'instagram', label: '📷 Instagram', placeholder: 'instagram.com/yourprofile' },
   { key: 'tiktok', label: '🎵 TikTok', placeholder: 'tiktok.com/@yourprofile' },
-  { key: 'facebook', label: '📘 Facebook', placeholder: 'facebook.com/yourprofile' },
+  { key: 'snapchat', label: '👻 Snapchat', placeholder: 'snapchat.com/add/yourprofile' },
 ];
 
 const SocialInputRow = ({ socialKey, label, placeholder, initialValue, onSave, onChangeGlobal, saveStatus }) => {
@@ -619,10 +606,10 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   const [socialLinks, setSocialLinks] = useState({
     instagram: "",
     tiktok: "",
-    facebook: ""
+    snapchat: ""
   });
   
-  const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", facebook: "idle" });
+  const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", snapchat: "idle" });
 
   const blobAvatarUrlRef = React.useRef(null);
 
@@ -656,6 +643,16 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       }
       if (data.displayName) setDisplayName(data.displayName);
       if (data.location) setUserLocation(data.location);
+      const localSlotsStr = (() => { try { return localStorage.getItem(`avatarSlots_${userEmail}`); } catch { return null; } })();
+      const loadedSlotUrls = data.avatarSlots || (localSlotsStr ? JSON.parse(localSlotsStr) : null);
+      if (loadedSlotUrls && Array.isArray(loadedSlotUrls)) {
+        const mappedSlots = loadedSlotUrls.slice(0, 6).map((url) => {
+          if (!url) return null;
+          return { url, type: /\.(mp4|mov|webm)$/i.test(url) ? 'video' : 'image', file: null };
+        });
+        while (mappedSlots.length < 6) mappedSlots.push(null);
+        setAvatarSlots(mappedSlots);
+      }
       if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
     }).catch(() => {});
   }, [authToken, onAvatarUpdate]);
@@ -741,6 +738,17 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     { id: 15, text: "Post Anything! Share whatever is on your mind today—a random thought, life update, or funny hot take." }
   ];
 
+  const syncAvatarSlotsToBackend = (slotsArray) => {
+    const urls = slotsArray.map((slot) => (slot ? slot.url : null));
+    try { localStorage.setItem(`avatarSlots_${userEmail}`, JSON.stringify(urls)); } catch {}
+    if (!authToken) return;
+    fetch(`${BACKEND_URL}/api/profile`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+      body: JSON.stringify({ avatarSlots: urls })
+    }).catch(() => {});
+  };
+
   const uploadFileToBackend = async (file, index, isMain) => {
     if (!authToken) return;
     try {
@@ -761,6 +769,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
           setAvatarSlots((prev) => {
             const next = [...prev];
             if (next[index]) next[index] = { ...next[index], url: cloudUrl };
+            syncAvatarSlotsToBackend(next);
             return next;
           });
           if (isMain) {
@@ -870,6 +879,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       setAvatarUrl(nextUrl);
       if (onAvatarUpdate) onAvatarUpdate(nextUrl);
     }
+    syncAvatarSlotsToBackend(updatedSlots);
   };
 
   const handleDumaBatchUpload = (e) => {
@@ -3166,7 +3176,7 @@ const ModelFriendlyPage = () => {
         <div style={subHeadingStyle}>Partner Program</div>
         <div style={valueStyle}>Businesses can apply for a distribution partnership. Minimum order: 500 units of 34oz. Commission structure: 25% distribution fee.</div>
         <div style={subHeadingStyle}>Social Profiles</div>
-        <div style={valueStyle}>Users can link Instagram, TikTok, and Facebook profiles to their Majorities account.</div>
+        <div style={valueStyle}>Users can link Instagram, TikTok, and Snapchat profiles to their Majorities account.</div>
       </section>
 
       <div style={{ borderTop: "2px solid #111", paddingTop: "20px", fontSize: "11px", color: "#888" }}>
@@ -3222,7 +3232,7 @@ const ModelFriendlyPage = () => {
                               data.forEach(item => {
                                           const email = item.submittedBy;
                                           const links = item.submitterSocialLinks;
-                                          if (email && links && !seen.has(email) && (links.instagram || links.tiktok || links.facebook)) {
+                                          if (email && links && !seen.has(email) && (links.instagram || links.tiktok || links.snapchat)) {
                                                         seen.add(email);
                                                         socials.push({ email, links, avatar: item.submitterAvatar || null, rank: item.submitterRank || 'Comrade' });
                                           }
@@ -3528,10 +3538,10 @@ const ModelFriendlyPage = () => {
                       🎵 TikTok
                         </a>
                                           )}
-{member.links.facebook && (
-                      <a href={safeSocialUrl(member.links.facebook)} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#1877F2', textDecoration: 'none', fontWeight: '500' }}>
-                      👍 Facebook
-                        </a>
+{member.links.snapchat && (
+            <a href={safeSocialUrl(member.links.snapchat)} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#000000', backgroundColor: '#FFFC00', padding: '2px 8px', borderRadius: '6px', textDecoration: 'none', fontWeight: '500' }}>
+              👻 Snapchat
+            </a>
                                           )}
                                             </div>
                                             </div>

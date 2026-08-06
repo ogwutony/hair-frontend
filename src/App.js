@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate, useLocation, useParams } from "react-router-dom";
 import AdMonetization, { trackEvent } from "./components/AdMonetization";
+
 // --- 1. SHOPIFY CONFIGURATION ---
 const SHOP_DOMAIN = "c0bqfe-z2.myshopify.com";
 
@@ -44,7 +45,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://hair-backend-1
 
 // --- 3. RANK SYSTEM (50-Tier Hierarchy) ---
 const RANK_TIERS = [
-    // --- SUPREME COMMAND ---  
+  // --- SUPREME COMMAND ---  
   { title: "Nice and Helpful", min: 75000000 },
 
   // --- EXECUTIVE COMMAND (5M Point Increments) ---
@@ -98,16 +99,16 @@ const getRankTitle = (score) => {
   }
   return "Comrade";
 };
-// --- LOWER HIERARCHY TITLES (used for "Lord " prefix eligibility) ---
+
 const LOWER_HIERARCHY_TITLES = RANK_TIERS.slice(RANK_TIERS.findIndex(t => t.title === "Perun")).map(t => t.title);
-// Adds a "Lord " prefix once a user has answered all 15 perspective prompts while in a Lower Hierarchy rank
+
 const getFormattedRankTitle = (rankTitle, completedPromptsCount = 0) => {
   if (LOWER_HIERARCHY_TITLES.includes(rankTitle) && completedPromptsCount >= 15) {
     return `Lord ${rankTitle}`;
   }
   return rankTitle;
 };
-// --- PROMPT COMPLETION TRACKING (for "Lord " prefix) ---
+
 const COMPLETED_PROMPTS_KEY = "majorities_completed_prompts";
 const getCompletedPromptIds = (userEmail) => {
   if (typeof window === "undefined" || !userEmail) return [];
@@ -118,6 +119,7 @@ const getCompletedPromptIds = (userEmail) => {
     return [];
   }
 };
+
 const markPromptCompleted = (userEmail, promptId) => {
   if (typeof window === "undefined" || !userEmail || !promptId) return getCompletedPromptIds(userEmail);
   try {
@@ -131,11 +133,11 @@ const markPromptCompleted = (userEmail, promptId) => {
     return getCompletedPromptIds(userEmail);
   }
 };
-const isPolitburoOrHigher = (score) => score >= 10000000; // "Politburo Member of The Majorities" and above
-// --- CALCULATE POINTS TO NEXT RANK ---
+
+const isPolitburoOrHigher = (score) => score >= 10000000;
+
 const getPointsToNextRank = (currentScore, currentRankTitle) => {
     const currentIndex = RANK_TIERS.findIndex(r => r.title === currentRankTitle);
-  
   if (currentIndex <= 0) return 0;
   const nextRank = RANK_TIERS[currentIndex - 1];
   return Math.max(0, nextRank.min - currentScore);
@@ -194,8 +196,6 @@ const submitShopifyCheckout = (items, purchaseType = "one-time") => {
     return;
   }
 
-  // Subscription: use Shopify Cart Permalink with selling_plan query param
-  // Format: /cart/variantId1:qty1,variantId2:qty2?selling_plan=planId
   const subscriptionLineItems = items
     .map((item) => `${getProductCommerceConfig(item.name).merchandiseId}:1`)
     .join(",");
@@ -264,10 +264,9 @@ const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks 
   const initial = (email || 'C')[0].toUpperCase();
   const color = getRankColor(rankTitle || 'Comrade');
   const isTopRank = rankTitle === "Nice and Helpful";
-    const formattedRankTitle = getFormattedRankTitle(rankTitle || 'Comrade', getCompletedPromptIds(email).length);
+  const formattedRankTitle = getFormattedRankTitle(rankTitle || 'Comrade', getCompletedPromptIds(email).length);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', background: '#fff', flexWrap: 'wrap', marginBottom: '12px' }}>
-      {/* Avatar */}
       <div style={{
         width: '42px',
         height: '42px',
@@ -288,11 +287,9 @@ const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks 
           ? <img src={avatarUrl} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : initial}
       </div>
-      {/* Email */}
       <span style={{ fontWeight: '600', fontSize: '14px', color: '#333', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '220px' }}>
         {email}
       </span>
-      {/* Rank badge */}
       <span style={{
         fontSize: rankTitle && rankTitle.length > 20 ? '9px' : '11px',
         fontWeight: '700',
@@ -310,7 +307,6 @@ const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks 
       }}>
         {formattedRankTitle}
       </span>
-      {/* Points badge */}
       {rankScore != null && (
         <span style={{
           fontSize: '11px',
@@ -330,7 +326,6 @@ const CredentialHeader = ({ email, rankTitle, rankScore, avatarUrl, socialLinks 
           ★ {(rankScore || 1).toLocaleString()} pts
         </span>
       )}
-      {/* Social links */}
       {socialLinks && (
         <>
           {socialLinks.instagram ? (
@@ -379,7 +374,7 @@ const GuestSubmissionPrompt = ({ message = "Please log in or create an account b
   );
 };
 
-// --- 3. UI HELPERS ---
+// --- UI HELPERS ---
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
@@ -410,7 +405,7 @@ const productsData = {
           <p>Perfect for restoring natural bounce, strength, and resilience, it leaves hair effortlessly detangled, silky-smooth, and deeply repaired from root to tip.</p>
           <p><strong>Hair Benefits:</strong> Ultimate detangling, breakage defense, and extreme cuticle smoothing.</p>
           <p><strong>Ingredient Highlights:</strong> Pure Argan Oil, Coconut Oil, Olive Oil, and Provitamin B5.</p>
-          <p><strong>Ingredients:</strong> Water, Stearyl Alcohol, Cetyl Alcohol, Glycine Soja (Soybean) Oil, Brassicamidopropyl Dimethylamine, Polysorbate 80, Cocos Nucifera (Coconut) Oil, Argania Spinosa (Argan) Kernel Oil, Olea Europaea (Olive) Fruit Oil, Panthenol, Fragrance, Benzyl Alcohol, Benzoic Acid, Sorbic Acid, Citric Acid, Tetrasodium Glutamate Diacetate, Sodium Hydroxide, Blue 1</p>
+          <p><strong>Ingredients:</strong> Water, Stearyl Alcohol, Cetyl Alcohol, Glycine Soja (Soybean) Oil, Brassicamidopropyl Dimethylamine, Polysorbate 80, Cocos Nucifera (Coconut) Oil, Argania Spinosa (Argan) Kernel Oil, Olea Europaea (Olive Fruit Oil, Panthenol, Fragrance, Benzyl Alcohol, Benzoic Acid, Sorbic Acid, Citric Acid, Tetrasodium Glutamate Diacetate, Sodium Hydroxide, Blue 1</p>
         </>
       )
     }
@@ -479,7 +474,6 @@ const SOCIAL_FIELDS = [
   { key: 'facebook', label: '📘 Facebook', placeholder: 'facebook.com/yourprofile' },
 ];
 
-// Add this helper component to manage local, non-lagging text entry
 const SocialInputRow = ({ socialKey, label, placeholder, initialValue, onSave, onChangeGlobal, saveStatus }) => {
   const [localVal, setLocalVal] = React.useState(initialValue || "");
 
@@ -533,19 +527,14 @@ const SocialInputRow = ({ socialKey, label, placeholder, initialValue, onSave, o
     </div>
   );
 };
+
 // --- PROFILE PAGE COMPONENT ---
 const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar, tokens, addDumaItem }) => {
   const navigate = useNavigate();
   const [avatarUrl, setAvatarUrl] = useState(userAvatar || null);
-  const [avatarFiles, setAvatarFiles] = useState([]);
-  const [avatarPreviews, setAvatarPreviews] = useState([]);
+  const [avatarSlots, setAvatarSlots] = useState(Array(6).fill(null)); 
   const [hadExistingAvatar, setHadExistingAvatar] = useState(false);
-  const [perspective, setPerspective] = useState({
-    box1: { videoUrl: null, description: "", videoFile: null },
-    box2: { videoUrl: null, description: "", videoFile: null },
-    box3: { videoUrl: null, description: "", videoFile: null },
-    box4: { videoUrl: null, description: "", videoFile: null }
-  });
+  
   const [backendRankScore, setBackendRankScore] = useState(rankScore || 1);
   const [backendRankTitle, setBackendRankTitle] = useState(rankTitle || "Comrade");
   const [avatarSaveStatus, setAvatarSaveStatus] = useState("idle");
@@ -555,13 +544,9 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     tiktok: "",
     facebook: ""
   });
-  const [editingBox, setEditingBox] = useState(null);
-  const [saveStatus, setSaveStatus] = useState("");
-  const [dumaSubmitStatus, setDumaSubmitStatus] = useState({});
+  
   const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", facebook: "idle" });
-  const [anyVideoPushed, setAnyVideoPushed] = useState(false);
   const [socialConnected, setSocialConnected] = useState({ instagram: false, tiktok: false, facebook: false });
-  const [socialShareStatus, setSocialShareStatus] = useState({ Instagram: 'idle', TikTok: 'idle', Facebook: 'idle' });
 
   const blobAvatarUrlRef = React.useRef(null);
 
@@ -594,18 +579,6 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         if (onAvatarUpdate) onAvatarUpdate(data.avatar);
       }
       if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
-      if (data.perspective) {
-        setPerspective(prev => {
-          const updated = { ...prev };
-          for (const key in data.perspective) {
-            if (updated[key]) updated[key] = { ...updated[key], ...data.perspective[key] };
-          }
-          return updated;
-        });
-      }
-      if (data.perspective && Object.keys(data.perspective).length > 0) {
-        setAnyVideoPushed(true);
-      }
     }).catch(() => {});
   }, [authToken, onAvatarUpdate]);
 
@@ -653,13 +626,12 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     }
   };
 
-
-  const avatarInputRef = React.useRef(null);
+  const avatarBatchInputRef = React.useRef(null);
+  const dumaBatchInputRef = React.useRef(null);
 
   // --- Post About Anything States ---
   const [postDescription, setCultureResponse] = useState("");
-  const [postMediaFiles, setCultureMediaFiles] = useState([]);
-  const [postMediaPreviews, setCultureMediaPreviews] = useState([]);
+  const [dumaSlots, setDumaSlots] = useState(Array(6).fill(null)); 
   const [selectedPromptIndex, setSelectedPromptIndex] = useState(null);
   const [postSubmitStatus, setCultureSubmitStatus] = useState("idle");
   const [postErrorMsg, setCultureErrorMsg] = useState("");
@@ -682,39 +654,13 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     { id: 15, text: "Post Anything! Share whatever is on your mind today—a random thought, life update, or funny hot take." }
   ];
 
-  // --- Multi Avatar Upload (Images Only) ---
-  const handleAvatarUpload = async (e) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    const selectedFiles = Array.from(e.target.files).slice(0, 6);
-
-    // Validate that all files are images
-    for (const file of selectedFiles) {
-      if (!file.type.startsWith('image/')) {
-        alert('Please upload image files only (JPG, PNG, HEIC, WEBP).');
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Images must be smaller than 5MB.');
-        return;
-      }
-    }
-
-    setAvatarSaveStatus("saving");
-    const firstFile = selectedFiles[0];
-    const previewUrl = URL.createObjectURL(firstFile);
-    setAvatarUrl(previewUrl);
-    setAvatarPreviews(selectedFiles.map(f => URL.createObjectURL(f)));
-
-    if (!authToken) {
-      setAvatarSaveStatus("idle");
-      return;
-    }
-
+  const uploadFileToBackend = async (file, index, isMain) => {
+    if (!authToken) return;
     try {
+      setAvatarSaveStatus("saving");
       const formData = new FormData();
-      formData.append("file", firstFile);
-      formData.append("type", "avatar");
-
+      formData.append("file", file);
+      formData.append("type", file.type.startsWith('video/') ? "video" : "avatar");
       const response = await fetch(`${BACKEND_URL}/api/media/upload`, {
         method: "POST",
         headers: { Authorization: `Bearer ${authToken}` },
@@ -724,17 +670,26 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       if (response.ok) {
         const data = await response.json();
         const cloudUrl = data.storageUrl || data.url || data.secure_url;
-        setAvatarUrl(cloudUrl);
-        if (onAvatarUpdate) onAvatarUpdate(cloudUrl);
+        if (cloudUrl) {
+          setAvatarSlots((prev) => {
+            const next = [...prev];
+            if (next[index]) next[index] = { ...next[index], url: cloudUrl };
+            return next;
+          });
+          if (isMain) {
+            setAvatarUrl(cloudUrl);
+            if (onAvatarUpdate) onAvatarUpdate(cloudUrl);
 
-        await fetch(`${BACKEND_URL}/api/profile`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
-          body: JSON.stringify({ avatar: cloudUrl })
-        });
+            await fetch(`${BACKEND_URL}/api/profile`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+              body: JSON.stringify({ avatar: cloudUrl })
+            });
 
+            if (onAddPoints) onAddPoints(25);
+          }
+        }
         setAvatarSaveStatus("saved");
-        if (onAddPoints) onAddPoints(25);
         setTimeout(() => setAvatarSaveStatus("idle"), 3000);
       } else {
         setAvatarSaveStatus("error");
@@ -744,17 +699,122 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     }
   };
 
-  // --- Duma Mixed Media Selection ---
-  const handleCultureMediaChange = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const selectedFiles = Array.from(e.target.files).slice(0, 6);
-      setCultureMediaFiles(selectedFiles);
-      const previews = selectedFiles.map((file) => ({
+  // --- Multi Avatar Upload (Images Only) ---
+  const handleAvatarBatchUpload = (e) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const files = Array.from(e.target.files);
+    const updatedSlots = [...avatarSlots];
+    const newlyFilled = [];
+    for (const file of files) {
+      if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+        alert('Please upload image or video files only (JPG, PNG, HEIC, WEBP, MP4, MOV).');
+        continue;
+      }
+      if (file.size > 100 * 1024 * 1024) {
+        alert('Files must be smaller than 100MB.');
+        continue;
+      }
+      const emptyIdx = updatedSlots.findIndex((slot) => slot === null);
+      if (emptyIdx === -1) break;
+      const previewObj = {
         url: URL.createObjectURL(file),
-        type: file.type.startsWith("video/") ? "video" : "image",
-      }));
-      setCultureMediaPreviews(previews);
+        type: file.type.startsWith('video/') ? 'video' : 'image',
+        file
+      };
+      updatedSlots[emptyIdx] = previewObj;
+      newlyFilled.push(emptyIdx);
     }
+    setAvatarSlots(updatedSlots);
+
+    const hadNoMain = !avatarUrl;
+    if (hadNoMain && newlyFilled.length > 0) {
+      const firstIdx = newlyFilled[0];
+      const first = updatedSlots[firstIdx];
+      setAvatarUrl(first.url);
+      if (onAvatarUpdate) onAvatarUpdate(first.url);
+      uploadFileToBackend(first.file, firstIdx, true);
+    }
+    newlyFilled.forEach((idx) => {
+      if (!(hadNoMain && idx === newlyFilled[0])) {
+        uploadFileToBackend(updatedSlots[idx].file, idx, false);
+      }
+    });
+  };
+
+  const handleAvatarSingleSlotUpload = (index, file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+      alert('Please upload image or video files only (JPG, PNG, HEIC, WEBP, MP4, MOV).');
+      return;
+    }
+    if (file.size > 100 * 1024 * 1024) {
+      alert('Files must be smaller than 100MB.');
+      return;
+    }
+    const wasMain = avatarSlots[index] && avatarSlots[index].url === avatarUrl;
+    const previewObj = {
+      url: URL.createObjectURL(file),
+      type: file.type.startsWith('video/') ? 'video' : 'image',
+      file
+    };
+    const updatedSlots = [...avatarSlots];
+    updatedSlots[index] = previewObj;
+    setAvatarSlots(updatedSlots);
+
+    const shouldBeMain = wasMain || !avatarUrl;
+    if (shouldBeMain) {
+      setAvatarUrl(previewObj.url);
+      if (onAvatarUpdate) onAvatarUpdate(previewObj.url);
+    }
+    uploadFileToBackend(file, index, shouldBeMain);
+  };
+
+  const removeAvatarSlot = (index) => {
+    const removedUrl = avatarSlots[index] ? avatarSlots[index].url : null;
+    const updatedSlots = [...avatarSlots];
+    updatedSlots[index] = null;
+    setAvatarSlots(updatedSlots);
+
+    if (removedUrl && removedUrl === avatarUrl) {
+      const remaining = updatedSlots.find((slot) => slot !== null);
+      const nextUrl = remaining ? remaining.url : null;
+      setAvatarUrl(nextUrl);
+      if (onAvatarUpdate) onAvatarUpdate(nextUrl);
+    }
+  };
+
+  // --- Duma Mixed Media Selection ---
+  const handleDumaBatchUpload = (e) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const files = Array.from(e.target.files);
+    const updatedSlots = [...dumaSlots];
+    files.forEach((file) => {
+      const emptyIdx = updatedSlots.findIndex((slot) => slot === null);
+      if (emptyIdx === -1) return;
+      updatedSlots[emptyIdx] = {
+        url: URL.createObjectURL(file),
+        type: file.type.startsWith('video/') ? 'video' : 'image',
+        file
+      };
+    });
+    setDumaSlots(updatedSlots);
+  };
+
+  const handleDumaSingleSlotUpload = (index, file) => {
+    if (!file) return;
+    const updatedSlots = [...dumaSlots];
+    updatedSlots[index] = {
+      url: URL.createObjectURL(file),
+      type: file.type.startsWith('video/') ? 'video' : 'image',
+      file
+    };
+    setDumaSlots(updatedSlots);
+  };
+
+  const removeDumaSlot = (index) => {
+    const updatedSlots = [...dumaSlots];
+    updatedSlots[index] = null;
+    setDumaSlots(updatedSlots);
   };
 
   // --- Submit Post to Duma ---
@@ -768,12 +828,14 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     setCultureSubmitStatus("uploading");
 
     const activePrompt = selectedPromptIndex !== null ? perspectivePrompts[selectedPromptIndex] : null;
+    const filledDumaSlots = dumaSlots.filter((slot) => slot !== null);
 
     try {
       let uploadedMediaUrls = [];
 
-      if (postMediaFiles.length > 0 && authToken) {
-        for (const file of postMediaFiles) {
+      if (filledDumaSlots.length > 0 && authToken) {
+        for (const slot of filledDumaSlots) {
+          const file = slot.file;
           const formData = new FormData();
           formData.append("file", file);
           formData.append("type", file.type.startsWith("video/") ? "video" : "image");
@@ -810,7 +872,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
           category: "Culture",
           prompt: activePrompt ? activePrompt.text : "General Post",
           response: postDescription,
-          mediaUrls: uploadedMediaUrls.length > 0 ? uploadedMediaUrls : postMediaPreviews.map(p => p.url),
+          mediaUrls: uploadedMediaUrls.length > 0 ? uploadedMediaUrls : filledDumaSlots.map(s => s.url),
           submittedBy: userEmail,
           submitterRank: rankTitle || 'Comrade',
           submitterAvatar: avatarUrl || null,
@@ -823,6 +885,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       if (userEmail && activePrompt?.id) markPromptCompleted(userEmail, activePrompt.id);
 
       setCultureSubmitStatus("saved");
+      setDumaSlots(Array(6).fill(null));
       setTimeout(() => { navigate("/duma"); }, 1500);
     } catch {
       setCultureSubmitStatus("error");
@@ -874,33 +937,101 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       <section style={{ marginBottom: '40px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '6px', fontWeight: '600' }}>Profile Pictures (Up to 6)</h2>
         <p style={{ color: '#888', fontSize: '12px', marginBottom: '16px' }}>
-          Upload up to 6 pictures and select your active main avatar thumbnail.
+          Batch-upload up to 6 files at once, or click individual terminal slots to set/replace specific pictures or videos.
         </p>
 
-        <div style={{ border: '1px solid #e0e0e0', borderRadius: '16px', padding: '30px', textAlign: 'center', backgroundColor: '#fff' }}>
-          {avatarUrl ? (
-            <div style={{ marginBottom: '16px' }}>
-              <img src={avatarUrl} alt="Main Avatar" style={{ width: '100px', height: '100px', borderRadius: '50%', objectFit: 'cover' }} />
-            </div>
-          ) : (
-            <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#eee', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', color: '#888', marginBottom: '12px' }}>👤</div>
-          )}
+        <div style={{ border: '1px solid #e0e0e0', borderRadius: '16px', padding: '24px', backgroundColor: '#fff' }}>
 
-          <div style={{ border: '2px dashed #ddd', borderRadius: '12px', padding: '20px', backgroundColor: '#fafafa', cursor: 'pointer' }}
-               onClick={() => avatarInputRef.current && avatarInputRef.current.click()}>
-            <span style={{ fontSize: '24px', display: 'block', marginBottom: '6px' }}>📷</span>
-            <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#222' }}>Upload Profile Pictures</p>
-            <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#888' }}>JPG/PNG/HEIC, Max 6 photos, 5MB each</p>
+          {/* Main Avatar Display */}
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            {avatarUrl ? (
+              /\.(mp4|mov|webm)$/i.test(avatarUrl) ? (
+                <video src={avatarUrl} style={{ width: '110px', height: '110px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #222' }} autoPlay loop muted />
+              ) : (
+                <img src={avatarUrl} alt="Main Avatar" style={{ width: '110px', height: '110px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #222' }} />
+              )
+            ) : (
+              <div style={{ width: '90px', height: '90px', borderRadius: '50%', backgroundColor: '#eee', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', color: '#888' }}>👤</div>
+            )}
+          </div>
+
+          {/* BATCH UPLOAD DROPZONE */}
+          <div
+            style={{ border: '2px dashed #bbb', borderRadius: '12px', padding: '16px', backgroundColor: '#fafafa', cursor: 'pointer', textAlign: 'center', marginBottom: '20px' }}
+            onClick={() => avatarBatchInputRef.current && avatarBatchInputRef.current.click()}
+          >
+            <span style={{ fontSize: '22px', display: 'block', marginBottom: '4px' }}>📁</span>
+            <p style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#222' }}>Batch Upload (Auto-fill Slots)</p>
+            <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#888' }}>Select up to 6 photos/videos from your library at once</p>
           </div>
 
           <input
-            ref={avatarInputRef}
+            ref={avatarBatchInputRef}
             type="file"
-            accept="image/*, image/heic, image/jpeg, image/png, image/webp"
+            accept="image/*, image/heic, video/*, video/mp4, video/quicktime"
             multiple
-            onChange={handleAvatarUpload}
+            onChange={handleAvatarBatchUpload}
             style={{ display: 'none' }}
           />
+
+          {/* 6 INDIVIDUAL TERMINAL SLOTS GRID */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '12px' }}>
+            {avatarSlots.map((slot, idx) => (
+              <div
+                key={idx}
+                style={{
+                  border: slot && avatarUrl === slot.url ? '3px solid #d4af37' : '2px dashed #ddd',
+                  borderRadius: '12px',
+                  height: '110px',
+                  position: 'relative',
+                  backgroundColor: '#fdfdfd',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden'
+                }}
+              >
+                {slot ? (
+                  <>
+                    {slot.type === 'video' ? (
+                      <video src={slot.url} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <img src={slot.url} alt={`Slot ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => { setAvatarUrl(slot.url); if (onAvatarUpdate) onAvatarUpdate(slot.url); }}
+                      style={{ position: 'absolute', bottom: '4px', left: '4px', background: 'rgba(0,0,0,0.7)', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '9px', padding: '2px 5px', cursor: 'pointer', fontWeight: 'bold' }}
+                    >
+                      {avatarUrl === slot.url ? '★ MAIN' : 'Set Main'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => removeAvatarSlot(idx)}
+                      style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(231,76,60,0.85)', color: '#fff', border: 'none', borderRadius: '50%', width: '20px', height: '20px', cursor: 'pointer', fontSize: '10px', fontWeight: 'bold' }}
+                    >
+                      ✕
+                    </button>
+                  </>
+                ) : (
+                  <label style={{ cursor: 'pointer', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '18px', color: '#aaa' }}>+</span>
+                    <span style={{ fontSize: '10px', color: '#666', fontWeight: '600', marginTop: '2px' }}>Terminal #{idx + 1}</span>
+                    <input
+                      type="file"
+                      accept="image/*, image/heic, video/*, video/mp4, video/quicktime"
+                      style={{ display: 'none' }}
+                      onChange={(e) => e.target.files[0] && handleAvatarSingleSlotUpload(idx, e.target.files[0])}
+                    />
+                  </label>
+                )}
+              </div>
+            ))}
+          </div>
+
         </div>
       </section>
 
@@ -930,30 +1061,77 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
           Share your thoughts or photos/videos directly to the Duma (+100 points). Optionally select a prompt below to earn bonus points (+120 points)!
         </p>
 
+        {postErrorMsg && <div style={{ color: 'red', fontSize: '13px', marginBottom: '10px' }}>{postErrorMsg}</div>}
+
         <form onSubmit={handleCultureSubmit} style={{ ...styles.dumaCard, border: '1px solid #e0e0e0', padding: '24px', borderRadius: '16px' }}>
 
           <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '8px' }}>Attach Photos or Videos (Up to 6)</label>
+          <p style={{ fontSize: '11px', color: '#888', marginBottom: '10px' }}>Batch-upload multiple files at once, or use an individual terminal slot below.</p>
+
+          <div
+            style={{ border: '2px dashed #bbb', borderRadius: '12px', padding: '14px', backgroundColor: '#fafafa', cursor: 'pointer', textAlign: 'center', marginBottom: '14px' }}
+            onClick={() => dumaBatchInputRef.current && dumaBatchInputRef.current.click()}
+          >
+            <span style={{ fontSize: '20px', display: 'block', marginBottom: '4px' }}>📁</span>
+            <p style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#222' }}>Batch Upload (Auto-fill Slots)</p>
+          </div>
+
           <input
+            ref={dumaBatchInputRef}
             type="file"
             accept="image/*, image/heic, video/*, video/mp4, video/quicktime, video/webm"
             multiple
-            onChange={handleCultureMediaChange}
-            style={{ ...styles.input, padding: '8px' }}
+            onChange={handleDumaBatchUpload}
+            style={{ display: 'none' }}
           />
 
-          {postMediaPreviews.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '8px', margin: '12px 0' }}>
-              {postMediaPreviews.map((preview, idx) => (
-                <div key={idx} style={{ height: '80px', borderRadius: '6px', overflow: 'hidden', border: '1px solid #ddd' }}>
-                  {preview.type === "image" ? (
-                    <img src={preview.url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <video src={preview.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '8px', margin: '12px 0' }}>
+            {dumaSlots.map((slot, idx) => (
+              <div
+                key={idx}
+                style={{
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  height: '90px',
+                  position: 'relative',
+                  backgroundColor: '#fdfdfd',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden'
+                }}
+              >
+                {slot ? (
+                  <>
+                    {slot.type === 'image' ? (
+                      <img src={slot.url} alt={`Post media ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <video src={slot.url} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeDumaSlot(idx)}
+                      style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(231,76,60,0.85)', color: '#fff', border: 'none', borderRadius: '50%', width: '18px', height: '18px', cursor: 'pointer', fontSize: '9px', fontWeight: 'bold' }}
+                    >
+                      ✕
+                    </button>
+                  </>
+                ) : (
+                  <label style={{ cursor: 'pointer', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '16px', color: '#aaa' }}>+</span>
+                    <span style={{ fontSize: '9px', color: '#666', fontWeight: '600', marginTop: '2px' }}>Slot {idx + 1}</span>
+                    <input
+                      type="file"
+                      accept="image/*, image/heic, video/*, video/mp4, video/quicktime, video/webm"
+                      style={{ display: 'none' }}
+                      onChange={(e) => e.target.files[0] && handleDumaSingleSlotUpload(idx, e.target.files[0])}
+                    />
+                  </label>
+                )}
+              </div>
+            ))}
+          </div>
 
           <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginTop: '16px', marginBottom: '8px' }}>Write a description *</label>
           <textarea

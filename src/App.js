@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate, useLocation, useParams } from "react-router-dom";
-import AdMonetization, { trackEvent } from "./components/AdMonetization";
+import { trackEvent } from "./components/AdMonetization";
 
 // --- 1. SHOPIFY CONFIGURATION ---
 const SHOP_DOMAIN = "c0bqfe-z2.myshopify.com";
@@ -2354,8 +2354,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
         <button onClick={() => window.location.href = authToken ? '/culture' : '/login'} style={{ padding: '8px 14px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', marginLeft: 'auto' }}>{authToken ? '+ Share Your Perspective' : 'Log in to Share'}</button>
       </div>
 
-      <AdMonetization placement="duma_page" />
-
+      
       {activeSection === "Culture" && (
         <div>
           {culturalItems.length === 0 ? (
@@ -3396,7 +3395,6 @@ const ModelFriendlyPage = () => {
           <CredentialHeader email={userEmail} displayName={displayName} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
   </div>
         )}
-      <AdMonetization placement="culture_page" />
           {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
                 <form style={styles.dumaCard} onSubmit={handleSubmit}>
                   

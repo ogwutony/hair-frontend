@@ -43,49 +43,12 @@ const PRODUCT_VARIANT_MAP = {
 // --- 2. BACKEND CONFIGURATION ---
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://hair-backend-1.onrender.com";
 
-// --- ADSENSE SIDEBAR AD COMPONENT ---
-const SidebarAd = ({ position = "left" }) => {
-  useEffect(() => {
-    try {
-      (window.adsbygoogle = window.adsbygoogle || []).push({});
-    } catch (e) {
-      console.error("AdSense push error:", e);
-    }
-  }, []);
-
-  return (
-    <aside
-      className="sidebar-ad-container"
-      style={{
-        width: "160px",
-        minWidth: "160px",
-        height: "600px",
-        position: "sticky",
-        top: "20px",
-        alignSelf: "flex-start",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "#fcfcfc",
-        border: "1px dashed #e0e0e0",
-        borderRadius: "8px",
-        overflow: "hidden"
-      }}
-    >
-      <ins
-        className="adsbygoogle"
-        style={{ display: "inline-block", width: "160px", height: "600px" }}
-        data-ad-client="ca-pub-7165853329123168"
-        data-ad-format="vertical"
-        data-full-width-responsive="false"
-      />
-    </aside>
-  );
-};
-
 // --- 3. RANK SYSTEM (50-Tier Hierarchy) ---
 const RANK_TIERS = [
+  // --- SUPREME COMMAND ---  
   { title: "Nice and Helpful", min: 75000000 },
+
+  // --- EXECUTIVE COMMAND (5M Point Increments) ---
   { title: "Servant of the People",                         min: 50000000 },
   { title: "Servant of the Majorities",                     min: 45000000 },
   { title: "General Secretary of The Majorities",           min: 40000000 },
@@ -96,6 +59,8 @@ const RANK_TIERS = [
   { title: "Secretary of the Central Commission for Discipline Inspection", min: 15000000 },
   { title: "Politburo Member of The Majorities",            min: 10000000 },
   { title: "Secretary of Majorities Committees of Provinces", min: 5000000  },
+
+  // --- HEROIC ORDERS & LABOR TITLES ---
   { title: "Champion of the The Majorities",                   min: 4500000 },
   { title: "Hero of the Majorities",                    min: 4000000 },
   { title: "Order of The Majorities",                   min: 3500000 },
@@ -104,6 +69,8 @@ const RANK_TIERS = [
   { title: "Order of Friendship of Peoples",            min: 2000000 },
   { title: "Order of the Badge of Honor",               min: 1500000 },
   { title: "the Salvation of the Drowning",             min: 1000000 },
+
+  // --- LOWER HIERARCHY (Russian Gods) ---
   { title: "Perun",             min: 900000  },
   { title: "Veles",             min: 800000  },
   { title: "Svarog",            min: 700000  },
@@ -170,7 +137,7 @@ const markPromptCompleted = (userEmail, promptId) => {
 const isPolitburoOrHigher = (score) => score >= 10000000;
 
 const getPointsToNextRank = (currentScore, currentRankTitle) => {
-  const currentIndex = RANK_TIERS.findIndex(r => r.title === currentRankTitle);
+    const currentIndex = RANK_TIERS.findIndex(r => r.title === currentRankTitle);
   if (currentIndex <= 0) return 0;
   const nextRank = RANK_TIERS[currentIndex - 1];
   return Math.max(0, nextRank.min - currentScore);
@@ -438,7 +405,7 @@ const productsData = {
           <p>Perfect for restoring natural bounce, strength, and resilience, it leaves hair effortlessly detangled, silky-smooth, and deeply repaired from root to tip.</p>
           <p><strong>Hair Benefits:</strong> Ultimate detangling, breakage defense, and extreme cuticle smoothing.</p>
           <p><strong>Ingredient Highlights:</strong> Pure Argan Oil, Coconut Oil, Olive Oil, and Provitamin B5.</p>
-          <p><strong>Ingredients:</strong> Water, Stearyl Alcohol, Cetyl Alcohol, Glycine Soja (Soybean) Oil, Brassicamidopropyl Dimethylamine, Polysorbate 80, Cocos Nucifera (Coconut) Oil, Argania Spinosa (Argan) Kernel Oil, Olea Europaea (Olive) Fruit Oil, Panthenol, Fragrance, Benzyl Alcohol, Benzoic Acid, Sorbic Acid, Citric Acid, Tetrasodium Glutamate Diacetate, Sodium Hydroxide, Blue 1</p>
+          <p><strong>Ingredients:</strong> Water, Stearyl Alcohol, Cetyl Alcohol, Glycine Soja (Soybean) Oil, Brassicamidopropyl Dimethylamine, Polysorbate 80, Cocos Nucifera (Coconut) Oil, Argania Spinosa (Argan) Kernel Oil, Olea Europaea (Olive Fruit Oil, Panthenol, Fragrance, Benzyl Alcohol, Benzoic Acid, Sorbic Acid, Citric Acid, Tetrasodium Glutamate Diacetate, Sodium Hydroxide, Blue 1</p>
         </>
       )
     }
@@ -579,6 +546,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   });
   
   const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", facebook: "idle" });
+  const [socialConnected, setSocialConnected] = useState({ instagram: false, tiktok: false, facebook: false });
 
   const blobAvatarUrlRef = React.useRef(null);
 
@@ -613,6 +581,20 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
     }).catch(() => {});
   }, [authToken, onAvatarUpdate]);
+
+  useEffect(() => {
+    if (!authToken) return;
+    fetch(`${BACKEND_URL}/api/social/status`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data && typeof data === 'object') {
+          setSocialConnected(prev => ({ ...prev, ...data }));
+        }
+      })
+      .catch(() => {});
+  }, [authToken]);
 
   const handleSocialChange = (key, value) => {
     setSocialLinks(prev => ({ ...prev, [key]: value }));
@@ -704,10 +686,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
               body: JSON.stringify({ avatar: cloudUrl })
             });
 
-            if (!hadExistingAvatar && onAddPoints) {
-              onAddPoints(25);
-              setHadExistingAvatar(true);
-            }
+            if (onAddPoints) onAddPoints(25);
           }
         }
         setAvatarSaveStatus("saved");
@@ -720,6 +699,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     }
   };
 
+  // --- Multi Avatar Upload (Images Only) ---
   const handleAvatarBatchUpload = (e) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const files = Array.from(e.target.files);
@@ -803,6 +783,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     }
   };
 
+  // --- Duma Mixed Media Selection ---
   const handleDumaBatchUpload = (e) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const files = Array.from(e.target.files);
@@ -836,6 +817,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     setDumaSlots(updatedSlots);
   };
 
+  // --- Submit Post to Duma ---
   const handleCultureSubmit = async (e) => {
     e.preventDefault();
     if (!postDescription.trim()) {
@@ -960,6 +942,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
 
         <div style={{ border: '1px solid #e0e0e0', borderRadius: '16px', padding: '24px', backgroundColor: '#fff' }}>
 
+          {/* Main Avatar Display */}
           <div style={{ textAlign: 'center', marginBottom: '20px' }}>
             {avatarUrl ? (
               /\.(mp4|mov|webm)$/i.test(avatarUrl) ? (
@@ -972,6 +955,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
             )}
           </div>
 
+          {/* BATCH UPLOAD DROPZONE */}
           <div
             style={{ border: '2px dashed #bbb', borderRadius: '12px', padding: '16px', backgroundColor: '#fafafa', cursor: 'pointer', textAlign: 'center', marginBottom: '20px' }}
             onClick={() => avatarBatchInputRef.current && avatarBatchInputRef.current.click()}
@@ -990,6 +974,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
             style={{ display: 'none' }}
           />
 
+          {/* 6 INDIVIDUAL TERMINAL SLOTS GRID */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '12px' }}>
             {avatarSlots.map((slot, idx) => (
               <div
@@ -1164,6 +1149,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
             Click any prompt below to attach it to your post and earn 120 points! (Scroll to view all 15 prompts)
           </p>
 
+          {/* SCROLLABLE PROMPT CONTAINER */}
           <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '8px', marginBottom: '20px', backgroundColor: '#fafafa' }}>
             {perspectivePrompts.map((prompt, idx) => (
               <div
@@ -1222,7 +1208,1331 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   );
 };
 
-// --- DUMA PAGE (WRAPPER WITH SIDEBAR ADS FOR CULTURES & DUMA) ---
+// --- FORGOT PASSWORD PAGE ---
+const ForgotPasswordPage = () => {
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setSubmitted(true);
+      } else {
+        setError(data.error || "Something went wrong. Please try again.");
+      }
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div style={styles.authContainer}>
+        <div style={{ ...styles.authCard, textAlign: 'center' }}>
+          <h2>Forgot Password?</h2>
+          <div style={{ fontSize: '48px', margin: '20px 0' }}></div>
+          <p style={{ color: '#555', lineHeight: '1.6' }}>
+            If that email is registered, we've sent a reset link.<br />
+            Check your inbox (and spam folder).
+          </p>
+          <p style={{ color: '#888', fontSize: '13px', marginTop: '10px' }}>
+            The email may have landed in your <strong>spam or junk folder</strong> - please check there if you don't see it in your inbox.
+          </p>
+          <Link to="/login">
+            <button style={{ ...styles.authButton, marginTop: '20px' }}>Back to Sign In</button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.authContainer}>
+      <div style={styles.authCard}>
+        <h2>Forgot Password?</h2>
+        <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
+          Enter your email and we'll send you a link to reset your password.
+        </p>
+        <input
+          type="email"
+          placeholder="Enter your email"
+          style={styles.input}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        {error && <p style={{ color: 'red', fontSize: '13px', marginTop: '8px' }}>{error}</p>}
+        <button style={styles.authButton} onClick={handleSubmit} disabled={isLoading}>
+          {isLoading ? "Sending..." : "Send Reset Link"}
+        </button>
+        <Link to="/login" style={{ display: 'block', marginTop: '15px', fontSize: '13px', color: '#666', textDecoration: 'none' }}>
+          Back to Sign In
+        </Link>
+      </div>
+    </div>
+  );
+};
+
+// --- RESET PASSWORD PAGE ---
+const ResetPasswordPage = () => {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const { token } = useParams();
+
+  const handleSubmit = async () => {
+    if (password !== confirm) { setError("Passwords do not match."); return; }
+    if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
+    setIsLoading(true);
+    setError("");
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, newPassword: password })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setSubmitted(true);
+        setTimeout(() => navigate('/login'), 3000);
+      } else {
+        setError(data.error || "Something went wrong. Please try again.");
+      }
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div style={styles.authContainer}>
+        <div style={{ ...styles.authCard, textAlign: 'center' }}>
+          <h2>Password Reset!</h2>
+          <div style={{ fontSize: '48px', margin: '20px 0' }}></div>
+          <p style={{ color: '#555' }}>Your password has been updated successfully.</p>
+          <p style={{ color: '#888', fontSize: '13px' }}>Redirecting to sign in...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.authContainer}>
+      <div style={styles.authCard}>
+        <h2>Reset Password</h2>
+        <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Enter your new password below.</p>
+        <input
+          type="password"
+          placeholder="New password"
+          style={styles.input}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <input
+          type="password"
+          placeholder="Confirm new password"
+          style={styles.input}
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+        />
+        {error && <p style={{ color: 'red', fontSize: '13px', marginTop: '8px' }}>{error}</p>}
+        <button style={styles.authButton} onClick={handleSubmit} disabled={isLoading}>
+          {isLoading ? "Resetting..." : "Reset Password"}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// --- AUTH COMPONENTS ---
+const LoginPage = ({ onLogin }) => {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [socialError, setSocialError] = useState("");
+
+  const handleLogin = async () => {
+    setIsLoading(true);
+    setSocialError("");
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await response.json();
+      if (response.ok) { onLogin(email, data.token, true, data.rank_title, data.rank_score); navigate("/profile"); }
+      else { alert(data.error || "Invalid login"); }
+    } catch (err) { alert("Server is waking up. Try again in 30s."); }
+    finally { setIsLoading(false); }
+  };
+
+  const handleGoogleLogin = () => {
+    setSocialError("");
+    const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+    if (!clientId) { setSocialError("Google login is not configured."); return; }
+    const redirectUri = window.location.origin + "/auth/google/callback";
+    const scope = "openid email profile";
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&prompt=select_account`;
+    window.location.href = authUrl;
+  };
+
+  const handleInstagramLogin = () => {
+    setSocialError("");
+    const appId = process.env.REACT_APP_FACEBOOK_APP_ID;
+    if (!appId) { setSocialError("Instagram login is not configured yet."); return; }
+    const redirectUri = window.location.origin + "/auth/instagram/callback";
+    const scope = "email,public_profile";
+    const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=token`;
+    window.location.href = authUrl;
+  };
+
+  const handleTikTokLogin = () => {
+    setSocialError("");
+  };
+
+  return (
+    <div style={styles.authContainer}>
+      <div style={{ ...styles.authCard, maxWidth: '420px' }}>
+        <h1 style={{ fontSize: '22px', fontWeight: '700', marginBottom: '4px', letterSpacing: '-0.5px' }}>The Majorities</h1>
+        <p style={{ fontSize: '13px', color: '#888', marginBottom: '24px' }}>Sign in to your account</p>
+        {socialError && <div style={{ background: '#fff0f0', color: '#c00', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '16px', textAlign: 'left' }}>{socialError}</div>}
+        <button onClick={handleGoogleLogin} style={{ ...styles.socialButton, backgroundColor: '#fff', color: '#222', border: '1px solid #ddd' }}>
+          <svg style={{ width: '18px', height: '18px', marginRight: '10px' }} viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Continue with Google
+        </button>
+        <button onClick={handleInstagramLogin} style={{ ...styles.socialButton, background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)', color: '#fff', border: 'none' }}>
+          <svg style={{ width: '18px', height: '18px', marginRight: '10px', fill: '#fff' }} viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+          Continue with Instagram
+        </button>
+        <button onClick={handleTikTokLogin} style={{ ...styles.socialButton, backgroundColor: '#000', color: '#fff', border: 'none' }}>
+          <svg style={{ width: '18px', height: '18px', marginRight: '10px', fill: '#fff' }} viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 0 0-.79-.05A6.34 6.34 0 0 0 3.15 15a6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V8.42a8.21 8.21 0 0 0 4.76 1.52V6.5a4.83 4.83 0 0 1-1-.19z"/></svg>
+          Continue with TikTok
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0' }}>
+          <div style={{ flex: 1, height: '1px', backgroundColor: '#e0e0e0' }} />
+          <span style={{ padding: '0 12px', fontSize: '12px', color: '#999' }}>OR</span>
+          <div style={{ flex: 1, height: '1px', backgroundColor: '#e0e0e0' }} />
+        </div>
+        <input type="email" placeholder="Email" style={styles.input} value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input type="password" placeholder="Password" style={styles.input} value={password} onChange={(e) => setPassword(e.target.value)} />
+        <button style={styles.authButton} onClick={handleLogin}>{isLoading ? '...' : 'Login'}</button>
+        <Link to="/forgot-password" style={{ display: 'block', marginTop: '12px', fontSize: '13px', color: '#666', textDecoration: 'none', textAlign: 'center' }}>
+          Forgot password?
+        </Link>
+      </div>
+    </div>
+  );
+};
+
+const OAuthCallbackPage = ({ onLogin, provider }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [status, setStatus] = useState("Authenticating...");
+
+  useEffect(() => {
+    const hash = location.hash.substring(1);
+    const hashParams = new URLSearchParams(hash);
+    const queryParams = new URLSearchParams(location.search);
+    const accessToken = hashParams.get("access_token");
+    const code = queryParams.get("code");
+    const error = queryParams.get("error") || hashParams.get("error");
+
+    if (error) { setStatus(provider + " authentication was cancelled."); setTimeout(() => navigate("/login"), 2500); return; }
+    if (provider === "google" && !code) { setStatus("Authentication failed. No authorization code received."); setTimeout(() => navigate("/login"), 2500); return; }
+    if (provider !== "google" && !accessToken) { setStatus("Authentication failed. No token received."); setTimeout(() => navigate("/login"), 2500); return; }
+
+    const endpoint = provider === "instagram" ? "/api/auth/instagram" : "/api/auth/google";
+    const body = provider === "google"
+      ? { code, redirectUri: window.location.origin + "/auth/google/callback" }
+      : { accessToken };
+
+    fetch(BACKEND_URL + endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      .then(r => r.json().then(data => ({ ok: r.ok, data })))
+      .then(({ ok, data }) => {
+        if (ok && data.token) { onLogin(data.email, data.token, true, data.rank_title, data.rank_score); navigate("/profile"); }
+        else { setStatus(data.error || "Account not linked. Please try again."); setTimeout(() => navigate("/login"), 3000); }
+      })
+      .catch(() => { setStatus("Server error. Please try again."); setTimeout(() => navigate("/login"), 3000); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div style={styles.authContainer}>
+      <div style={{ ...styles.authCard, textAlign: 'center' }}>
+        <h2 style={{ marginBottom: '12px' }}>{provider.charAt(0).toUpperCase() + provider.slice(1)}</h2>
+        <p style={{ color: '#666', fontSize: '14px' }}>{status}</p>
+      </div>
+    </div>
+  );
+};
+
+const SignupPage = () => {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const handleSignup = async () => {
+    if (password !== confirmPassword) return alert("Passwords do not match");
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      if (response.ok) { alert("Success! Log in now."); navigate("/login"); }
+    } catch (err) { alert("Server error."); }
+  };
+  return (
+    <div style={styles.authContainer}><div style={styles.authCard}>
+      <h2>Sign Up</h2>
+      <input type="email" placeholder="Email" style={styles.input} onChange={(e) => setEmail(e.target.value)} />
+      <input type="password" placeholder="Password" style={styles.input} onChange={(e) => setPassword(e.target.value)} />
+      <input type="password" placeholder="Confirm" style={styles.input} onChange={(e) => setConfirmPassword(e.target.value)} />
+      <button style={styles.authButton} onClick={handleSignup}>Create Account</button>
+    </div></div>
+  );
+};
+
+// --- LANDING PAGE ---
+function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
+  const [selection, setSelection] = useState([]);
+  const [focusedItem, setFocusedItem] = useState(null);
+  const MOBILE_BREAKPOINT = 768;
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= MOBILE_BREAKPOINT);
+
+  useEffect(() => {
+    let debounceTimer;
+    const handleResize = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => setIsMobile(window.innerWidth <= MOBILE_BREAKPOINT), 150);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => { clearTimeout(debounceTimer); window.removeEventListener('resize', handleResize); };
+  }, []);
+
+  const handleSelect = (item) => {
+    setFocusedItem(item);
+    setSelection(prev => {
+      const alreadySelected = prev.some(i => i.name === item.name);
+      if (alreadySelected) return prev.filter(i => i.name !== item.name);
+      if (prev.length >= 6) return prev;
+      return [...prev, item];
+    });
+  };
+  
+  const selectedItems = selection;
+  const isSetComplete = selectedItems.length === 6;
+  const setTotals = calculateSetTotals(selectedItems);
+  const subscriptionSavings = Math.max(0, setTotals.oneTime - setTotals.subscription);
+  
+  const handleOneTimeCheckout = () => {
+    if (!isSetComplete) return;
+    trackEvent("checkout_started", {
+      placement: "landing_page",
+      purchaseType: "one_time",
+      itemCount: selectedItems.length,
+      checkoutValue: setTotals.oneTime
+    });
+    submitShopifyCheckout(selectedItems, "one-time");
+  };
+
+  const handleSubscriptionCheckout = () => {
+    if (!isSetComplete) return;
+    trackEvent("checkout_started", {
+      placement: "landing_page",
+      purchaseType: "subscription",
+      itemCount: selectedItems.length,
+      checkoutValue: setTotals.subscription
+    });
+    submitShopifyCheckout(selectedItems, "subscription");
+  };
+  
+  const renderRow = (label, category) => (
+    <div style={styles.rowSection}>
+      <h3 style={styles.rowLabel}>{label}</h3>
+      <div style={styles.scrollRow}>
+        {productsData[category].map(item => {
+          const isSelected = selection.some(i => i.name === item.name);
+          const { pricing } = getProductCommerceConfig(item.name);
+          return (
+            <div key={item.name} onClick={() => handleSelect(item)} style={{ ...styles.card, border: isSelected ? "2px solid #222" : "1px solid #eee" }}>
+              <div style={styles.imagePlaceholder}>{item.name[0]}</div>
+              <div style={styles.itemName}>{item.name}</div>
+              <div style={{ fontSize: '11px', color: '#555', marginTop: '8px', lineHeight: '1.5' }}>
+                <div>One-time {formatCurrency(pricing.oneTime)}</div>
+                <div>Subscribe {formatCurrency(pricing.subscription)}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+  
+  return (
+    <div style={{ ...styles.layout, flexDirection: isMobile ? 'column' : 'row', padding: isMobile ? '20px 16px' : '20px 60px', overflowX: isMobile ? 'hidden' : 'visible', boxSizing: 'border-box' }}>
+      <div style={{ ...styles.left, width: isMobile ? '100%' : '70%', paddingRight: isMobile ? 0 : '40px', minWidth: 0, overflowX: 'hidden' }}>
+        {renderRow("Pick Shampoos", "shampoos")}
+        {renderRow("Pick Conditioners", "conditioners")}
+        {renderRow("Pick Oils", "oils")}
+        {renderRow("Pick Face Scrubs", "faceScrubs")}
+        {renderRow("Pick Toners", "toners")}
+        {renderRow("Pick Creams", "faceCreams")}
+      </div>
+      <aside style={{ ...styles.right, width: isMobile ? '100%' : '30%', position: isMobile ? 'static' : 'sticky', top: isMobile ? 'auto' : '20px', boxSizing: 'border-box', height: 'auto', maxHeight: 'none' }}>
+        <div style={{ minHeight: '100px', marginBottom: '15px' }}>
+          {focusedItem ? (
+            <div>
+              <h3>{focusedItem.name}</h3>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: '#333' }}>
+                  One-time {formatCurrency(getProductCommerceConfig(focusedItem.name).pricing.oneTime)}
+                </span>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: '#2d6a4f' }}>
+                  Subscribe {formatCurrency(getProductCommerceConfig(focusedItem.name).pricing.subscription)}
+                </span>
+              </div>
+              <div style={{ fontSize: '13px', color: '#666', lineHeight: '1.6' }}>
+                {focusedItem.desc}
+              </div>
+            </div>
+          ) : <p style={{color: '#888'}}>Select a product</p>}
+        </div>
+        <div style={styles.summaryContainer}>
+          <h4 style={{ fontSize: '14px', borderBottom: '1px solid #eee', paddingBottom: '10px', marginTop: 0 }}>Your Custom Set ({selectedItems.length}/6)</h4>
+          <div style={{ margin: '10px 0' }}>
+            {(() => {
+              const counts = {};
+              selectedItems.forEach(item => { counts[item.name] = (counts[item.name] || 0) + 1; });
+              return Object.entries(counts).map(([name, count]) => (
+                <p key={name} style={{ fontSize: '11px', margin: '4px 0' }}>
+                  {name}{count > 1 ? ` x${count}` : ''} · {formatCurrency(getProductCommerceConfig(name).pricing.oneTime)} / {formatCurrency(getProductCommerceConfig(name).pricing.subscription)}
+                </p>
+              ));
+            })()}
+          </div>
+          {isSetComplete ? (
+            <div style={{ borderTop: '2px solid #222', paddingTop: '15px' }}>
+              <div style={{ fontSize: '12px', color: '#666', marginBottom: '12px', lineHeight: '1.6' }}>
+                <div>One-time total: <strong>{formatCurrency(setTotals.oneTime)}</strong></div>
+                <div>Subscription total: <strong>{formatCurrency(setTotals.subscription)} / month</strong></div>
+                <div>You save <strong>{formatCurrency(subscriptionSavings)}</strong> on each monthly set.</div>
+              </div>
+              {/* Delivery promise callout */}
+              <div style={{ backgroundColor: '#f4f9f4', border: '1px solid #c2e1c2', padding: '12px', borderRadius: '8px', marginBottom: '14px', textAlign: 'left' }}>
+                <span style={{ fontSize: '13px', color: '#1e4620', fontWeight: '700', display: 'block' }}>
+                  🚚 Fast US Fulfillment via ShipBob
+                </span>
+                <span style={{ fontSize: '11px', color: '#2e6f32', display: 'block', marginTop: '3px' }}>
+                  Estimated Delivery: <strong>{
+                    new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                  } - {
+                    new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                  }</strong> (+ Shipping & Handling)
+                </span>
+              </div>
+              <button style={styles.checkoutBtn} onClick={handleOneTimeCheckout}>1 time Checkout ({formatCurrency(setTotals.oneTime)})</button>
+              <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={handleSubscriptionCheckout}>Monthly Subscription Checkout ({formatCurrency(setTotals.subscription)} / month)</button>
+            </div>
+          ) : <p style={{ fontSize: '12px', color: '#888' }}>Select 6 products to checkout</p>}
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+// --- RECOMMEND PAGE ---
+const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, userAvatar }) => {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({ 
+    name: "", 
+    company: "", 
+    productType: "",
+    websiteLink: "",
+    whyRecommend: "", 
+    photo: null,
+    video: null
+  });
+  const [submitted, setSubmitted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [showGuestPrompt, setShowGuestPrompt] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setShowGuestPrompt(false);
+
+    // Validation
+    if (!formData.name || !formData.company || !formData.productType || !formData.websiteLink || !formData.whyRecommend) {
+      setErrorMsg("Please fill in all required fields.");
+      return;
+    }
+
+    if (formData.whyRecommend.split(' ').length < 15) {
+      setErrorMsg("Justification must be at least 2-3 sentences (15+ words).");
+      return;
+    }
+
+    // Check for valid URL
+    try {
+      new URL(formData.websiteLink);
+    } catch (err) {
+      setErrorMsg("Website Link must be a valid URL starting with http:// or https://");
+      return;
+    }
+
+    if (!authToken) {
+      setShowGuestPrompt(true);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const submitData = new FormData();
+      submitData.append('name', formData.name);
+      submitData.append('company', formData.company);
+      submitData.append('productType', formData.productType);
+      submitData.append('websiteLink', formData.websiteLink);
+      submitData.append('whyRecommend', formData.whyRecommend);
+      if (formData.photo) submitData.append('photo', formData.photo);
+      if (formData.video) submitData.append('video', formData.video);
+
+      const res = await fetch(`${BACKEND_URL}/api/duma/recommend`, { method: 'POST', headers: { Authorization: `Bearer ${authToken}` }, body: submitData });
+      const data = await res.json();
+      if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); setIsLoading(false); return; }
+
+      addDumaItem({ ...formData, id: Date.now(), type: "Product Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'Comrade', section: "Commerce" });
+      setSubmitted(true);
+    } catch (err) {
+      addDumaItem({ ...formData, id: Date.now(), type: "Product Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'Comrade', section: "Commerce" });
+      setSubmitted(true);
+    }
+    setIsLoading(false);
+  };
+
+  if (submitted) {
+    return (
+      <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
+          <div style={{ fontSize: '40px', marginBottom: '16px' }}></div>
+          <h2 style={{ marginBottom: '10px' }}>Recommendation Submitted!</h2>
+          <p style={{ color: '#666', marginBottom: '20px' }}>Your product recommendation has been sent to The Majorities' Duma Commerce section for community review and voting.</p>
+          {rankTitle && <RankBadge rankTitle={rankTitle} />}
+          <div style={{ marginTop: '20px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <button style={styles.authButton} onClick={() => navigate("/duma")}>View the Duma</button>
+            <button style={{ ...styles.authButton, background: '#f5f5f5', color: '#222' }} onClick={() => setSubmitted(false)}>Submit Another</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+      <h2>Submit Product Recommendation</h2>
+      <p style={{ color: '#666', fontSize: '14px', marginBottom: '30px' }}>
+        Submit products or ideas to The Duma for community review and voting.
+      </p>
+
+      {userEmail && rankTitle && <div style={{ marginBottom: '20px' }}><CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} /></div>}
+      {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
+      {showGuestPrompt && <GuestSubmissionPrompt message="Log in or register to submit this recommendation to The Duma." />}
+
+      <form style={styles.dumaCard} onSubmit={handleSubmit}>
+        <div style={{ marginBottom: '25px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '700', marginBottom: '15px', textTransform: 'uppercase', color: '#222' }}>1. Product Identification</h3>
+          <input required placeholder="Product Name (e.g., 'Rosemary Mint Scalp & Hair Strengthening Oil') *" style={styles.input} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+          <input required placeholder="Company Name (legal brand name, e.g., 'Mielle Organics') *" style={styles.input} value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
+        </div>
+
+        <div style={{ marginBottom: '25px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '700', marginBottom: '15px', textTransform: 'uppercase', color: '#222' }}>2. Categorization & Sourcing</h3>
+          <input required placeholder="Product Type (e.g., 'Moisturizer', 'Regrowth', 'Shampoo', 'Oil') *" style={styles.input} value={formData.productType} onChange={e => setFormData({...formData, productType: e.target.value})} />
+          <input required type="url" placeholder="Website Link (direct product page URL, not retailer links like Amazon unless exclusive) *" style={styles.input} value={formData.websiteLink} onChange={e => setFormData({...formData, websiteLink: e.target.value})} />
+        </div>
+
+        <div style={{ marginBottom: '25px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '700', marginBottom: '15px', textTransform: 'uppercase', color: '#222' }}>3. Justification & Evidence</h3>
+          <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginBottom: '8px' }}>Why Recommend? (2-3 sentences, focus on results) *</label>
+          <textarea required placeholder="Good: 'Highly effective for type 4C hair; significantly reduced breakage within 3 weeks of consistent use without heavy buildup.' *" style={{ ...styles.input, height: '100px' }} value={formData.whyRecommend} onChange={e => setFormData({...formData, whyRecommend: e.target.value})} />
+
+          <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginTop: '15px', marginBottom: '8px' }}>Upload Product Photo (high-resolution, label must be legible)</label>
+          <input type="file" accept="image/*, image/heic, image/jpeg, image/png, image/webp" style={styles.input} onChange={e => setFormData({...formData, photo: e.target.files?.[0] || null})} />
+
+          <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginTop: '15px', marginBottom: '8px' }}>Upload Product Video (under 60s, or link to review)</label>
+          <input type="file" accept="video/*, video/mp4, video/quicktime, video/webm" style={styles.input} onChange={e => setFormData({...formData, video: e.target.files?.[0] || null})} />
+        </div>
+
+        <button type="submit" style={styles.authButton} disabled={isLoading}>{isLoading ? "Submitting..." : "Submit to the Duma"}</button>
+      </form>
+
+      <div style={{ ...styles.dumaCard, background: '#f9f9f9', marginTop: '30px' }}>
+        <h3 style={{ marginTop: 0, fontSize: '14px', fontWeight: '700' }}>Before You Submit:</h3>
+        <ul style={{ fontSize: '13px', color: '#555', lineHeight: '1.8', marginLeft: '20px' }}>
+          <li>Verify you are logged in with your profile (displayed above) to ensure points are tracked</li>
+          <li>Double-check the Website Link for valid access before submitting</li>
+          <li>Ensure product photo label is legible and high-resolution</li>
+          <li>Keep video under 60 seconds</li>
+          <li>Justification must be 2-3 sentences focused on results, not personal opinions</li>
+        </ul>
+      </div>
+    </div>
+  );
+};
+
+const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, userAvatar }) => {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    name: "",
+    contactEmail: "",
+    phoneNumber: "",
+    ein: "",
+    company: "",
+    websiteOrSocial: "",
+    countryOfOrigin: "",
+    operatingCountry: "",
+    productType: "",
+    productDescription: "",
+    whyPartner: "",
+    photoFile: null,
+    videoFile: null,
+    unitsOf34Oz: "500",
+    desiredOrderQuantity: "",
+    pricing5Gallon: "",
+    standardUnitPrice: "5",
+    promotionalUnitPrice: "4",
+    commission25AgreedTo: false,
+    customerRewardAgreed: false,
+    shippingReturnsAgreed: false,
+    ownershipTitleAgreed: false,
+    tier: "National Associate"
+  });
+  const [errorMsg, setErrorMsg] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [videoPreview, setVideoPreview] = useState(null);
+  const [showGuestPrompt, setShowGuestPrompt] = useState(false);
+
+  const userScore = rankScore || 1;
+  const canApplyPremium = isPolitburoOrHigher(userScore);
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData({...formData, photoFile: file});
+      setPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleVideoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData({...formData, videoFile: file});
+      setVideoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setShowGuestPrompt(false);
+
+    // Validation
+    if (!formData.name || !formData.contactEmail || !formData.phoneNumber || !formData.ein) {
+      setErrorMsg("Please fill in all contact information fields.");
+      return;
+    }
+    if (!formData.company || !formData.countryOfOrigin || !formData.operatingCountry) {
+      setErrorMsg("Please fill in all company information fields.");
+      return;
+    }
+    if (!formData.productType || !formData.productDescription || !formData.whyPartner) {
+      setErrorMsg("Please fill in all product details.");
+      return;
+    }
+    if (!formData.desiredOrderQuantity) {
+      setErrorMsg("Please provide your desired inventory fulfillment quantity.");
+      return;
+    }
+    if (!formData.standardUnitPrice) {
+      setErrorMsg("Please provide the standard unit price to consumers.");
+      return;
+    }
+    if (!formData.promotionalUnitPrice) {
+      setErrorMsg("Please provide the promotional unit price to consumers.");
+      return;
+    }
+    if (!formData.commission25AgreedTo) {
+      setErrorMsg("You must agree to the 25% commission agreement.");
+      return;
+    }
+    if (!formData.shippingReturnsAgreed) {
+      setErrorMsg("You must agree to the Shipping & Returns Policy.");
+      return;
+    }
+    if (!formData.ownershipTitleAgreed) {
+      setErrorMsg("You must agree to the Ownership & Title Policy.");
+      return;
+    }
+
+    if (formData.tier === "Premium Partner" && !canApplyPremium) {
+      setErrorMsg("Premium Partner status requires Politburo rank or higher. Keep building your influence!");
+      return;
+    }
+
+    if (!authToken) {
+      setShowGuestPrompt(true);
+      return;
+    }
+
+    try {
+      const formDataObj = new FormData();
+      formDataObj.append('name', formData.name);
+      formDataObj.append('contactEmail', formData.contactEmail);
+      formDataObj.append('phoneNumber', formData.phoneNumber);
+      formDataObj.append('ein', formData.ein);
+      formDataObj.append('company', formData.company);
+      formDataObj.append('websiteOrSocial', formData.websiteOrSocial);
+      formDataObj.append('countryOfOrigin', formData.countryOfOrigin);
+      formDataObj.append('operatingCountry', formData.operatingCountry);
+      formDataObj.append('productType', formData.productType);
+      formDataObj.append('productDescription', formData.productDescription);
+      formDataObj.append('whyPartner', formData.whyPartner);
+      formDataObj.append('unitsOf34Oz', formData.unitsOf34Oz);
+      formDataObj.append('desiredOrderQuantity', formData.desiredOrderQuantity);
+      formDataObj.append('pricing5Gallon', formData.pricing5Gallon);
+      formDataObj.append('standardUnitPrice', formData.standardUnitPrice);
+      formDataObj.append('promotionalUnitPrice', formData.promotionalUnitPrice);
+      formDataObj.append('tier', formData.tier);
+      if (formData.photoFile) formDataObj.append('photo', formData.photoFile);
+      if (formData.videoFile) formDataObj.append('video', formData.videoFile);
+
+      const res = await fetch(`${BACKEND_URL}/api/duma/partner`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${authToken}` },
+        body: formDataObj
+      });
+      const data = await res.json();
+      if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); return; }
+      
+      addDumaItem({
+        ...formData,
+        id: Date.now(),
+        type: "Partner",
+        submittedBy: userEmail || "anonymous",
+        submitterRank: rankTitle || 'Comrade',
+        hasPhoto: !!formData.photoFile,
+        hasVideo: !!formData.videoFile
+      });
+      setSubmitted(true);
+    } catch (err) {
+      addDumaItem({
+        ...formData,
+        id: Date.now(),
+        type: "Partner",
+        submittedBy: userEmail || "anonymous",
+        submitterRank: rankTitle || 'Comrade',
+        hasPhoto: !!formData.photoFile,
+        hasVideo: !!formData.videoFile
+      });
+      setSubmitted(true);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
+          <div style={{ fontSize: '40px', marginBottom: '16px' }}></div>
+          <h2>Partnership Application Submitted!</h2>
+          <p style={{ color: '#666' }}>Your partnership application has been sent to The Majorities' Duma for review.</p>
+          <button style={{ ...styles.authButton, marginTop: '20px', width: 'auto', padding: '12px 24px' }} onClick={() => navigate("/duma")}>View the Duma</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+      <h2>Partner with The Majorities</h2>
+      <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
+        Apply to become a partner and sell on our marketplace
+      </p>
+      {userEmail && rankTitle && (
+        <div style={{ marginBottom: '20px' }}>
+          <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
+        </div>
+      )}
+      {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
+      {showGuestPrompt && <GuestSubmissionPrompt message="Log in or register to submit this partnership application to The Duma." />}
+
+      <form style={styles.dumaCard} onSubmit={handleSubmit}>
+        
+        {/* SECTION 1: CONTACT INFORMATION */}
+        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>1. CONTACT INFORMATION</h3>
+          <p style={{ fontSize: '12px', color: '#666', marginBottom: '14px', fontStyle: 'italic', backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', borderLeft: '3px solid #2980b9' }}>
+            Contact information will be kept private.
+          </p>
+          <input required placeholder="Full Name *" style={styles.input} 
+            value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+          <input required placeholder="Business Email *" type="email" style={styles.input} 
+            value={formData.contactEmail} onChange={e => setFormData({...formData, contactEmail: e.target.value})} />
+          <input required placeholder="Phone Number *" style={styles.input} 
+            value={formData.phoneNumber} onChange={e => setFormData({...formData, phoneNumber: e.target.value})} />
+          <input required placeholder="EIN (Employer Identification Number) *" style={styles.input} 
+            value={formData.ein} onChange={e => setFormData({...formData, ein: e.target.value})} />
+        </div>
+
+        {/* SECTION 2: COMPANY INFORMATION */}
+        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>2. COMPANY INFORMATION</h3>
+          <input required placeholder="Company Name *" style={styles.input} 
+            value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
+          <input required placeholder="Country of Origin *" style={styles.input} 
+            value={formData.countryOfOrigin} onChange={e => setFormData({...formData, countryOfOrigin: e.target.value})} />
+          <input required placeholder="Operating Country *" style={styles.input} 
+            value={formData.operatingCountry} onChange={e => setFormData({...formData, operatingCountry: e.target.value})} />
+          <input placeholder="Website or Social Media (e.g., www.yoursite.com or @yourhandle)" style={styles.input} 
+            value={formData.websiteOrSocial} onChange={e => setFormData({...formData, websiteOrSocial: e.target.value})} />
+        </div>
+
+        {/* SECTION 3: PRODUCT DETAILS */}
+        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>3. PRODUCT DETAILS</h3>
+          <input required placeholder="Product Type (e.g., Shampoo, Conditioner, Oil) *" style={styles.input} 
+            value={formData.productType} onChange={e => setFormData({...formData, productType: e.target.value})} />
+          <textarea required placeholder="Product Description *" style={{ ...styles.input, height: '80px' }}
+            value={formData.productDescription} onChange={e => setFormData({...formData, productDescription: e.target.value})} />
+          <textarea required placeholder="Why should we partner with you? *" style={{ ...styles.input, height: '100px' }}
+            value={formData.whyPartner} onChange={e => setFormData({...formData, whyPartner: e.target.value})} />
+        </div>
+
+        {/* SECTION 4: MEDIA UPLOADS */}
+        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>4. MEDIA</h3>
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Product Photo</label>
+          <input type="file" accept="image/*, image/heic, image/jpeg, image/png, image/webp" style={styles.input} onChange={handlePhotoChange} />
+          {photoPreview && <img src={photoPreview} style={{ maxWidth: '150px', marginTop: '10px', borderRadius: '8px' }} alt="Preview" />}
+
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>Product Video</label>
+          <input type="file" accept="video/*, video/mp4, video/quicktime, video/webm" style={styles.input} onChange={handleVideoChange} />
+          {videoPreview && <video src={videoPreview} style={{ maxWidth: '150px', marginTop: '10px', borderRadius: '8px' }} controls />}
+        </div>
+
+        {/* SECTION 5: LOGISTICS & REQUIREMENTS */}
+        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>5. LOGISTICS & REQUIREMENTS</h3>
+          <p style={{ fontSize: '12px', color: '#666', marginBottom: '14px', marginTop: 0 }}>
+            Desired fulfillment of 3.4 ounce bottles
+          </p>
+          
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
+            Fulfillment Quantity *
+          </label>
+          <input required placeholder="Fulfillment quantity" type="number" min="500" style={styles.input}
+            value={formData.desiredOrderQuantity} onChange={e => setFormData({...formData, desiredOrderQuantity: e.target.value})} />
+          <p style={{ fontSize: '11px', color: '#999', marginTop: '4px', margin: '4px 0 0 0' }}>Minimum fulfillment of 500 units</p>
+          
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>
+            Pricing for 5-gallon units (optional)
+          </label>
+          <input placeholder="Please provide pricing for bulk 5-gallon units" style={styles.input}
+            value={formData.pricing5Gallon} onChange={e => setFormData({...formData, pricing5Gallon: e.target.value})} />
+        </div>
+
+        {/* SECTION 6: REVENUE AGREEMENT & PRICING */}
+        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>6. REVENUE AGREEMENT & PRICING</h3>
+          
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
+            One Time Check out: Unit Price to Consumers *
+          </label>
+          <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', marginTop: 0 }}>
+            One Time unit price (Recommended: $5)
+          </p>
+          <input required placeholder="e.g., $5.00" style={styles.input}
+            value={formData.standardUnitPrice} onChange={e => setFormData({...formData, standardUnitPrice: e.target.value})} />
+          
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>
+            Subscription Pricing: Unit Price for Promotions *
+          </label>
+          <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', marginTop: 0 }}>
+            Subscription unit price (Recommended: $4)
+          </p>
+          <input required placeholder="e.g., $4.00" style={styles.input}
+            value={formData.promotionalUnitPrice} onChange={e => setFormData({...formData, promotionalUnitPrice: e.target.value})} />
+          
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '14px' }}>
+            <input type="checkbox" required checked={formData.customerRewardAgreed}
+              onChange={e => setFormData({...formData, customerRewardAgreed: e.target.checked})}
+              style={{ marginTop: '4px', accentColor: '#222', cursor: 'pointer' }} />
+            <span>I acknowledge and agree to the Customer Reward program: Customers can make a one-time purchase at the Subscription unit price for each promotion of a new rank. *</span>
+          </label>
+          
+          <div style={{ backgroundColor: '#f5f5f5', padding: '16px', borderRadius: '8px', marginTop: '16px', marginBottom: '14px' }}>
+            <p style={{ fontSize: '13px', color: '#333', margin: '0 0 10px 0', lineHeight: '1.6' }}>
+              <strong>Commission Structure:</strong> The Majorities take a <strong>25%</strong> commission on all partner charges to customers.
+            </p>
+            {formData.standardUnitPrice && (
+              <p style={{ fontSize: '12px', color: '#2980b9', margin: 0, fontWeight: '600', backgroundColor: '#e3f2fd', padding: '8px', borderRadius: '4px' }}>
+                One Time: At ${formData.standardUnitPrice}, you'd earn ~${(parseFloat(formData.standardUnitPrice) * 0.75).toFixed(2)} per unit (75%), with The Majorities taking ~${(parseFloat(formData.standardUnitPrice) * 0.25).toFixed(2)} (25%)
+              </p>
+            )}
+            {formData.promotionalUnitPrice && (
+              <p style={{ fontSize: '12px', color: '#27ae60', margin: '8px 0 0 0', fontWeight: '600', backgroundColor: '#e8f8f5', padding: '8px', borderRadius: '4px' }}>
+                Subscription: At ${formData.promotionalUnitPrice}, you'd earn ~${(parseFloat(formData.promotionalUnitPrice) * 0.75).toFixed(2)} per unit (75%), with The Majorities taking ~${(parseFloat(formData.promotionalUnitPrice) * 0.25).toFixed(2)} (25%)
+              </p>
+            )}
+          </div>
+          
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer' }}>
+            <input type="checkbox" required checked={formData.commission25AgreedTo} 
+              onChange={e => setFormData({...formData, commission25AgreedTo: e.target.checked})}
+              style={{ marginTop: '4px', accentColor: '#222', cursor: 'pointer' }} />
+            <span>I acknowledge and agree to the 25% commission structure *</span>
+          </label>
+          
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '12px' }}>
+            <input type="checkbox" required checked={formData.shippingReturnsAgreed}
+              onChange={e => setFormData({...formData, shippingReturnsAgreed: e.target.checked})}
+              style={{ marginTop: '4px', accentColor: '#222', cursor: 'pointer' }} />
+            <span>I acknowledge and agree to The Majorities' Shipping & Returns Policy: Partners are responsible for fulfilling orders within the agreed timeframe. Returns and refunds are handled in accordance with platform guidelines, and any disputes will be reviewed by The Majorities' support team. *</span>
+          </label>
+          
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '12px' }}>
+            <input type="checkbox" required checked={formData.ownershipTitleAgreed}
+              onChange={e => setFormData({...formData, ownershipTitleAgreed: e.target.checked})}
+              style={{ marginTop: '4px', accentColor: '#222', cursor: 'pointer' }} />
+            <span>I acknowledge and agree to The Majorities' Ownership & Title Policy: I confirm that I own or have legal rights to sell the listed products, that the products meet all applicable regulations, and that title transfers to the buyer upon delivery. *</span>
+          </label>
+        </div>
+
+        {/* SECTION 7: PARTNER TIER */}
+        <div style={{ marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>7. PARTNER TIER</h3>
+          <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', cursor: 'pointer' }}>
+              <input type="radio" name="tier" value="National Associate"
+                checked={formData.tier === "National Associate"}
+                onChange={e => setFormData({...formData, tier: e.target.value})} />
+              National Associate
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', cursor: canApplyPremium ? 'pointer' : 'not-allowed', opacity: canApplyPremium ? 1 : 0.5 }}>
+              <input type="radio" name="tier" value="Premium Partner"
+                checked={formData.tier === "Premium Partner"}
+                disabled={!canApplyPremium}
+                onChange={e => setFormData({...formData, tier: e.target.value})} />
+              Premium Partner {!canApplyPremium && <span style={{ fontSize: '11px', color: '#aaa' }}>(Politburo+ only)</span>}
+            </label>
+          </div>
+        </div>
+
+        <button type="submit" style={{ ...styles.authButton, marginTop: '20px' }}>Submit partnership to the duma</button>
+      </form>
+    </div>
+  );
+};
+
+// --- SIDEBAR AD (Google AdSense skyscraper, desktop-only) ---
+function SidebarAd({ slot }) {
+  const [isWide, setIsWide] = React.useState(
+    typeof window !== 'undefined' ? window.innerWidth >= 1300 : false
+  );
+
+  React.useEffect(() => {
+    function handleResize() {
+      setIsWide(window.innerWidth >= 1300);
+    }
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  React.useEffect(() => {
+    if (!isWide) return;
+    if (!document.querySelector('script[data-adsbygoogle-loader]')) {
+      const script = document.createElement('script');
+      script.async = true;
+      script.crossOrigin = 'anonymous';
+      script.setAttribute('data-adsbygoogle-loader', 'true');
+      script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7165853329123168';
+      document.head.appendChild(script);
+    }
+    try {
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    } catch (e) {}
+  }, [isWide]);
+
+  if (!isWide) return null;
+
+  return (
+    <div style={{ width: '160px', flex: '0 0 160px', minHeight: '600px' }}>
+      <ins
+        className="adsbygoogle"
+        style={{ display: 'inline-block', width: '160px', height: '600px' }}
+        data-ad-client="ca-pub-7165853329123168"
+        data-ad-slot={slot || ''}
+      ></ins>
+    </div>
+  );
+}
+
+// --- CULTURE LAB PAGE (Share Your Perspective) ---
+export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, onAddPoints, userAvatar }) => {
+  const navigate = useNavigate();
+  const prompts = [
+    // 🍽️ RESTAURANTS & BARS
+    { id: 1, text: "What's the best restaurant or local hidden gem you've eaten at recently? What should we order?" },
+    { id: 2, text: "Share your top bar or cocktail lounge recommendation. What's the go-to drink there?" },
+    { id: 3, text: "What is your absolute favorite brunch spot, and what makes it a must-visit?" },
+    { id: 4, text: "What's the coolest coffee shop or late-night dessert place in your area?" },
+
+    // ✈️ VACATIONS & FUN PLACES TO GO
+    { id: 5, text: "If you could recommend one vacation destination for a quick weekend getaway, where are we going?" },
+    { id: 6, text: "Drop your ultimate dream vacation spot or a past trip that blew your expectations away!" },
+    { id: 7, text: "What's a fun local spot or unique activity in your city that tourists usually miss out on?" },
+    { id: 8, text: "Share a photo or clip from your favorite travel memory or outdoor adventure." },
+
+    // 🛍️ SHOPPING & OUTFITS
+    { id: 9, text: "Show us your current OOTD (Outfit of the Day) or favorite wardrobe piece right now!" },
+    { id: 10, text: "What is your favorite brand or boutique to shop at for quality clothes or accessories?" },
+    { id: 11, text: "Drop your best budget fashion or shopping hack. How do you build killer looks for less?" },
+
+    // 🍿 MOVIES & TV SHOWS
+    { id: 12, text: "What TV show or series are you currently binge-watching that everyone needs to check out?" },
+    { id: 13, text: "What is a movie you can watch over and over again without ever getting tired of it?" },
+    { id: 14, text: "Recommend an underrated movie or show that doesn't get enough hype!" },
+
+    // ✨ ANYTHING GOES (WILDCARD)
+    { id: 15, text: "Post Anything! Share whatever is on your mind today—a random thought, life update, or funny hot take." }
+  ]
+  const [activePromptIndex, setActivePromptIndex] = useState(0);
+  const [response, setResponse] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [mediaFiles, setMediaFiles] = useState([]);
+  const [mediaPreviews, setMediaPreviews] = useState([]);
+  const [communitySocials, setCommunitySocials] = useState([]);
+
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/api/duma`)
+      .then(r => { if (!r.ok) throw new Error('Failed to fetch duma'); return r.json(); })
+      .then(data => {
+        if (!Array.isArray(data)) return;
+        const seen = new Set();
+        const socials = [];
+        data.forEach(item => {
+          const email = item.submittedBy;
+          const links = item.submitterSocialLinks;
+          if (email && links && !seen.has(email) && (links.instagram || links.tiktok || links.facebook)) {
+            seen.add(email);
+            socials.push({ email, links, avatar: item.submitterAvatar || null, rank: item.submitterRank || 'Comrade' });
+          }
+        });
+        setCommunitySocials(socials);
+      })
+      .catch(err => console.error("Failed to load community socials:", err));
+  }, []);
+
+  const activePrompt = prompts[activePromptIndex];
+
+  const selectedPrompt = activePrompt?.text || "";
+const selectedPromptId = activePrompt?.id;
+
+  const rotatePrompt = (direction) => {
+    setActivePromptIndex((prev) => {
+      if (direction === "random") {
+        if (prompts.length <= 1) return prev;
+        let nextIndex = prev;
+        while (nextIndex === prev) {
+          nextIndex = Math.floor(Math.random() * prompts.length);
+        }
+        return nextIndex;
+      }
+      return (prev + direction + prompts.length) % prompts.length;
+    });
+  };
+
+  const handleMediaChange = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFiles = Array.from(e.target.files).slice(0, 6);
+      setMediaFiles(selectedFiles);
+      const previews = selectedFiles.map((file) => ({
+        url: URL.createObjectURL(file),
+        type: file.type.startsWith("video/") ? "video" : "image",
+      }));
+      setMediaPreviews(previews);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedPrompt || !response.trim()) {
+      setErrorMsg("Please select a prompt and provide your response.");
+      return;
+    }
+    
+    setErrorMsg("");
+    
+    try {
+      let uploadedMediaUrls = [];
+
+      if (mediaFiles.length > 0 && authToken) {
+        for (const file of mediaFiles) {
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("type", file.type.startsWith("video/") ? "video" : "image");
+          const uploadRes = await fetch(`${BACKEND_URL}/api/media/upload`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${authToken}` },
+            body: formData
+          });
+          if (uploadRes.ok) {
+            const uploadData = await uploadRes.json();
+            const cloudUrl = uploadData.storageUrl || uploadData.secure_url || uploadData.url;
+            if (cloudUrl) uploadedMediaUrls.push(cloudUrl);
+          }
+        }
+      }
+
+      if (authToken) {
+        const res = await fetch(`${BACKEND_URL}/api/duma/culture`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+          body: JSON.stringify({
+            prompt: selectedPrompt,
+            response: response,
+            category: "Culture",
+            mediaUrls: uploadedMediaUrls
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); return; }
+      }
+
+      // Add to local Duma and award points
+      addDumaItem({
+        id: Date.now(),
+        type: "Culture",
+        category: "Culture",
+        prompt: selectedPrompt,
+        response: response,
+        mediaUrls: uploadedMediaUrls.length > 0 ? uploadedMediaUrls : mediaPreviews.map(p => p.url),
+        submittedBy: userEmail,
+        submitterRank: rankTitle || 'Comrade',
+        submitterAvatar: userAvatar || null,
+        votes: { yes: 0 }
+      });
+
+      if (onAddPoints) onAddPoints(100);
+        if (userEmail && selectedPromptId) markPromptCompleted(userEmail, selectedPromptId);
+      
+      setSubmitted(true);
+      setTimeout(() => {
+        navigate("/duma");
+      }, 2000);
+    } catch (err) {
+      // Fallback to local only
+      addDumaItem({
+        id: Date.now(),
+        type: "Culture",
+        category: "Culture",
+        prompt: selectedPrompt,
+        response: response,
+        mediaUrls: mediaPreviews.map(p => p.url),
+        submittedBy: userEmail,
+        submitterRank: rankTitle || 'Comrade',
+        submitterAvatar: userAvatar || null,
+        votes: { yes: 0 }
+      });
+      if (onAddPoints) onAddPoints(100);
+if (userEmail && selectedPromptId) markPromptCompleted(userEmail, selectedPromptId);
+      setSubmitted(true);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
+          <div style={{ fontSize: '40px', marginBottom: '16px' }}></div>
+          <h2 style={{ marginBottom: '10px' }}>Perspective Shared!</h2>
+          <p style={{ color: '#666', marginBottom: '20px' }}>
+            Your response has been submitted to The Majorities' Culture section and appears in the Duma for community voting.
+          </p>
+          <p style={{ fontSize: '12px', color: '#888' }}>You earned 1 point!</p>
+          {rankTitle && <RankBadge rankTitle={rankTitle} />}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', width: '100%' }}>
+      <SidebarAd />
+      <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto', flex: '1 1 auto', minWidth: 0 }}>
+      <h2>Share Your Perspective</h2>
+      <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
+        Contribute to our Culture section by answering one of these prompts. 
+        Submit your response to the Duma for community voting and earn points!
+      </p>
+
+      {userEmail && rankTitle && (
+        <div style={{ marginBottom: '30px' }}>
+          <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
+        </div>
+      )}
+
+      <AdMonetization placement="culture_page" />
+
+      {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
+
+      <form style={styles.dumaCard} onSubmit={handleSubmit}>
+        <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Choose a Prompt</h3>
+        {activePrompt && (
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{
+              padding: '20px',
+              border: '2px solid #222',
+              borderRadius: '12px',
+              backgroundColor: '#f9f9f9',
+              marginBottom: '14px'
+            }}>
+              <p style={{ margin: 0, fontSize: '15px', lineHeight: 1.6, color: '#222', fontWeight: 600 }}>
+                {activePrompt.text}
+              </p>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => rotatePrompt(-1)}
+                style={{ ...styles.authButton, width: 'auto', padding: '10px 16px' }}
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                onClick={() => rotatePrompt("random")}
+                style={{ ...styles.authButton, width: 'auto', padding: '10px 16px', backgroundColor: '#666' }}
+              >
+                Shuffle Prompt
+              </button>
+              <button
+                type="button"
+                onClick={() => rotatePrompt(1)}
+                style={{ ...styles.authButton, width: 'auto', padding: '10px 16px' }}
+              >
+                Next
+              </button>
+              <span style={{ fontSize: '12px', color: '#666' }}>
+                Prompt {activePromptIndex + 1} of {prompts.length}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <h3 style={{ marginTop: '24px', marginBottom: '8px' }}>Attach Photos or Videos (Up to 6)</h3>
+        <p style={{ fontSize: '12px', color: '#666', margin: '0 0 12px 0' }}>Share photos or clips of restaurants, outfits, vacation spots, or favorite media.</p>
+        <input type="file" accept="image/*, image/heic, video/*, video/mp4, video/quicktime, video/webm" multiple onChange={handleMediaChange} style={{ ...styles.input, padding: '8px' }} />
+        {mediaPreviews.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '8px', marginTop: '15px', marginBottom: '15px' }}>
+            {mediaPreviews.map((preview, idx) => (
+              <div key={idx} style={{ background: '#fafafa', padding: '6px', borderRadius: '8px', border: '1px solid #eee', textAlign: 'center' }}>
+                {preview.type === "image" ? (
+                  <img src={preview.url} alt={`Preview ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '6px' }} />
+                ) : (
+                  <video src={preview.url} style={{ width: '100%', height: '100px', borderRadius: '6px' }} controls />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <h3 style={{ marginTop: '24px', marginBottom: '12px' }}>Your Response</h3>
+        <p style={{ fontSize: '12px', color: '#666', margin: '0 0 12px 0' }}>Share your thoughts (recommended: 45 seconds of speaking if recorded)</p>
+        <textarea
+          required
+          placeholder="Type your response here..."
+          style={{ ...styles.input, height: '140px' }}
+          value={response}
+          onChange={(e) => setResponse(e.target.value)}
+        />
+
+        <button type="submit" style={styles.authButton}>Submit to the Duma (+100 points)</button>
+      </form>
+
+      {/* COMMUNITY SOCIAL FEED */}
+      <section style={{ marginTop: '50px' }}>
+        <h2 style={{ fontSize: '20px', marginBottom: '8px', fontWeight: '600' }}>Community Social Links</h2>
+        <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Connect with other members of The Majorities.</p>
+        {communitySocials.length === 0 ? (
+          <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888', padding: '30px' }}>
+            No social links shared yet. Be the first — add yours in your Profile settings!
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
+            {communitySocials.map(member => (
+              <div key={member.email} style={{ ...styles.dumaCard, padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {member.avatar ? (
+                    <img src={member.avatar} alt="avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>👤</div>
+                  )}
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#222' }}>{member.email.split('@')[0]}</div>
+                    <RankBadge rankTitle={member.rank} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {member.links.instagram && (
+                    <a href={safeSocialUrl(member.links.instagram)} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#c13584', textDecoration: 'none', fontWeight: '500' }}>
+                      📸 Instagram
+                    </a>
+                  )}
+                  {member.links.tiktok && (
+                    <a href={safeSocialUrl(member.links.tiktok)} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#222', textDecoration: 'none', fontWeight: '500' }}>
+                      🎵 TikTok
+                    </a>
+                  )}
+                  {member.links.facebook && (
+                    <a href={safeSocialUrl(member.links.facebook)} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#1877F2', textDecoration: 'none', fontWeight: '500' }}>
+                      👍 Facebook
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+      <SidebarAd />
+    </div>
+  );
+};
+
+// --- DUMA PAGE ---
 const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints, userAvatar }) => {
   const [dumaItems, setDumaItems] = useState(items);
   const [userVotes, setUserVotes] = useState({});
@@ -1235,6 +2545,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/duma`).then(r => r.json()).then(data => {
       if (Array.isArray(data) && data.length > 0) {
+        // De-duplicate items by ID so only one unique entry is rendered per submission
         const uniqueMap = new Map();
         [...data, ...items].forEach(item => {
           const id = item._id || item.id;
@@ -1281,339 +2592,349 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
   const partnerItems = dumaItems.filter(item => item.type === "Partner");
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', maxWidth: '1400px', margin: '0 auto', padding: '40px 10px' }}>
-      {/* LEFT AD SIDEBAR */}
-      <SidebarAd position="left" />
-
-      {/* MAIN CONTENT AREA */}
-      <div style={{ flex: 1, maxWidth: '900px', minWidth: 0 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '30px' }}>
-          <div>
-            <h2 style={{ marginBottom: '6px' }}>The Majorities' Duma</h2>
-            <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>Community recommendations, partnerships, and cultural contributions - vote to shape The Majorities.</p>
-          </div>
-          {userEmail && rankTitle && <div style={{ textAlign: 'right', minWidth: '250px' }}><CredentialHeader email={userEmail} rankTitle={getRankTitle(rankScore)} rankScore={rankScore} avatarUrl={userAvatar} /></div>}
+    <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', width: '100%' }}>
+      <SidebarAd />
+      <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto', flex: '1 1 auto', minWidth: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '30px' }}>
+        <div>
+          <h2 style={{ marginBottom: '6px' }}>The Majorities' Duma</h2>
+          <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>Community recommendations, partnerships, and cultural contributions - vote to shape The Majorities.</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '30px', borderBottom: '2px solid #eee', paddingBottom: '15px' }}>
-          <button onClick={() => setActiveSection("Culture")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Culture" ? '#222' : '#f5f5f5', color: activeSection === "Culture" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Culture ({culturalItems.length})</button>
-          <button onClick={() => setActiveSection("Recommendations")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Recommendations" ? '#222' : '#f5f5f5', color: activeSection === "Recommendations" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Recommendations ({recommendationItems.length})</button>
-          <button onClick={() => setActiveSection("Partners")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Partners" ? '#222' : '#f5f5f5', color: activeSection === "Partners" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Partners ({partnerItems.length})</button>
-          <button onClick={() => window.location.href = authToken ? '/culture' : '/login'} style={{ padding: '8px 14px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', marginLeft: 'auto' }}>{authToken ? '+ Share Your Perspective' : 'Log in to Share'}</button>
-        </div>
-
-        {activeSection === "Culture" && (
-          <div>
-            {culturalItems.length === 0 ? (
-              <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No perspectives shared yet. Share yours and contribute to our culture section!</div>
-            ) : (
-              culturalItems.map(item => {
-                const itemId = item._id || item.id;
-                const verifiedRank = item.rankScore ? getRankTitle(item.rankScore) : (item.submitterRank || "Comrade");
-
-                return (
-                  <div key={itemId} style={styles.dumaCard}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                      <span style={styles.typeTag}>Perspective</span>
-                      <RankBadge rankTitle={verifiedRank} />
-                    </div>
-
-                    {item.submittedBy && (
-                      <CredentialHeader
-                        email={item.submittedBy}
-                        rankTitle={verifiedRank}
-                        rankScore={item.rankScore || null}
-                        avatarUrl={item.submitterAvatar || null}
-                        socialLinks={item.submitterSocialLinks || null}
-                      />
-                    )}
-
-                    <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
-                    <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6', marginBottom: '14px' }}>{item.response || item.reason || item.desc}</p>
-
-                    {/* MEDIA DISPLAY */}
-                    {(() => {
-                      const mediaList = Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0
-                        ? item.mediaUrls
-                        : item.mediaUrl ? [item.mediaUrl] : [];
-                      if (mediaList.length === 0) return null;
-                      return (
-                        <div style={{ display: 'grid', gridTemplateColumns: mediaList.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', margin: '15px 0', background: '#fafafa', padding: '10px', borderRadius: '12px', border: '1px solid #eee' }}>
-                          {mediaList.map((url, idx) => (
-                            <div key={idx} style={{ textAlign: 'center' }}>
-                              {/\.(mp4|mov|webm)$/i.test(url) ? (
-                                <video src={url} style={{ width: '100%', maxHeight: '400px', borderRadius: '8px' }} controls />
-                              ) : (
-                                <img src={url} alt={`Attachment ${idx + 1}`} style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover' }} />
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })()}
-
-                    {authToken && (
-                      <div>
-                        <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-                          <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[itemId] === 'yes' ? 1 : 0.7 }}>Yes</button>
-                          <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[itemId] === 'no' ? 1 : 0.7 }}>No</button>
-                          <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[itemId] === 'abstain' ? 1 : 0.7 }}>Abstain</button>
-                        </div>
-
-                        {showScores[itemId] && (
-                          <div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
-                            <p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>Vote Results:</p>
-                            <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
-                              Yes: {item.votes?.yes || 0} | No: {item.votes?.no || 0} | Abstain: {item.votes?.abstain || 0}
-                            </p>
-                          </div>
-                        )}
-
-                        {showComments[itemId] && (
-                          <div style={{ borderTop: '2px solid #eee', paddingTop: '12px' }}>
-                            <h4 style={{ fontSize: '13px', color: '#555', marginBottom: '12px', fontWeight: '700' }}>Comments:</h4>
-                            {comments[itemId]?.length > 0 && (
-                              <div style={{ marginBottom: '12px' }}>
-                                {comments[itemId].map((comment, idx) => (
-                                  <div key={idx} style={{ backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', marginBottom: '8px', borderLeft: '3px solid #3498db' }}>
-                                    <p style={{ fontSize: '11px', fontWeight: '600', color: '#222', margin: '0 0 4px 0' }}>{comment.author}</p>
-                                    <p style={{ fontSize: '12px', color: '#666', margin: '0 0 4px 0' }}>{comment.text}</p>
-                                    <p style={{ fontSize: '10px', color: '#aaa', margin: 0 }}>{comment.timestamp}</p>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                              <input type="text" placeholder="Add a comment..." style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px' }} value={commentText[itemId] || ''} onChange={(e) => setCommentText(prev => ({ ...prev, [itemId]: e.target.value }))} />
-                              <button onClick={() => handleCommentSubmit(itemId)} style={{ padding: '8px 16px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Post</button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
-
-        {activeSection === "Recommendations" && !authToken && (
-          <div style={{ padding: '20px 0' }}>
-            <GuestSubmissionPrompt message="This section contains proprietary commerce ledger records, partner structures, and product recommendations. Please log in or register to view this data." />
-          </div>
-        )}
-
-        {activeSection === "Recommendations" && authToken && (
-          <div>
-            {recommendationItems.length === 0 ? (
-              <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No product recommendations yet. Be the first to recommend a product!</div>
-            ) : (
-              recommendationItems.map(item => (
-                <div key={item.id || item._id} style={styles.dumaCard}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                    <span style={styles.typeTag}>{item.type}</span>
-                    {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
-                  </div>
-                  {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
-                  <h3 style={{ marginTop: '8px', marginBottom: '6px' }}>{item.name || item.product} by {item.company}</h3>
-                  <p style={{ color: '#666', fontSize: '14px', marginBottom: '14px' }}>{item.reason || item.desc}</p>
-                  
-                  {authToken && (
-                    <div>
-                      <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-                        <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[item.id || item._id] === 'yes' ? 1 : 0.7 }}>Yes</button>
-                        <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[item.id || item._id] === 'no' ? 1 : 0.7 }}>No</button>
-                        <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[item.id || item._id] === 'abstain' ? 1 : 0.7 }}>Abstain</button>
-                      </div>
-                      
-                      {showScores[item.id || item._id] && (
-                        <div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
-                          <p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>Vote Results:</p>
-                          <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
-                            Yes: {item.votes?.yes || 0} | No: {item.votes?.no || 0} | Abstain: {item.votes?.abstain || 0}
-                          </p>
-                        </div>
-                      )}
-                      
-                      {showComments[item.id || item._id] && (
-                        <div style={{ borderTop: '2px solid #eee', paddingTop: '12px' }}>
-                          <h4 style={{ fontSize: '13px', color: '#555', marginBottom: '12px', fontWeight: '700' }}>Comments:</h4>
-                          {comments[item.id || item._id]?.length > 0 && (
-                            <div style={{ marginBottom: '12px' }}>
-                              {comments[item.id || item._id].map((comment, idx) => (
-                                <div key={idx} style={{ backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', marginBottom: '8px', borderLeft: '3px solid #3498db' }}>
-                                  <p style={{ fontSize: '11px', fontWeight: '600', color: '#222', margin: '0 0 4px 0' }}>{comment.author}</p>
-                                  <p style={{ fontSize: '12px', color: '#666', margin: '0 0 4px 0' }}>{comment.text}</p>
-                                  <p style={{ fontSize: '10px', color: '#aaa', margin: 0 }}>{comment.timestamp}</p>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <input type="text" placeholder="Add a comment..." style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px' }} value={commentText[item.id || item._id] || ''} onChange={(e) => setCommentText(prev => ({ ...prev, [item.id || item._id]: e.target.value }))} />
-                            <button onClick={() => handleCommentSubmit(item.id || item._id)} style={{ padding: '8px 16px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Post</button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {activeSection === "Partners" && !authToken && (
-          <div style={{ padding: '20px 0' }}>
-            <GuestSubmissionPrompt message="This section contains proprietary commerce ledger records, partner structures, and product recommendations. Please log in or register to view this data." />
-          </div>
-        )}
-
-        {activeSection === "Partners" && authToken && (
-          <div>
-            {partnerItems.length === 0 ? (
-              <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No partner applications yet. Be the first to submit a partnership!</div>
-            ) : (
-              partnerItems.map(item => (
-                <div key={item.id || item._id} style={styles.dumaCard}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                    <span style={styles.typeTag}>{item.type}</span>
-                    {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
-                  </div>
-                  {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
-
-                  <h3 style={{ marginTop: '12px', marginBottom: '12px' }}>{item.productType} - {item.company}</h3>
-
-                  <h4 style={{ marginBottom: '6px', fontSize: '13px', color: '#555', fontWeight: '700' }}>Product Details:</h4>
-                  <p style={{ color: '#666', fontSize: '13px', marginBottom: '6px', lineHeight: '1.5' }}>
-                    <strong>Type:</strong> {item.productType}
-                  </p>
-                  <p style={{ color: '#222', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>
-                    <strong>Description:</strong> {item.productDescription}
-                  </p>
-                  <p style={{ color: '#222', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>
-                    <strong>Partnership Rationale:</strong> {item.whyPartner}
-                  </p>
-
-                  {(item.hasPhoto || item.hasVideo) && (
-                    <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '12px', borderLeft: '4px solid #9b59b6' }}>
-                      <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Media:</h4>
-                      {item.hasPhoto && <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>Product photo included</p>}
-                      {item.hasVideo && <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>Product video included</p>}
-                    </div>
-                  )}
-
-                  <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '12px', borderLeft: '4px solid #27ae60' }}>
-                    <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Business Logistics:</h4>
-                    <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                      <strong>EIN:</strong> {item.ein || 'N/A'}
-                    </p>
-                    <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                      <strong>MOQ:</strong> 500 units (3.4 oz)
-                    </p>
-                    {item.desiredOrderQuantity && (
-                      <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                        <strong>Desired Fulfillment:</strong> {item.desiredOrderQuantity} units
-                      </p>
-                    )}
-                    {item.pricing5Gallon && (
-                      <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                        <strong>5-Gallon Pricing:</strong> {item.pricing5Gallon}
-                      </p>
-                    )}
-                  </div>
-
-                  <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #e67e22' }}>
-                    <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Pricing Models:</h4>
-                    {item.standardUnitPrice && (
-                      <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                        <strong>One Time Price:</strong> ${item.standardUnitPrice}
-                      </p>
-                    )}
-                    {item.promotionalUnitPrice && (
-                      <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                        <strong>Subscription Price:</strong> ${item.promotionalUnitPrice}
-                      </p>
-                    )}
-                    <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                      <strong>Commission:</strong> The Majorities take 25% | Partner receives 75%
-                    </p>
-                    <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                      <strong>Tier:</strong> {item.tier}
-                    </p>
-                  </div>
-
-                  <div style={{ backgroundColor: '#f9f9f9', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #34495e' }}>
-                    <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Policy Checkboxes:</h4>
-                    <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                      <strong>Customer Reward Program:</strong> {item.customerRewardAgreed ? 'Agreed' : 'Not specified'}
-                    </p>
-                    <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                      <strong>25% Commission Agreement:</strong> {item.commission25AgreedTo ? 'Agreed' : 'Not specified'}
-                    </p>
-                    <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                      <strong>Shipping & Returns Policy:</strong> {item.shippingReturnsAgreed ? 'Agreed' : 'Not specified'}
-                    </p>
-                    <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                      <strong>Ownership & Title Policy:</strong> {item.ownershipTitleAgreed ? 'Agreed' : 'Not specified'}
-                    </p>
-                  </div>
-
-                  {authToken && (
-                    <div>
-                      <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-                        <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[item.id || item._id] === 'yes' ? 1 : 0.7 }}>Yes</button>
-                        <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[item.id || item._id] === 'no' ? 1 : 0.7 }}>No</button>
-                        <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[item.id || item._id] === 'abstain' ? 1 : 0.7 }}>Abstain</button>
-                      </div>
-
-                      {showScores[item.id || item._id] && (
-                        <div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
-                          <p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>Vote Results:</p>
-                          <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
-                            Yes: {item.votes?.yes || 0} | No: {item.votes?.no || 0} | Abstain: {item.votes?.abstain || 0}
-                          </p>
-                        </div>
-                      )}
-
-                      {showComments[item.id || item._id] && (
-                        <div style={{ borderTop: '2px solid #eee', paddingTop: '12px' }}>
-                          <h4 style={{ fontSize: '13px', color: '#555', marginBottom: '12px', fontWeight: '700' }}>Comments:</h4>
-
-                          {comments[item.id || item._id]?.length > 0 && (
-                            <div style={{ marginBottom: '12px' }}>
-                              {comments[item.id || item._id].map((comment, idx) => (
-                                <div key={idx} style={{ backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', marginBottom: '8px', borderLeft: '3px solid #3498db' }}>
-                                  <p style={{ fontSize: '11px', fontWeight: '600', color: '#222', margin: '0 0 4px 0' }}>{comment.author}</p>
-                                  <p style={{ fontSize: '12px', color: '#666', margin: '0 0 4px 0' }}>{comment.text}</p>
-                                  <p style={{ fontSize: '10px', color: '#aaa', margin: 0 }}>{comment.timestamp}</p>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <input type="text" placeholder="Add a comment..." style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px' }} value={commentText[item.id || item._id] || ''} onChange={(e) => setCommentText(prev => ({ ...prev, [item.id || item._id]: e.target.value }))} />
-                            <button onClick={() => handleCommentSubmit(item.id || item._id)} style={{ padding: '8px 16px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Post</button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        )}
+        {userEmail && rankTitle && <div style={{ textAlign: 'right', minWidth: '250px' }}><CredentialHeader email={userEmail} rankTitle={getRankTitle(rankScore)} rankScore={rankScore} avatarUrl={userAvatar} /></div>}
+      </div>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '30px', borderBottom: '2px solid #eee', paddingBottom: '15px' }}>
+        <button onClick={() => setActiveSection("Culture")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Culture" ? '#222' : '#f5f5f5', color: activeSection === "Culture" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Culture ({culturalItems.length})</button>
+        <button onClick={() => setActiveSection("Recommendations")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Recommendations" ? '#222' : '#f5f5f5', color: activeSection === "Recommendations" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Recommendations ({recommendationItems.length})</button>
+        <button onClick={() => setActiveSection("Partners")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Partners" ? '#222' : '#f5f5f5', color: activeSection === "Partners" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Partners ({partnerItems.length})</button>
+        <button onClick={() => window.location.href = authToken ? '/culture' : '/login'} style={{ padding: '8px 14px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', marginLeft: 'auto' }}>{authToken ? '+ Share Your Perspective' : 'Log in to Share'}</button>
       </div>
 
-      {/* RIGHT AD SIDEBAR */}
-      <SidebarAd position="right" />
+      <AdMonetization placement="duma_page" />
+
+      {activeSection === "Culture" && (
+        <div>
+          {culturalItems.length === 0 ? (
+            <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No perspectives shared yet. Share yours and contribute to our culture section!</div>
+          ) : (
+            culturalItems.map(item => {
+              const itemId = item._id || item.id;
+              // Dynamically recalculate rank badge from stored score to always reflect correct tier
+              const verifiedRank = item.rankScore ? getRankTitle(item.rankScore) : (item.submitterRank || "Comrade");
+
+              return (
+                <div key={itemId} style={styles.dumaCard}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                    <span style={styles.typeTag}>Perspective</span>
+                    <RankBadge rankTitle={verifiedRank} />
+                  </div>
+
+                  {item.submittedBy && (
+                    <CredentialHeader
+                      email={item.submittedBy}
+                      rankTitle={verifiedRank}
+                      rankScore={item.rankScore || null}
+                      avatarUrl={item.submitterAvatar || null}
+                      socialLinks={item.submitterSocialLinks || null}
+                    />
+                  )}
+
+                  <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
+                  <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6', marginBottom: '14px' }}>{item.response || item.reason || item.desc}</p>
+
+                  {/* MEDIA DISPLAY: renders uploaded images or videos inline */}
+                  {(() => {
+                    const mediaList = Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0
+                      ? item.mediaUrls
+                      : item.mediaUrl ? [item.mediaUrl] : [];
+                    if (mediaList.length === 0) return null;
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: mediaList.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', margin: '15px 0', background: '#fafafa', padding: '10px', borderRadius: '12px', border: '1px solid #eee' }}>
+                        {mediaList.map((url, idx) => (
+                          <div key={idx} style={{ textAlign: 'center' }}>
+                            {/\.(mp4|mov|webm)$/i.test(url) ? (
+                              <video src={url} style={{ width: '100%', maxHeight: '400px', borderRadius: '8px' }} controls />
+                            ) : (
+                              <img src={url} alt={`Attachment ${idx + 1}`} style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover' }} />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+
+                  {authToken && (
+                    <div>
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                        <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[itemId] === 'yes' ? 1 : 0.7 }}>Yes</button>
+                        <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[itemId] === 'no' ? 1 : 0.7 }}>No</button>
+                        <button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[itemId] === 'abstain' ? 1 : 0.7 }}>Abstain</button>
+                      </div>
+
+                      {showScores[itemId] && (
+                        <div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
+                          <p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>Vote Results:</p>
+                          <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
+                            Yes: {item.votes?.yes || 0} | No: {item.votes?.no || 0} | Abstain: {item.votes?.abstain || 0}
+                          </p>
+                        </div>
+                      )}
+
+                      {showComments[itemId] && (
+                        <div style={{ borderTop: '2px solid #eee', paddingTop: '12px' }}>
+                          <h4 style={{ fontSize: '13px', color: '#555', marginBottom: '12px', fontWeight: '700' }}>Comments:</h4>
+                          {comments[itemId]?.length > 0 && (
+                            <div style={{ marginBottom: '12px' }}>
+                              {comments[itemId].map((comment, idx) => (
+                                <div key={idx} style={{ backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', marginBottom: '8px', borderLeft: '3px solid #3498db' }}>
+                                  <p style={{ fontSize: '11px', fontWeight: '600', color: '#222', margin: '0 0 4px 0' }}>{comment.author}</p>
+                                  <p style={{ fontSize: '12px', color: '#666', margin: '0 0 4px 0' }}>{comment.text}</p>
+                                  <p style={{ fontSize: '10px', color: '#aaa', margin: 0 }}>{comment.timestamp}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <input type="text" placeholder="Add a comment..." style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px' }} value={commentText[itemId] || ''} onChange={(e) => setCommentText(prev => ({ ...prev, [itemId]: e.target.value }))} />
+                            <button onClick={() => handleCommentSubmit(itemId)} style={{ padding: '8px 16px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Post</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {activeSection === "Recommendations" && !authToken && (
+        <div style={{ padding: '20px 0' }}>
+          <GuestSubmissionPrompt message="This section contains proprietary commerce ledger records, partner structures, and product recommendations. Please log in or register to view this data." />
+        </div>
+      )}
+
+      {activeSection === "Recommendations" && authToken && (
+        <div>
+          {recommendationItems.length === 0 ? (
+            <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No product recommendations yet. Be the first to recommend a product!</div>
+          ) : (
+            recommendationItems.map(item => (
+              <div key={item.id || item._id} style={styles.dumaCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                  <span style={styles.typeTag}>{item.type}</span>
+                  {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
+                </div>
+                {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
+                <h3 style={{ marginTop: '8px', marginBottom: '6px' }}>{item.name || item.product} by {item.company}</h3>
+                <p style={{ color: '#666', fontSize: '14px', marginBottom: '14px' }}>{item.reason || item.desc}</p>
+                
+                {/* VOTING SECTION */}
+                {authToken && (
+                  <div>
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[item.id || item._id] === 'yes' ? 1 : 0.7 }}>Yes</button>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[item.id || item._id] === 'no' ? 1 : 0.7 }}>No</button>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[item.id || item._id] === 'abstain' ? 1 : 0.7 }}>Abstain</button>
+                    </div>
+                    
+                    {/* VOTE SCORES - VISIBLE ONLY AFTER VOTING */}
+                    {showScores[item.id || item._id] && (
+                      <div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
+                        <p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>Vote Results:</p>
+                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
+                          Yes: {item.votes?.yes || 0} | No: {item.votes?.no || 0} | Abstain: {item.votes?.abstain || 0}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* COMMENTS SECTION - VISIBLE AFTER VOTING */}
+                    {showComments[item.id || item._id] && (
+                      <div style={{ borderTop: '2px solid #eee', paddingTop: '12px' }}>
+                        <h4 style={{ fontSize: '13px', color: '#555', marginBottom: '12px', fontWeight: '700' }}>Comments:</h4>
+                        
+                        {/* EXISTING COMMENTS */}
+                        {comments[item.id || item._id]?.length > 0 && (
+                          <div style={{ marginBottom: '12px' }}>
+                            {comments[item.id || item._id].map((comment, idx) => (
+                              <div key={idx} style={{ backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', marginBottom: '8px', borderLeft: '3px solid #3498db' }}>
+                                <p style={{ fontSize: '11px', fontWeight: '600', color: '#222', margin: '0 0 4px 0' }}>{comment.author}</p>
+                                <p style={{ fontSize: '12px', color: '#666', margin: '0 0 4px 0' }}>{comment.text}</p>
+                                <p style={{ fontSize: '10px', color: '#aaa', margin: 0 }}>{comment.timestamp}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* ADD COMMENT */}
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <input type="text" placeholder="Add a comment..." style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px' }} value={commentText[item.id || item._id] || ''} onChange={(e) => setCommentText(prev => ({ ...prev, [item.id || item._id]: e.target.value }))} />
+                          <button onClick={() => handleCommentSubmit(item.id || item._id)} style={{ padding: '8px 16px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Post</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {activeSection === "Partners" && !authToken && (
+        <div style={{ padding: '20px 0' }}>
+          <GuestSubmissionPrompt message="This section contains proprietary commerce ledger records, partner structures, and product recommendations. Please log in or register to view this data." />
+        </div>
+      )}
+
+      {activeSection === "Partners" && authToken && (
+        <div>
+          {partnerItems.length === 0 ? (
+            <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No partner applications yet. Be the first to submit a partnership!</div>
+          ) : (
+            partnerItems.map(item => (
+              <div key={item.id || item._id} style={styles.dumaCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                  <span style={styles.typeTag}>{item.type}</span>
+                  {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
+                </div>
+                {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
+
+                <h3 style={{ marginTop: '12px', marginBottom: '12px' }}>{item.productType} - {item.company}</h3>
+
+                <h4 style={{ marginBottom: '6px', fontSize: '13px', color: '#555', fontWeight: '700' }}>Product Details:</h4>
+                <p style={{ color: '#666', fontSize: '13px', marginBottom: '6px', lineHeight: '1.5' }}>
+                  <strong>Type:</strong> {item.productType}
+                </p>
+                <p style={{ color: '#222', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>
+                  <strong>Description:</strong> {item.productDescription}
+                </p>
+                <p style={{ color: '#222', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>
+                  <strong>Partnership Rationale:</strong> {item.whyPartner}
+                </p>
+
+                {(item.hasPhoto || item.hasVideo) && (
+                  <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '12px', borderLeft: '4px solid #9b59b6' }}>
+                    <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Media:</h4>
+                    {item.hasPhoto && <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>Product photo included</p>}
+                    {item.hasVideo && <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>Product video included</p>}
+                  </div>
+                )}
+
+                <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '12px', borderLeft: '4px solid #27ae60' }}>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Business Logistics:</h4>
+                  <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                    <strong>EIN:</strong> {item.ein || 'N/A'}
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                    <strong>MOQ:</strong> 500 units (3.4 oz)
+                  </p>
+                  {item.desiredOrderQuantity && (
+                    <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                      <strong>Desired Fulfillment:</strong> {item.desiredOrderQuantity} units
+                    </p>
+                  )}
+                  {item.pricing5Gallon && (
+                    <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                      <strong>5-Gallon Pricing:</strong> {item.pricing5Gallon}
+                    </p>
+                  )}
+                </div>
+
+                <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #e67e22' }}>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Pricing Models:</h4>
+                  {item.standardUnitPrice && (
+                    <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                      <strong>One Time Price:</strong> ${item.standardUnitPrice}
+                    </p>
+                  )}
+                  {item.promotionalUnitPrice && (
+                    <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                      <strong>Subscription Price:</strong> ${item.promotionalUnitPrice}
+                    </p>
+                  )}
+                  <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                    <strong>Commission:</strong> The Majorities take 25% | Partner receives 75%
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                    <strong>Tier:</strong> {item.tier}
+                  </p>
+                </div>
+
+                <div style={{ backgroundColor: '#f9f9f9', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #34495e' }}>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Policy Checkboxes:</h4>
+                  <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                    <strong>Customer Reward Program:</strong> {item.customerRewardAgreed ? 'Agreed' : 'Not specified'}
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                    <strong>25% Commission Agreement:</strong> {item.commission25AgreedTo ? 'Agreed' : 'Not specified'}
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                    <strong>Shipping & Returns Policy:</strong> {item.shippingReturnsAgreed ? 'Agreed' : 'Not specified'}
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+                    <strong>Ownership & Title Policy:</strong> {item.ownershipTitleAgreed ? 'Agreed' : 'Not specified'}
+                  </p>
+                </div>
+
+                {/* VOTING SECTION */}
+                {authToken && (
+                  <div>
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[item.id || item._id] === 'yes' ? 1 : 0.7 }}>Yes</button>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[item.id || item._id] === 'no' ? 1 : 0.7 }}>No</button>
+                      <button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[item.id || item._id] === 'abstain' ? 1 : 0.7 }}>Abstain</button>
+                    </div>
+
+                    {/* VOTE SCORES - VISIBLE ONLY AFTER VOTING */}
+                    {showScores[item.id || item._id] && (
+                      <div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
+                        <p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>Vote Results:</p>
+                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
+                          Yes: {item.votes?.yes || 0} | No: {item.votes?.no || 0} | Abstain: {item.votes?.abstain || 0}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* COMMENTS SECTION - VISIBLE AFTER VOTING */}
+                    {showComments[item.id || item._id] && (
+                      <div style={{ borderTop: '2px solid #eee', paddingTop: '12px' }}>
+                        <h4 style={{ fontSize: '13px', color: '#555', marginBottom: '12px', fontWeight: '700' }}>Comments:</h4>
+
+                        {/* EXISTING COMMENTS */}
+                        {comments[item.id || item._id]?.length > 0 && (
+                          <div style={{ marginBottom: '12px' }}>
+                            {comments[item.id || item._id].map((comment, idx) => (
+                              <div key={idx} style={{ backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', marginBottom: '8px', borderLeft: '3px solid #3498db' }}>
+                                <p style={{ fontSize: '11px', fontWeight: '600', color: '#222', margin: '0 0 4px 0' }}>{comment.author}</p>
+                                <p style={{ fontSize: '12px', color: '#666', margin: '0 0 4px 0' }}>{comment.text}</p>
+                                <p style={{ fontSize: '10px', color: '#aaa', margin: 0 }}>{comment.timestamp}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* ADD COMMENT */}
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <input type="text" placeholder="Add a comment..." style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px' }} value={commentText[item.id || item._id] || ''} onChange={(e) => setCommentText(prev => ({ ...prev, [item.id || item._id]: e.target.value }))} />
+                          <button onClick={() => handleCommentSubmit(item.id || item._id)} style={{ padding: '8px 16px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Post</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+      <SidebarAd />
     </div>
   );
 };
 
-// --- PERSPECTIVES PAGE (CULTURE FEED WITH SIDEBAR ADS) ---
+// --- PERSPECTIVES PAGE (Personalized Feed from Following) ---
 const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, following, onFollowUser, onUnfollowUser, onAddPoints, userAvatar }) => {
   const [followingList, setFollowingList] = useState([]);
   const [selectedFollowing, setSelectedFollowing] = useState(following || []);
@@ -1630,6 +2951,7 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
   }, []);
 
   useEffect(() => {
+    // Extract unique submitters from Duma posts
     const uniqueSubmitters = [...new Set(allItems.map(item => item.submittedBy))].filter(Boolean).filter(p => p !== userEmail);
     setFollowingList(uniqueSubmitters);
   }, [allItems, userEmail]);
@@ -1654,85 +2976,80 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
   }, [selectedFollowing, allItems]);
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', maxWidth: '1400px', margin: '0 auto', padding: '40px 10px' }}>
-      {/* LEFT AD SIDEBAR */}
-      <SidebarAd position="left" />
-
-      {/* MAIN CONTENT AREA */}
-      <div style={{ flex: 1, maxWidth: '900px', minWidth: 0 }}>
-        <div style={{ marginBottom: '30px' }}>
-          <h2 style={{ marginBottom: '6px' }}>My Perspectives</h2>
-          <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
-            Follow people from The Duma to see their perspectives in your personalized feed. Earn +1 point for each person you follow!
-          </p>
-        </div>
-
-        {userEmail && rankTitle && (
-          <div style={{ marginBottom: '20px' }}>
-            <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
-          </div>
-        )}
-
-        <div style={{ ...styles.dumaCard, marginBottom: '30px' }}>
-          <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Who You Follow ({selectedFollowing.length}/{followingList.length})</h3>
-          {followingList.length === 0 ? (
-            <p style={{ color: '#888', fontSize: '13px' }}>No people yet. Submit to the Duma to build your community!</p>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px' }}>
-              {followingList.map(person => (
-                <button
-                  key={person}
-                  onClick={() => handleFollowingToggle(person)}
-                  style={{
-                    padding: '12px',
-                    border: selectedFollowing.includes(person) ? '2px solid #222' : '1px solid #ddd',
-                    borderRadius: '8px',
-                    backgroundColor: selectedFollowing.includes(person) ? '#f9f9f9' : '#fff',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    fontWeight: selectedFollowing.includes(person) ? '600' : '400',
-                    color: '#222',
-                    textAlign: 'center',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {person}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div>
-          <h3 style={{ marginBottom: '16px' }}>Perspectives Feed ({filteredItems.length})</h3>
-          {filteredItems.length === 0 && selectedFollowing.length === 0 ? (
-            <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>
-              Select people you follow to see their perspectives here.
-            </div>
-          ) : selectedFollowing.length > 0 && filteredItems.length === 0 ? (
-            <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>
-              No perspectives yet from people you follow.
-            </div>
-          ) : (
-            filteredItems.map(item => (
-              <div key={item.id || item._id} style={styles.dumaCard}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                  <span style={styles.typeTag}>Perspective</span>
-                  {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
-                </div>
-                {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
-                <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
-                <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6' }}>{item.response || item.reason || item.desc}</p>
-              </div>
-            ))
-          )}
-        </div>
+    <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', width: '100%' }}>
+      <SidebarAd />
+      <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto', flex: '1 1 auto', minWidth: 0 }}>
+      <div style={{ marginBottom: '30px' }}>
+        <h2 style={{ marginBottom: '6px' }}>My Perspectives</h2>
+        <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
+          Follow people from The Duma to see their perspectives in your personalized feed. Earn +1 point for each person you follow!
+        </p>
       </div>
 
-      {/* RIGHT AD SIDEBAR */}
-      <SidebarAd position="right" />
+      {userEmail && rankTitle && (
+        <div style={{ marginBottom: '20px' }}>
+          <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
+        </div>
+      )}
+
+      <div style={{ ...styles.dumaCard, marginBottom: '30px' }}>
+        <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Who You Follow ({selectedFollowing.length}/{followingList.length})</h3>
+        {followingList.length === 0 ? (
+          <p style={{ color: '#888', fontSize: '13px' }}>No people yet. Submit to the Duma to build your community!</p>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px' }}>
+            {followingList.map(person => (
+              <button
+                key={person}
+                onClick={() => handleFollowingToggle(person)}
+                style={{
+                  padding: '12px',
+                  border: selectedFollowing.includes(person) ? '2px solid #222' : '1px solid #ddd',
+                  borderRadius: '8px',
+                  backgroundColor: selectedFollowing.includes(person) ? '#f9f9f9' : '#fff',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: selectedFollowing.includes(person) ? '600' : '400',
+                  color: '#222',
+                  textAlign: 'center',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {person}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h3 style={{ marginBottom: '16px' }}>Perspectives Feed ({filteredItems.length})</h3>
+        {filteredItems.length === 0 && selectedFollowing.length === 0 ? (
+          <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>
+            Select people you follow to see their perspectives here.
+          </div>
+        ) : selectedFollowing.length > 0 && filteredItems.length === 0 ? (
+          <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>
+            No perspectives yet from people you follow.
+          </div>
+        ) : (
+          filteredItems.map(item => (
+            <div key={item.id || item._id} style={styles.dumaCard}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                <span style={styles.typeTag}>Perspective</span>
+                {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
+              </div>
+              {item.submittedBy && <CredentialHeader email={item.submittedBy} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
+              <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
+              <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6' }}>{item.response || item.reason || item.desc}</p>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+      <SidebarAd />
     </div>
   );
 };
@@ -1744,6 +3061,7 @@ const AdminOrdersPage = ({ authToken, userEmail }) => {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
 
+  // Security Gate: Replace with your exact company owner email address
   const isOwner = userEmail === "YOUR_EMAIL@domain.com";
 
   const fetchAllOrders = useCallback(async () => {
@@ -1781,6 +3099,7 @@ const AdminOrdersPage = ({ authToken, userEmail }) => {
       });
 
       if (response.ok) {
+        // Optimistically swap status locally on the layout row
         setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status: nextStatus } : o));
       } else {
         alert("Server rejected status transition update.");
@@ -1808,7 +3127,7 @@ const AdminOrdersPage = ({ authToken, userEmail }) => {
   const getStatusColor = (status) => {
     if (status === "Shipped") return { background: '#d1ecf1', color: '#0c5460', border: '1px solid #bee5eb' };
     if (status === "Delivered") return { background: '#d4edda', color: '#155724', border: '1px solid #c3e6cb' };
-    return { background: '#fff3cd', color: '#856404', border: '1px solid #ffeeba' };
+    return { background: '#fff3cd', color: '#856404', border: '1px solid #ffeeba' }; // Pending state
   };
 
   return (
@@ -1823,6 +3142,7 @@ const AdminOrdersPage = ({ authToken, userEmail }) => {
         </button>
       </div>
 
+      {/* FILTERS TOOLBAR */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '25px', borderBottom: '2px solid #eee', paddingBottom: '15px' }}>
         {["All", "Pending", "Shipped", "Delivered"].map(status => (
           <button key={status} onClick={() => setFilterStatus(status)}
@@ -1842,6 +3162,7 @@ const AdminOrdersPage = ({ authToken, userEmail }) => {
         ))}
       </div>
 
+      {/* GRID LOG DATA MATCH */}
       {loading ? (
         <p style={{ textAlign: 'center', color: '#888' }}>Querying master business ledger...</p>
       ) : filteredOrders.length === 0 ? (
@@ -1883,6 +3204,7 @@ const AdminOrdersPage = ({ authToken, userEmail }) => {
                 </div>
               </div>
 
+              {/* ACTION PIPELINE ROUTERS */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderTop: '1px solid #f0f0f0', paddingTop: '15px' }}>
                 <span style={{ fontSize: '12px', fontWeight: '600', color: '#555' }}>Workflow Controls:</span>
                 <button disabled={updatingId === order._id || order.status === "Pending"} onClick={() => handleUpdateStatus(order._id, "Pending")}
@@ -1909,7 +3231,11 @@ const AdminOrdersPage = ({ authToken, userEmail }) => {
   );
 };
 
+// --- MAIN APP COMPONENT ---
+
 // --- MODEL-FRIENDLY PAGE ---
+// This page renders a clean, structured, text-based representation of the site
+// optimized for AI models, crawlers, and accessibility tools.
 const ModelFriendlyPage = () => {
   const products = Object.keys(PRODUCT_VARIANT_MAP).map(name => {
     const config = PRODUCT_VARIANT_MAP[name];
@@ -2061,6 +3387,30 @@ const ModelFriendlyPage = () => {
             <div style={valueStyle}>{product.keyIngredients.join(", ")}</div>
             <span style={labelStyle}>Benefits</span>
             <div style={valueStyle}>{product.benefits.join(" · ")}</div>
+            {product.hairType && (
+              <>
+                <span style={labelStyle}>Hair Type</span>
+                <div style={valueStyle}>{product.hairType}</div>
+              </>
+            )}
+            {product.targetConcerns && (
+              <>
+                <span style={labelStyle}>Target Concerns</span>
+                <div style={valueStyle}>{product.targetConcerns.join(", ")}</div>
+              </>
+            )}
+            {product.scentProfile && (
+              <>
+                <span style={labelStyle}>Scent</span>
+                <div style={valueStyle}>{product.scentProfile}</div>
+              </>
+            )}
+            {product.applicationType && (
+              <>
+                <span style={labelStyle}>Application Type</span>
+                <div style={valueStyle}>{product.applicationType}</div>
+              </>
+            )}
             <span style={labelStyle}>Shopify Merchandise ID</span>
             <div style={valueStyle}>{product.merchandiseId}</div>
           </div>
@@ -2126,20 +3476,9 @@ export default function App() {
   const [userAvatar, setUserAvatar] = useState("");
   const [dumaItems, setDumaItems] = useState([{ id: 1, type: "Partner", company: "EcoHair Labs", product: "Silk Serum", desc: "Organic serum for hair.", section: "Commerce", submitterRank: "Comrade" }]);
   const [following, setFollowing] = useState([]);
-
-  // Load Google AdSense Script ONCE at App root
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7165853329123168";
-    script.async = true;
-    script.crossOrigin = "anonymous";
-    document.head.appendChild(script);
-  }, []);
-
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/health`, { method: "GET" }).catch(() => {});
   }, []);
-
   useEffect(() => {
     const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
     const email = localStorage.getItem("userEmail") || sessionStorage.getItem("userEmail");
@@ -2153,27 +3492,22 @@ export default function App() {
       }).catch(() => { if (email) { setIsLoggedIn(true); setUserEmail(email); setAuthToken(token); const storedRank = localStorage.getItem("rankTitle") || sessionStorage.getItem("rankTitle"); const storedScore = parseInt(localStorage.getItem("rankScore") || sessionStorage.getItem("rankScore") || "1"); if (storedRank) setRankTitle(storedRank); setRankScore(storedScore); } });
     }
   }, []);
-
   const handleLoginSuccess = (email, token, rememberMe, rank, score) => {
     setIsLoggedIn(true); setUserEmail(email); setAuthToken(token); const resolvedScore = score || 1; const resolvedRank = getRankTitle(resolvedScore); setRankTitle(resolvedRank); setRankScore(resolvedScore);
     const storage = rememberMe ? localStorage : sessionStorage; storage.setItem("authToken", token); storage.setItem("userEmail", email); storage.setItem("rankTitle", resolvedRank); storage.setItem("rankScore", String(resolvedScore));
   };
-
   const handleLogout = () => {
     setIsLoggedIn(false); setUserEmail(""); setAuthToken(""); setRankTitle("Comrade"); setRankScore(1); setUserAvatar("");
     localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); localStorage.removeItem("rankTitle"); localStorage.removeItem("rankScore"); localStorage.removeItem("userAvatar");
     sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); sessionStorage.removeItem("rankTitle"); sessionStorage.removeItem("rankScore"); sessionStorage.removeItem("userAvatar");
   };
-
   const handleAvatarUpdate = (url) => {
     setUserAvatar(url);
     const storage = localStorage.getItem("authToken") ? localStorage : sessionStorage;
     if (url) { storage.setItem("userAvatar", url); } else { storage.removeItem("userAvatar"); }
   };
-
   const saveSetToProfile = (items) => { const newSet = { items, date: new Date().toLocaleDateString() }; const updatedSets = [newSet, ...savedSets]; setSavedSets(updatedSets); localStorage.setItem("savedSets", JSON.stringify(updatedSets)); };
   const addDumaItem = (item) => setDumaItems(prev => [item, ...prev]);
-
   const addPoints = useCallback((points) => {
     setRankScore(prevScore => {
       const newScore = prevScore + points;
@@ -2197,7 +3531,8 @@ export default function App() {
   const followUser = useCallback((personEmail) => {
     if (!following.includes(personEmail)) {
       setFollowing(prev => [...prev, personEmail]);
-      addPoints(1);
+      addPoints(1); // +1 point for following someone
+      // Notify backend to award +4 points to the person being followed
       if (authToken) {
         fetch(`${BACKEND_URL}/api/profile/follow`, {
           method: 'POST',
@@ -2222,44 +3557,45 @@ export default function App() {
             <Link to="/" style={styles.navLink}>Home</Link>
             <Link to="/recommend" style={styles.navLink}>Recommend</Link>
             <Link to="/partner" style={styles.navLink}>Partner</Link>
-            <Link to="/duma" style={styles.navLink}>The Duma</Link>
-            {isLoggedIn ? (
-              <>
-                <Link to="/perspectives" style={styles.navLink}>Culture</Link>
-                {isLoggedIn && userEmail === "YOUR_EMAIL@domain.com" && (
-                  <Link to="/admin/orders" style={{ ...styles.navLink, color: '#e74c3c', fontWeight: '700' }}>
-                    ⚙️ Admin Control
-                  </Link>
-                )}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: '1px solid #eee', paddingLeft: '15px' }}>
-                  <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
-                  {rankTitle && <RankBadge rankTitle={rankTitle} />}
-                  <span style={styles.auth} onClick={handleLogout}>Logout</span>
+            {/* <Link to="/model" style={styles.navLink}>Model View</Link> */}
+            {/* Publicly visible links */}
+              <Link to="/duma" style={styles.navLink}>The Duma</Link>
+{isLoggedIn ? (
+            <>
+              <Link to="/perspectives" style={styles.navLink}>Culture</Link>
+ {isLoggedIn && userEmail === "YOUR_EMAIL@domain.com" && (
+                 <Link to="/admin/orders" style={{ ...styles.navLink, color: '#e74c3c', fontWeight: '700' }}>
+                   ⚙️ Admin Control
+                     </Link>
+                                 )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: '1px solid #eee', paddingLeft: '15px' }}>
+                    <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
+                    {rankTitle && <RankBadge rankTitle={rankTitle} />}
+                    <span style={styles.auth} onClick={handleLogout}>Logout</span>
+                  </div>
+                </>
+              ) : (
+                <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                  <Link to="/signup" style={styles.auth}>Sign Up</Link>
+                  <Link to="/login" style={styles.auth}>Login</Link>
                 </div>
-              </>
-            ) : (
-              <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                <Link to="/signup" style={styles.auth}>Sign Up</Link>
-                <Link to="/login" style={styles.auth}>Login</Link>
-              </div>
-            )}
+              )}
           </nav>
         </header>
         <Routes>
           <Route path="/" element={<LandingPage saveSetToProfile={saveSetToProfile} onAddPoints={addPoints} savedSets={savedSets} />} />
           <Route path="/login" element={<LoginPage onLogin={handleLoginSuccess} />} />
           <Route path="/auth/google/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="google" />} />
-          <Route path="/auth/instagram/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="instagram" />} />
-          <Route path="/oauth/callback/:provider" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="instagram" />} />
+          <Route path="/auth/instagram/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="instagram" />} />              <Route path="/oauth/callback/:provider" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="instagram" />} />
           <Route path="/auth/tiktok/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="tiktok" />} />
           <Route path="/signup" element={<SignupPage onLogin={handleLoginSuccess} />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           <Route path="/recommend" element={<RecommendPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
           <Route path="/partner" element={<PartnerPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
-          <Route path="/culture" element={isLoggedIn ? <CultureLabPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
+                  <Route path="/culture" element={isLoggedIn ? <CultureLabPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
           <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} />} />
-          <Route path="/perspectives" element={isLoggedIn ? <PerspectivesPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} following={following} onFollowUser={followUser} onUnfollowUser={unfollowUser} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
+                  <Route path="/perspectives" element={isLoggedIn ? <PerspectivesPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} following={following} onFollowUser={followUser} onUnfollowUser={unfollowUser} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
           <Route path="/legislature" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} />} />
           <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={handleAvatarUpdate} tokens={tokens} addDumaItem={addDumaItem} />} />
           <Route path="/orders" element={<div style={{ padding: '60px', textAlign: 'center' }}><h2>Payment Received!</h2><p>Your custom hair set is being prepared. Check your Profile to see your formula.</p><Link to="/profile">Go to Profile</Link></div>} />
@@ -2268,10 +3604,10 @@ export default function App() {
           <Route path="/TermsofService" element={<TermsOfServicePage />} />
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
         </Routes>
-        <footer style={{ marginTop: '60px', padding: '20px 60px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'center', gap: '30px', fontSize: '12px' }}>
-          <Link to="/TermsofService" style={{ color: '#666', textDecoration: 'none' }}>Terms of Service</Link>
-          <Link to="/Privacy" style={{ color: '#666', textDecoration: 'none' }}>Privacy Policy</Link>
-        </footer>
+      <footer style={{ marginTop: '60px', padding: '20px 60px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'center', gap: '30px', fontSize: '12px' }}>
+        <Link to="/TermsofService" style={{ color: '#666', textDecoration: 'none' }}>Terms of Service</Link>
+        <Link to="/Privacy" style={{ color: '#666', textDecoration: 'none' }}>Privacy Policy</Link>
+      </footer>
       </div>
     </Router>
   );
@@ -2288,19 +3624,40 @@ const TermsOfServicePage = () => {
       <p style={{ color: '#888', fontSize: '13px', marginBottom: '40px' }}>Last updated: June 22, 2026</p>
 
       <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>1. Acceptance of Terms</h2>
-      <p>By accessing or using The Majorities ecosystem, web interface, custom formulas, or network features (collectively, the "Service"), you explicitly agree to be bound by these Terms of Service. If you do not accept these conditions, you are prohibited from utilizing our custom product builder or participating in our governance structures.</p>
+      <p>aBy accessing or using The Majorities ecosystem, web interface, custom formulas, or network features (collectively, the "Service"), you explicitly agree to be bound by these Terms of Service. If you do not accept these conditions, you are prohibited from utilizing our custom product builder or participating in our governance structures. ("Terms"). If you do not agree to all of the terms and conditions of this agreement, you may not access or use the Service. These Terms apply to all visitors, users, and others who access the Service.</p>
 
       <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>2. Custom Formulation E-Commerce</h2>
-      <p>The Majorities provides an active custom assembly framework allowing users to choose exactly six (6) items across distinct hair and face categories to complete an authorized set.</p>
+      <p>The Majorities provides an active custom assembly framework allowing users to choose exactly six (6) items across distinct hair and face categories to complete an authorized set. All primary collection variations are uniformly priced on our marketplace as follows: One-Time Selection Sets at $7.00 per standard unit volume ($42.00 total package valuation); Monthly Reoccurring Subscriptions automatically discounted to $6.00 per unit selection ($36.00 total monthly collection billing loop). All subscription models automatically bill every 30 days to your secure payment instrument on file until paused or canceled natively through your user dashboard. The Service also includes community engagement features such as perspective sharing, community rankings, and social profile integration. We reserve the right to modify, suspend, or discontinue the Service (or any part thereof) at any time with or without notice.</p>
 
       <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>3. The Duma Ledger & Governance Tokens</h2>
-      <p>Our platforms host a digital community ledger called the Duma. By interacting with the Duma, including uploading user avatars, publishing custom media context, following creators, or casting platform recommendations, you gain experience points that directly adjust your community tier.</p>
+      <p>Our platforms host a digital community ledger called the Duma. By interacting with the Duma, including uploading user avatars, publishing custom media context, following creators, or casting platform recommendations, you gain experience points that directly adjust your community tier (from a baseline Comrade tier scaling up to executive command designations). Progression through certain tiers awards specific utility tokens. You recognize that points and tokens inside our platform are purely gamified community rewards, possess exactly zero financial cash-out value, and cannot be traded on external exchanges., you may be required to register for an account. You agree to provide accurate, current, and complete information during registration and to update such information to keep it accurate, current, and complete. You are solely responsible for safeguarding your account credentials and for all activity that occurs under your account. You agree to notify us immediately at support@themajorities.com of any unauthorized use of your account.</p>
 
       <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>4. Partner Distribution Marketplace</h2>
-      <p>Third-party manufacturing groups applying for official platform retail listings must adhere to our global logistics rules.</p>
+      <p>Third-party manufacturing groups applying for official platform retail listings must adhere to our global logistics rules. Partners must ensure initial stock allocations meet or exceed a minimum baseline threshold of 500 units for standard 3.4-ounce container volumes. The Majorities retains a fixed 25% marketplace distribution fee on every processing customer transaction. Partners receive exactly 75% of net revenues from their assigned custom line items. Partners explicitly consent to give customers singular promotional checkout benefits equal to the Subscription unit price whenever a consumer unlocks an influential new rank milestone in the Duma network. (USD) and are subject to change without notice. When you initiate a purchase, you represent and warrant that you are authorized to use the payment method you provide. By submitting a subscription order, you authorize us to charge your payment method on a recurring basis at the then-current subscription rate. You may cancel a subscription at any time through your account dashboard; cancellations will take effect at the end of the then-current billing period. All sales are final unless the product is defective or damaged upon arrival.</p>
 
       <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>5. User-Submitted Media and Content Rights</h2>
-      <p>When you post a video view snippet, custom hair profile, or feedback justification to the Duma, you grant The Majorities an unrestricted, global, royalty-free license to host, display, and analyze that file.</p>
+      <p>When you post a 60-second video view snippet, custom hair profile, or feedback justification to the Duma, you grant The Majorities an unrestricted, global, royalty-free license to host, display, and analyze that file. You certify your submission does not infringe on third-party intellectual property or privacy scopes. ("User Content"). By submitting User Content, you grant The Majorities a non-exclusive, worldwide, royalty-free, irrevocable license to use, reproduce, modify, adapt, publish, translate, distribute, and display such content in connection with the Service and our marketing activities. You represent and warrant that you own or have the necessary rights to grant this license and that your User Content does not violate any third-party rights or applicable laws.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>6. Limitation of Liability & Contact</h2>
+      <p>Products, treatments, and software routines are provided "As Is" without underlying therapeutic warranties. The Majorities and its primary logistics suppliers (including ShipBob processing endpoints) shall not be liable for delivery blockages beyond our direct server operations. For corporate inquiries, contact: legal@themajorities.com: (a) use the Service for any unlawful purpose or in violation of any applicable regulations; (b) post content that is defamatory, obscene, harassing, or infringes on the rights of others; (c) attempt to gain unauthorized access to any portion of the Service or its related systems; (d) use any automated tools, scrapers, or bots to interact with the Service; (e) interfere with the proper functioning of the Service or impose an unreasonable load on our infrastructure.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}></h2>
+      <p>All content, trademarks, logos, and intellectual property associated with The Majorities brand, products, and Service are the exclusive property of The Majorities or its licensors. Nothing in these Terms grants you a right or license to use any trademark, logo, or brand feature of The Majorities. Unauthorized use of any proprietary content is strictly prohibited.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}></h2>
+      <p>THE SERVICE IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS WITHOUT ANY WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, OR FREE OF VIRUSES OR OTHER HARMFUL COMPONENTS.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}></h2>
+      <p>, THE MAJORITIES AND ITS AFFILIATES, DIRECTORS, EMPLOYEES, AND AGENTS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, DATA, OR GOODWILL, ARISING OUT OF OR IN CONNECTION WITH YOUR USE OF THE SERVICE.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}></h2>
+      <p>, without regard to its conflict of law provisions. Any dispute arising from these Terms or your use of the Service shall be resolved through binding arbitration in accordance with the rules of the American Arbitration Association.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}></h2>
+      <p>. We will notify registered users of material changes by email or by posting a prominent notice on the Service. Your continued use of the Service after such changes constitutes your acceptance of the revised Terms. We encourage you to review these Terms periodically.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}></h2>
+      <p></p>
     </div>
   );
 };
@@ -2316,13 +3673,41 @@ const PrivacyPolicyPage = () => {
       <p style={{ color: '#888', fontSize: '13px', marginBottom: '40px' }}>Last updated: June 22, 2026</p>
 
       <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>1. Information We Collect Natively</h2>
-      <p>To safely fulfill custom cosmetic selections and compute user tier algorithms, we process and log account email addresses, unique password configurations, custom profile avatars, user points tallies, and logged system formulas.</p>
+      <p>To safely fulfill custom cosmetic selections and compute user tier algorithms, we process and log the following data classes: Account email addresses, unique password configurations, custom profile avatars, user points tallies, and logged system formulas. Consumer shipping locations, target delivery addresses, and mobile contact lines managed directly via secure permalinks handed over to Shopify commerce servers. We never cache or collect raw credit card variables internally on our Render backend servers. Text thoughts, image attachments, and custom video voice notes up to 60 seconds posted directly into our public culture forums. Secure access authorization parameters from connecting identity networks, including Google open profiles, Instagram links, and secure TikTok verification streams.</p>
 
       <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>2. How Your Private Records are Handled</h2>
-      <p>We restrict utilization of logged variables strictly to core operational mechanics: To execute fast delivery packaging metrics through third-party optimization services like ShipBob.</p>
+      <p>We restrict utilization of logged variables strictly to core operational mechanics: To execute fast delivery packaging metrics through third-party optimization services like ShipBob. To instantly sync dynamic rank progress matrices (+25 pts for avatar assets, +100 pts for perspective publishing). To authenticate and confirm active platform identity properties throughout our routing files., including: (a) <strong>Personal Identification Information</strong>: name, email address, shipping address, and phone number provided during account registration or checkout; (b) <strong>Payment Information</strong>: billing details processed securely through our payment processor (Shopify Payments); we do not store raw credit card data on our servers; (c) <strong>User Content</strong>: photos, videos, text, and other content you voluntarily submit through our perspective sharing and community features; (d) <strong>Usage Data</strong>: IP address, browser type, pages visited, time spent on pages, and other diagnostic data collected automatically when you access the Service; (e) <strong>Social Profile Data</strong>: public profile information from third-party social accounts you choose to connect to our platform.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>3. How We Use Your Information</h2>
+      <p>We use the information we collect for the following purposes: to process and fulfill your orders and subscriptions; to manage your account and provide customer support; to personalize your experience on our platform; to send you transactional emails (order confirmations, shipping updates); to send you promotional communications, subject to your opt-in preferences; to improve our products, services, and website functionality; to detect, prevent, and address technical issues and fraudulent activity; and to comply with our legal obligations.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>4. Sharing Your Information</h2>
+      <p>We do not sell, trade, or rent your personal identification information to third parties. We may share your data with trusted service providers who assist us in operating our business, including: payment processors (Shopify), cloud storage and hosting providers, email service providers, and analytics platforms. All such service providers are contractually obligated to use your data only for the purposes we specify and to maintain appropriate security measures.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>5. Cookies and Tracking Technologies</h2>
+      <p>We use cookies and similar tracking technologies to enhance your experience on our Service. Cookies are small data files stored on your device. We use both session cookies (which expire when you close your browser) and persistent cookies (which remain on your device for a set period). You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent; however, some features of our Service may not function properly without cookies.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>6. Data Retention</h2>
+      <p>We retain your personal information for as long as your account is active or as needed to provide you with our services. We will also retain and use your information as necessary to comply with our legal obligations, resolve disputes, and enforce our agreements. If you wish to delete your account or request that we no longer use your information, please contact us at privacy@themajorities.com.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>7. Data Security</h2>
+      <p>We implement commercially reasonable security measures to protect your personal information from unauthorized access, alteration, disclosure, or destruction. These measures include encrypted data transmission (SSL/TLS), access controls, and regular security assessments. However, no method of transmission over the Internet or electronic storage is 100% secure, and we cannot guarantee absolute security.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>8. Your Rights</h2>
+      <p>Depending on your location, you may have certain rights regarding your personal data, including: the right to access and receive a copy of your personal data; the right to correct inaccurate or incomplete data; the right to request deletion of your personal data; the right to restrict or object to our processing of your data; and the right to data portability. To exercise any of these rights, please contact us at privacy@themajorities.com. We will respond to all requests within 30 days.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>9. Children's Privacy</h2>
+      <p>Our Service is not directed to individuals under the age of 13. We do not knowingly collect personal information from children under 13. If we become aware that a child under 13 has provided us with personal information, we will take steps to delete such information. If you believe we may have collected information from a child under 13, please contact us immediately.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>10. Changes to This Policy</h2>
+      <p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date. For significant changes, we will provide a more prominent notice, such as an email notification to registered users. We encourage you to review this Privacy Policy periodically to stay informed.</p>
+
+      <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' }}>11. Contact Us</h2>
+      <p>If you have any questions or concerns about this Privacy Policy, please contact us at: <strong>privacy@themajorities.com</strong></p>
     </div>
   );
 };
+
 
 const styles = {
   pageWrapper: { fontFamily: 'Inter, sans-serif', color: '#222' },

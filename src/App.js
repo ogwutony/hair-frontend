@@ -73,7 +73,7 @@ const LocationAutocomplete = ({ value, onChange, placeholder, style }) => {
     function initAutocomplete() {
       if (cancelled || !window.google || !window.google.maps || !inputRef.current) return;
       const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
-        types: ['(regions)'],
+        fields: ['formatted_address', 'name'],
       });
       autocomplete.addListener('place_changed', () => {
         const place = autocomplete.getPlace();
@@ -104,6 +104,13 @@ const LocationAutocomplete = ({ value, onChange, placeholder, style }) => {
     return () => { cancelled = true; };
   }, [onChange]);
 
+  // Sync external value changes (e.g., when the backend loads a saved location) into the input
+    useEffect(() => {
+          if (inputRef.current && value !== undefined && inputRef.current.value !== value) {
+                  inputRef.current.value = value;
+          }
+    }, [value]);
+  
   return (
     <div style={{ position: 'relative', width: '100%' }}>
       <input

@@ -2438,7 +2438,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                       <div style={{ display: 'grid', gridTemplateColumns: mediaList.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', margin: '15px 0', background: '#fafafa', padding: '10px', borderRadius: '12px', border: '1px solid #eee' }}>
                         {mediaList.map((url, idx) => (
                           <div key={idx} style={{ textAlign: 'center' }}>
-                            {/\.(mp4|mov|webm)$/i.test(url) ? (
+                            {/\.(mp4|mov|webm)$/i.test(url) || url.includes('/video/upload/') ? (
                               <video src={url} style={{ width: '100%', maxHeight: '400px', borderRadius: '8px' }} controls />
                             ) : (
                               <img src={url} alt={`Attachment ${idx + 1}`} style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover' }} />

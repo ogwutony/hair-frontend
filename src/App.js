@@ -72,6 +72,7 @@ const useIsMobile = () => {
 // --- LOCATION AUTOCOMPLETE COMPONENT (Google Places) ---
 const LocationAutocomplete = ({ value, onChange, placeholder, style }) => {
   const inputRef = React.useRef(null);
+  const autocompleteRef = React.useRef(null); // CRITICAL: Prevents double-binding
   useEffect(() => {
     const styleEl = document.createElement('style');
     styleEl.innerHTML = `.pac-container { z-index: 10000 !important; }`;
@@ -84,7 +85,8 @@ const LocationAutocomplete = ({ value, onChange, placeholder, style }) => {
 
     function initAutocomplete() {
       if (cancelled || !window.google || !window.google.maps || !inputRef.current) return;
-      const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
+      if (autocompleteRef.current) return; // CRITICAL: Stops double-binding
+      const autocomplete = autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
         fields: ['formatted_address', 'name'],
       });
       autocomplete.addListener('place_changed', () => {
@@ -129,7 +131,7 @@ const LocationAutocomplete = ({ value, onChange, placeholder, style }) => {
         ref={inputRef}
         type="text"
         placeholder={placeholder}
-        defaultValue={value}
+        value={value || ''}
         onChange={(e) => onChange(e.target.value)}
         style={{ ...style, width: '100%', boxSizing: 'border-box' }}
       />
@@ -2439,7 +2441,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                         {mediaList.map((url, idx) => (
                           <div key={idx} style={{ textAlign: 'center' }}>
                             {/\.(mp4|mov|webm)$/i.test(url) || url.includes('/video/upload/') ? (
-                              <video src={url} style={{ width: '100%', maxHeight: '400px', borderRadius: '8px' }} controls />
+                              <video src={url.includes('cloudinary.com') ? url.replace('.mov', '.mp4').replace('.webm', '.mp4') : url} style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000' }} controls playsInline preload="metadata" />
                             ) : (
                               <img src={url} alt={`Attachment ${idx + 1}`} style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover' }} />
                             )}
@@ -2851,7 +2853,7 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
                       {mediaList.map((url, idx) => (
                         <div key={idx} style={{ textAlign: 'center' }}>
                           {/\.(mp4|mov|webm)$/i.test(url) || url.includes('/video/upload/') ? (
-                            <video src={url} style={{ width: '100%', maxHeight: '400px', borderRadius: '8px' }} controls />
+                            <video src={url.includes('cloudinary.com') ? url.replace('.mov', '.mp4').replace('.webm', '.mp4') : url} style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000' }} controls playsInline preload="metadata" />
                           ) : (
                             <img src={url} alt={`Attachment ${idx + 1}`} style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover' }} />
                           )}

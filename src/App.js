@@ -2837,6 +2837,29 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
                 )}
                 <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
                 <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6' }}>{item.response || item.reason || item.desc}</p>
+
+                {/* MEDIA DISPLAY: INJECTED BLOCK */}
+                {(() => {
+                  const mediaList = Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0
+                    ? item.mediaUrls
+                    : item.mediaUrl ? [item.mediaUrl] : item.videoUrl ? [item.videoUrl] : [];
+
+                  if (mediaList.length === 0) return null;
+
+                  return (
+                    <div style={{ display: 'grid', gridTemplateColumns: mediaList.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', margin: '15px 0', background: '#fafafa', padding: '10px', borderRadius: '12px', border: '1px solid #eee' }}>
+                      {mediaList.map((url, idx) => (
+                        <div key={idx} style={{ textAlign: 'center' }}>
+                          {/\.(mp4|mov|webm)$/i.test(url) || url.includes('/video/upload/') ? (
+                            <video src={url} style={{ width: '100%', maxHeight: '400px', borderRadius: '8px' }} controls />
+                          ) : (
+                            <img src={url} alt={`Attachment ${idx + 1}`} style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover' }} />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             ))
           )}

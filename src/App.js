@@ -43,20 +43,6 @@ const PRODUCT_VARIANT_MAP = {
 // --- 2. BACKEND CONFIGURATION ---
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://hair-backend-1.onrender.com";
 
-// --- GOOGLE ADSENSE AUTO ADS HOOK ---
-// Safely injects the Auto Ads script into the <head> for specific pages
-const useAdSense = () => {
-  useEffect(() => {
-    if (!document.querySelector('script[src*="pagead2.googlesyndication.com"]')) {
-      const script = document.createElement("script");
-      script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7165853329123168";
-      script.async = true;
-      script.crossOrigin = "anonymous";
-      document.head.appendChild(script);
-    }
-  }, []);
-};
-
 // --- MOBILE RESPONSIVE HOOK ---
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(false);
@@ -2333,7 +2319,6 @@ const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, 
 
 // --- DUMA PAGE ---
 const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints, userAvatar }) => {
-  useAdSense(); // Trigger Auto Ads script strictly on this page
   const isMobile = useIsMobile();
   const [dumaItems, setDumaItems] = useState(items);
   const [userVotes, setUserVotes] = useState({});
@@ -2385,7 +2370,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
     try {
       const response = await fetch(`${BACKEND_URL}/api/duma/${itemId}`, {
         method: 'DELETE',
-        headers: { Authorization: `****** }` }
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` }
       });
       if (response.ok) {
         setDumaItems(prev => prev.filter(item => (item._id || item.id) !== itemId));
@@ -2784,7 +2769,6 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
 
 // --- PERSPECTIVES PAGE (CULTURE FEED WITH SIDEBAR ADS) ---
 const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, following, onFollowUser, onUnfollowUser, onAddPoints, userAvatar }) => {
-  useAdSense(); // Trigger Auto Ads script strictly on this page
   const navigate = useNavigate();
   const location = useLocation();
   const [followingList, setFollowingList] = useState([]);
@@ -2880,7 +2864,7 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
     try {
       const response = await fetch(`${BACKEND_URL}/api/duma/${itemId}`, {
         method: 'DELETE',
-        headers: { Authorization: `****** }` }
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` }
       });
       if (response.ok) {
         setAllItems(prev => prev.filter(item => (item._id || item.id) !== itemId));
@@ -3389,7 +3373,6 @@ const ModelFriendlyPage = () => {
 // --- CULTURE LAB PAGE (Share Your Perspective) ---
   export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, onAddPoints, userAvatar }) => {
       const navigate = useNavigate();
-  useAdSense(); // Trigger Auto Ads script strictly on this page
       const isMobile = useIsMobile();
       const prompts = [
         { id: 1, text: "What's the best restaurant or local hidden gem you've eaten at recently? What should we order?" },

@@ -349,6 +349,22 @@ const safeSocialUrl = (raw) => {
   return `https://${raw}`;
 };
 
+const normalizeMediaVideoUrl = (url) => {
+  if (!url) return url;
+  let normalized = url.replace('.mov', '.mp4').replace('.webm', '.mp4');
+  try {
+    const parsed = new URL(normalized);
+    const host = parsed.hostname.toLowerCase();
+    const isCloudinaryHost = host === 'cloudinary.com' || host.endsWith('.cloudinary.com');
+    if (isCloudinaryHost && parsed.pathname.includes('/video/upload/') && !parsed.pathname.includes('/video/upload/f_mp4/')) {
+      normalized = normalized.replace('/video/upload/', '/video/upload/f_mp4/');
+    }
+  } catch {
+    return normalized;
+  }
+  return normalized;
+};
+
 const SnapchatIcon = () => (
   <svg width="14" height="14" viewBox="0 0 448 418" fill="currentColor" style={{ marginRight: '6px', verticalAlign: 'text-bottom' }}>
 <path d="M447.8 285.9c-2.3-4.3-6.2-7.2-11.8-8.8-19.3-5-38.3-8.8-49.8-10.7-3.9-.6-6.1-2.1-6.4-4.5-.4-3.5 1-6.1 4.2-7.6 15.6-7.4 30.6-16.1 44.9-26.2 6.6-4.7 9.8-11.8 9.5-21.2-.3-9.5-4-16.3-11.1-20.5-25.1-14.7-52.6-25-82.6-30.8-6.1-1.2-9.4-4-9.8-8.5-.3-3.1 1.4-5.6 5.1-7.5 18.2-8.3 33.7-20 46.5-35 8.1-9.5 10.3-21 6.8-34.6-3.4-13.6-11.7-22.3-24.9-26.1-20.5-5.9-42-8.9-64.4-8.9-22.4 0-43.9 3-64.4 8.9-13.2 3.8-21.5 12.5-24.9 26.1-3.5 13.6-1.2 25.1 6.8 34.6 12.8 15 28.3 26.7 46.5 35 3.7 1.9 5.4 4.4 5.1 7.5-.4 4.5-3.7 7.3-9.8 8.5-30 5.8-57.5 16.1-82.6 30.8-7.1 4.2-10.8 11-11.1 20.5-.3 9.4 2.9 16.5 9.5 21.2 14.3 10.1 29.3 18.8 44.9 26.2 3.2 1.5 4.6 4.1 4.2 7.6-.3 2.4-2.5 3.9-6.4 4.5-11.5 1.9-30.5 5.7-49.8 10.7-5.6 1.6-9.5 4.5-11.8 8.8-2.3 4.3-1.6 9.4 2.1 15.2 24.3 38 60 62.6 107.1 73.9 4.3 1 7.4 3.4 9.1 7.4 2.8 6.4 8 9.6 15.6 9.6h63c7.6 0 12.8-3.2 15.6-9.6 1.7-4 4.8-6.4 9.1-7.4 47.1-11.3 82.8-35.9 107.1-73.9 3.7-5.8 4.4-10.9 2.1-15.2z"/>
@@ -2363,6 +2379,25 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
     } catch (err) {}
   };
 
+  const handleDeletePost = async (itemId) => {
+    if (!authToken) return alert("Please log in to delete posts.");
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/duma/${itemId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `****** }` }
+      });
+      if (response.ok) {
+        setDumaItems(prev => prev.filter(item => (item._id || item.id) !== itemId));
+      } else {
+        alert("Failed to delete post.");
+      }
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Failed to delete post.");
+    }
+  };
+
   const handleCommentSubmit = (itemId) => {
     if (!commentText[itemId]?.trim()) return;
     setComments(prev => ({
@@ -2407,7 +2442,14 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                 <div key={itemId} style={styles.dumaCard}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                     <span style={styles.typeTag}>Perspective</span>
-                    <RankBadge rankTitle={verifiedRank} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <RankBadge rankTitle={verifiedRank} />
+                      {authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
+                        <button onClick={() => handleDeletePost(itemId)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                          Trash
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {item.submittedBy && (
@@ -2441,7 +2483,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                         {mediaList.map((url, idx) => (
                           <div key={idx} style={{ textAlign: 'center' }}>
                             {/\.(mp4|mov|webm)$/i.test(url) || url.includes('/video/upload/') ? (
-                              <video src={url.includes('cloudinary.com') ? url.replace('.mov', '.mp4').replace('.webm', '.mp4') : url} style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000' }} controls playsInline preload="metadata" />
+                              <video src={normalizeMediaVideoUrl(url)} style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000' }} controls playsInline preload="metadata" />
                             ) : (
                               <img src={url} alt={`Attachment ${idx + 1}`} style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover' }} />
                             )}
@@ -2512,7 +2554,14 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
               <div key={item.id || item._id} style={styles.dumaCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                   <span style={styles.typeTag}>{item.type}</span>
-                  {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
+                    {authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
+                      <button onClick={() => handleDeletePost(item._id || item.id)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                        Trash
+                      </button>
+                    )}
+                  </div>
                 </div>
                 {item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
                 {item.location && (
@@ -2585,7 +2634,14 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
               <div key={item.id || item._id} style={styles.dumaCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                   <span style={styles.typeTag}>{item.type}</span>
-                  {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
+                    {authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
+                      <button onClick={() => handleDeletePost(item._id || item.id)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                        Trash
+                      </button>
+                    )}
+                  </div>
                 </div>
                 {item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
                 {item.location && (
@@ -2729,10 +2785,26 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
 // --- PERSPECTIVES PAGE (CULTURE FEED WITH SIDEBAR ADS) ---
 const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, following, onFollowUser, onUnfollowUser, onAddPoints, userAvatar }) => {
   useAdSense(); // Trigger Auto Ads script strictly on this page
+  const navigate = useNavigate();
+  const location = useLocation();
   const [followingList, setFollowingList] = useState([]);
   const [selectedFollowing, setSelectedFollowing] = useState(following || []);
   const [filteredItems, setFilteredItems] = useState([]);
   const [allItems, setAllItems] = useState(items);
+  const [followedAt, setFollowedAt] = useState({});
+  const [avatarByUser, setAvatarByUser] = useState({});
+
+  useEffect(() => {
+    if (!Array.isArray(following)) return;
+    setSelectedFollowing(following);
+    setFollowedAt(prev => {
+      const next = { ...prev };
+      following.forEach((person, idx) => {
+        if (!next[person]) next[person] = idx + 1;
+      });
+      return next;
+    });
+  }, [following]);
 
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/duma`)
@@ -2746,15 +2818,29 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
   useEffect(() => {
     const uniqueSubmitters = [...new Set(allItems.map(item => item.submittedBy))].filter(Boolean).filter(p => p !== userEmail);
     setFollowingList(uniqueSubmitters);
+
+    const nextAvatarMap = {};
+    allItems.forEach(item => {
+      if (item?.submittedBy && item?.submitterAvatar) {
+        nextAvatarMap[item.submittedBy] = item.submitterAvatar;
+      }
+    });
+    setAvatarByUser(nextAvatarMap);
   }, [allItems, userEmail]);
 
   const handleFollowingToggle = (person) => {
     if (selectedFollowing.includes(person)) {
       onUnfollowUser?.(person);
       setSelectedFollowing(prev => prev.filter(p => p !== person));
+      setFollowedAt(prev => {
+        const next = { ...prev };
+        delete next[person];
+        return next;
+      });
     } else {
       onFollowUser?.(person);
       setSelectedFollowing(prev => [...prev, person]);
+      setFollowedAt(prev => ({ ...prev, [person]: Date.now() }));
     }
   };
 
@@ -2762,10 +2848,51 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
     if (selectedFollowing.length === 0) {
       setFilteredItems([]);
     } else {
-      const filtered = allItems.filter(item => selectedFollowing.includes(item.submittedBy));
+      const orderedFollowing = [...selectedFollowing].sort((a, b) => (followedAt[b] || 0) - (followedAt[a] || 0));
+      const followingPriority = orderedFollowing.reduce((acc, person, idx) => {
+        acc[person] = idx;
+        return acc;
+      }, {});
+      const filtered = allItems
+        .filter(item => selectedFollowing.includes(item.submittedBy))
+        .sort((a, b) => {
+          const aPriority = followingPriority[a.submittedBy] ?? Number.MAX_SAFE_INTEGER;
+          const bPriority = followingPriority[b.submittedBy] ?? Number.MAX_SAFE_INTEGER;
+          if (aPriority !== bPriority) return aPriority - bPriority;
+          const aTime = new Date(a.createdAt || a.updatedAt || a.timestamp || 0).getTime() || 0;
+          const bTime = new Date(b.createdAt || b.updatedAt || b.timestamp || 0).getTime() || 0;
+          return bTime - aTime;
+        });
       setFilteredItems(filtered);
     }
-  }, [selectedFollowing, allItems]);
+  }, [selectedFollowing, allItems, followedAt]);
+
+  useEffect(() => {
+    const person = new URLSearchParams(location.search).get("person");
+    if (!person) return;
+    setSelectedFollowing(prev => (prev.includes(person) ? prev : [...prev, person]));
+    setFollowedAt(prev => (prev[person] ? prev : { ...prev, [person]: Date.now() }));
+  }, [location.search]);
+
+  const handleDeletePost = async (itemId) => {
+    if (!authToken) return alert("Please log in to delete posts.");
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/duma/${itemId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `****** }` }
+      });
+      if (response.ok) {
+        setAllItems(prev => prev.filter(item => (item._id || item.id) !== itemId));
+        setFilteredItems(prev => prev.filter(item => (item._id || item.id) !== itemId));
+      } else {
+        alert("Failed to delete post.");
+      }
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Failed to delete post.");
+    }
+  };
 
   return (
     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
@@ -2783,33 +2910,37 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
         )}
 
         <div style={{ ...styles.dumaCard, marginBottom: '30px' }}>
+          {followingList.length > 0 && (
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '10px', marginBottom: '12px' }}>
+              {followingList.map(person => (
+                <div key={`avatar-${person}`} title={person} onClick={() => navigate(`/perspectives?person=${encodeURIComponent(person)}`)} style={{ width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden', border: '2px solid #eee', cursor: 'pointer', flexShrink: 0, backgroundColor: '#f3f3f3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {avatarByUser[person]
+                    ? <img src={avatarByUser[person]} alt={person} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <span style={{ fontSize: '13px', fontWeight: '700', color: '#444' }}>{person[0]?.toUpperCase() || '?'}</span>}
+                </div>
+              ))}
+            </div>
+          )}
           <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Who You Follow ({selectedFollowing.length}/{followingList.length})</h3>
           {followingList.length === 0 ? (
             <p style={{ color: '#888', fontSize: '13px' }}>No people yet. Submit to the Duma to build your community!</p>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px' }}>
+            <div style={{ maxHeight: '560px', overflowY: 'auto', paddingRight: '4px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
               {followingList.map(person => (
-                <button
-                  key={person}
-                  onClick={() => handleFollowingToggle(person)}
-                  style={{
-                    padding: '12px',
-                    border: selectedFollowing.includes(person) ? '2px solid #222' : '1px solid #ddd',
-                    borderRadius: '8px',
-                    backgroundColor: selectedFollowing.includes(person) ? '#f9f9f9' : '#fff',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    fontWeight: selectedFollowing.includes(person) ? '600' : '400',
-                    color: '#222',
-                    textAlign: 'center',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {person}
-                </button>
+                <div key={person} style={{ border: selectedFollowing.includes(person) ? '2px solid #222' : '1px solid #ddd', borderRadius: '8px', padding: '10px', backgroundColor: selectedFollowing.includes(person) ? '#f9f9f9' : '#fff' }}>
+                  <button
+                    onClick={() => handleFollowingToggle(person)}
+                    style={{ width: '100%', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '12px', fontWeight: selectedFollowing.includes(person) ? '600' : '400', color: '#222', textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: 0 }}
+                  >
+                    {person}
+                  </button>
+                  <button onClick={() => navigate(`/perspectives?person=${encodeURIComponent(person)}`)} style={{ marginTop: '8px', width: '100%', border: '1px solid #ccc', borderRadius: '6px', padding: '6px 8px', background: '#fff', fontSize: '11px', cursor: 'pointer' }}>
+                    View perspectives
+                  </button>
+                </div>
               ))}
+              </div>
             </div>
           )}
         </div>
@@ -2829,7 +2960,14 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
               <div key={item.id || item._id} style={styles.dumaCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                   <span style={styles.typeTag}>Perspective</span>
-                  {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
+                    {authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
+                      <button onClick={() => handleDeletePost(item._id || item.id)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                        Trash
+                      </button>
+                    )}
+                  </div>
                 </div>
                 {item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
                 {item.location && (
@@ -2853,7 +2991,7 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
                       {mediaList.map((url, idx) => (
                         <div key={idx} style={{ textAlign: 'center' }}>
                           {/\.(mp4|mov|webm)$/i.test(url) || url.includes('/video/upload/') ? (
-                            <video src={url.includes('cloudinary.com') ? url.replace('.mov', '.mp4').replace('.webm', '.mp4') : url} style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000' }} controls playsInline preload="metadata" />
+                            <video src={normalizeMediaVideoUrl(url)} style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000' }} controls playsInline preload="metadata" />
                           ) : (
                             <img src={url} alt={`Attachment ${idx + 1}`} style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover' }} />
                           )}
@@ -3715,7 +3853,7 @@ export default function App() {
             <Link to="/duma" style={styles.navLink}>The Duma</Link>
             {isLoggedIn ? (
               <>
-                <Link to="/perspectives" style={styles.navLink}>Culture</Link>
+                <Link to="/perspectives" style={styles.navLink}>Perspectives</Link>
                 {isLoggedIn && userEmail === "YOUR_EMAIL@domain.com" && (
                   <Link to="/admin/orders" style={{ ...styles.navLink, color: '#e74c3c', fontWeight: '700' }}>
                     ⚙️ Admin Control

@@ -352,8 +352,15 @@ const safeSocialUrl = (raw) => {
 const normalizeMediaVideoUrl = (url) => {
   if (!url) return url;
   let normalized = url.replace('.mov', '.mp4').replace('.webm', '.mp4');
-  if (normalized.includes('cloudinary.com') && normalized.includes('/video/upload/') && !normalized.includes('/video/upload/f_mp4/')) {
-    normalized = normalized.replace('/video/upload/', '/video/upload/f_mp4/');
+  try {
+    const parsed = new URL(normalized);
+    const host = parsed.hostname.toLowerCase();
+    const isCloudinaryHost = host === 'cloudinary.com' || host.endsWith('.cloudinary.com');
+    if (isCloudinaryHost && parsed.pathname.includes('/video/upload/') && !parsed.pathname.includes('/video/upload/f_mp4/')) {
+      normalized = normalized.replace('/video/upload/', '/video/upload/f_mp4/');
+    }
+  } catch {
+    return normalized;
   }
   return normalized;
 };
@@ -2378,7 +2385,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
     try {
       const response = await fetch(`${BACKEND_URL}/api/duma/${itemId}`, {
         method: 'DELETE',
-        headers: { Authorization: `****** }
+        headers: { Authorization: `****** }` }
       });
       if (response.ok) {
         setDumaItems(prev => prev.filter(item => (item._id || item.id) !== itemId));
@@ -2873,7 +2880,7 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
     try {
       const response = await fetch(`${BACKEND_URL}/api/duma/${itemId}`, {
         method: 'DELETE',
-        headers: { Authorization: `****** }
+        headers: { Authorization: `****** }` }
       });
       if (response.ok) {
         setAllItems(prev => prev.filter(item => (item._id || item.id) !== itemId));

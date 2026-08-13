@@ -478,6 +478,33 @@ const CredentialHeader = ({ email, displayName, rankTitle, rankScore, avatarUrl,
   );
 };
 
+const MediaModal = ({ media, onClose }) => {
+  if (!media) return null;
+
+  return (
+    <div
+      style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.92)', zIndex: 99999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+      onClick={onClose}
+    >
+      <button
+        type="button"
+        aria-label="Close media preview"
+        style={{ position: 'absolute', top: '20px', right: '30px', background: 'transparent', border: 'none', color: '#fff', fontSize: '36px', cursor: 'pointer', zIndex: 100000 }}
+        onClick={onClose}
+      >
+        ✕
+      </button>
+      <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: '90%', maxHeight: '90%', position: 'relative' }}>
+        {media.type === 'video' ? (
+          <video src={media.url} controls autoPlay playsInline style={{ maxWidth: '100vw', maxHeight: '90vh', borderRadius: '8px', outline: 'none' }} />
+        ) : (
+          <img src={media.url} alt="Enlarged view" style={{ maxWidth: '100vw', maxHeight: '90vh', borderRadius: '8px', objectFit: 'contain' }} />
+        )}
+      </div>
+    </div>
+  );
+};
+
 const GuestSubmissionPrompt = ({ message = "Please log in or create an account before submitting." }) => {
   const navigate = useNavigate();
   return (
@@ -655,7 +682,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   
   const [backendRankScore, setBackendRankScore] = useState(rankScore || 1);
   const [backendRankTitle, setBackendRankTitle] = useState(rankTitle || "Comrade");
-  const [avatarSaveStatus, setAvatarSaveStatus] = useState("idle");
+  const [, setAvatarSaveStatus] = useState("idle");
 
   const [displayName, setDisplayName] = useState("");
   const [userLocation, setUserLocation] = useState("");
@@ -713,7 +740,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       }
       if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
     }).catch(err => console.error('Failed to load profile:', err));
-  }, [authToken, onAvatarUpdate]);
+  }, [authToken, onAvatarUpdate, userEmail]);
 
   const handleSaveProfileField = async (field, val) => {
     if (!authToken) return;
@@ -2806,7 +2833,6 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
 
 // --- PERSPECTIVES PAGE (CULTURE FEED WITH SIDEBAR ADS) ---
 const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, following, onFollowUser, onUnfollowUser, onAddPoints, userAvatar }) => {
-  const navigate = useNavigate();
   const location = useLocation();
   const [followingList, setFollowingList] = useState([]);
   const [selectedFollowing, setSelectedFollowing] = useState(following || []);
@@ -2815,7 +2841,8 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
   const [followedAt, setFollowedAt] = useState({});
   const [avatarByUser, setAvatarByUser] = useState({});
   const [nameByUser, setNameByUser] = useState({});
-  const [avatarSlotsByUser, setAvatarSlotsByUser] = useState({}); // NEW: Track the 6 slots per user
+  const [avatarSlotsByUser, setAvatarSlotsByUser] = useState({});
+  const [activeMedia, setActiveMedia] = useState(null);
 
   useEffect(() => {
     if (!Array.isArray(following)) return;
@@ -2921,6 +2948,7 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
 
   return (
     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+        <MediaModal media={activeMedia} onClose={() => setActiveMedia(null)} />
         <div style={{ marginBottom: '30px' }}>
           <h2 style={{ marginBottom: '6px' }}>My Perspectives</h2>
           <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
@@ -2946,7 +2974,10 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
 
                   {/* TOP ROW: THUMBNAIL, NAME, BUTTON */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', backgroundColor: '#eee', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div
+                      style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', backgroundColor: '#eee', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: avatarByUser[person] ? 'pointer' : 'default' }}
+                      onClick={() => avatarByUser[person] && setActiveMedia({ url: normalizeMediaVideoUrl(avatarByUser[person]), type: /\.(mp4|mov|webm)$/i.test(avatarByUser[person]) || avatarByUser[person].includes('/video/upload/') ? 'video' : 'image' })}
+                    >
                       {avatarByUser[person] ? (
                         /\.(mp4|mov|webm)$/i.test(avatarByUser[person]) || avatarByUser[person].includes('/video/upload/') ? (
                           <video src={normalizeMediaVideoUrl(avatarByUser[person])} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay loop muted playsInline />
@@ -2978,10 +3009,16 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
                   {/* BOTTOM ROW: THE 6 PROFILE PICTURE SLOTS */}
                   {avatarSlotsByUser[person] && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px', marginTop: '6px' }}>
-                      {avatarSlotsByUser[person].slice(0, 6).map((slotUrl, idx) => (
-                        <div key={idx} style={{ width: '100%', aspectRatio: '1/1', borderRadius: '6px', overflow: 'hidden', backgroundColor: '#f0f0f0', border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {avatarSlotsByUser[person].slice(0, 6).map((slotUrl, idx) => {
+                        const isVideo = slotUrl && (/\.(mp4|mov|webm)$/i.test(slotUrl) || slotUrl.includes('/video/upload/'));
+                        return (
+                        <div
+                          key={idx}
+                          style={{ width: '100%', aspectRatio: '1/1', borderRadius: '6px', overflow: 'hidden', backgroundColor: '#f0f0f0', border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: slotUrl ? 'pointer' : 'default' }}
+                          onClick={() => slotUrl && setActiveMedia({ url: normalizeMediaVideoUrl(slotUrl), type: isVideo ? 'video' : 'image' })}
+                        >
                           {slotUrl ? (
-                            /\.(mp4|mov|webm)$/i.test(slotUrl) || slotUrl.includes('/video/upload/') ? (
+                            isVideo ? (
                               <video src={normalizeMediaVideoUrl(slotUrl)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay muted loop playsInline />
                             ) : (
                               <img src={slotUrl} alt={`Slot ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -2990,7 +3027,8 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
                              <span style={{ fontSize: '10px', color: '#ccc' }}>Empty</span>
                           )}
                         </div>
-                      ))}
+                      );
+                      })}
                     </div>
                   )}
 
@@ -3023,6 +3061,27 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
                   </div>
                 </div>
                 {item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
+                {avatarSlotsByUser[item.submittedBy] && avatarSlotsByUser[item.submittedBy].some(url => url !== null) && (
+                  <div style={{ display: 'flex', gap: '8px', margin: '8px 0 16px 0', overflowX: 'auto', paddingBottom: '4px' }}>
+                    {avatarSlotsByUser[item.submittedBy].slice(0, 6).map((slotUrl, idx) => {
+                      if (!slotUrl) return null;
+                      const isVideo = /\.(mp4|mov|webm)$/i.test(slotUrl) || slotUrl.includes('/video/upload/');
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => setActiveMedia({ url: normalizeMediaVideoUrl(slotUrl), type: isVideo ? 'video' : 'image' })}
+                          style={{ width: '56px', height: '56px', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#eee', flexShrink: 0, border: '1px solid #ddd', cursor: 'pointer' }}
+                        >
+                          {isVideo ? (
+                            <video src={normalizeMediaVideoUrl(slotUrl)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay muted loop playsInline />
+                          ) : (
+                            <img src={slotUrl} alt={`Profile slot ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
                 {item.location && (
                   <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
                     📍 {item.location}
@@ -3040,20 +3099,23 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
 
                   return (
                     <div style={{ display: 'grid', gridTemplateColumns: mediaList.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', margin: '15px 0', background: '#fafafa', padding: '10px', borderRadius: '12px', border: '1px solid #eee' }}>
-                      {mediaList.map((url, idx) => (
-                        <div key={idx} style={{ textAlign: 'center' }}>
-                          {/\.(mp4|mov|hevc|webm)$/i.test(url) || url.includes('/video/upload/') ? (
+                      {mediaList.map((url, idx) => {
+                        const isVideo = /\.(mp4|mov|hevc|webm)$/i.test(url) || url.includes('/video/upload/');
+                        return (
+                        <div key={idx} style={{ textAlign: 'center', cursor: 'pointer' }} onClick={() => setActiveMedia({ url: normalizeMediaVideoUrl(url), type: isVideo ? 'video' : 'image' })}>
+                          {isVideo ? (
                             <video
                               src={normalizeMediaVideoUrl(url)}
                               poster={url.includes('cloudinary.com') ? url.replace(/\.(mp4|mov|webm|hevc|m4v)$/i, '.jpg') : undefined}
                               style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000', objectFit: 'contain' }}
-                              controls playsInline preload="metadata"
+                              playsInline preload="metadata"
                             />
                           ) : (
                             <img src={url} alt={`Attachment ${idx + 1}`} style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover' }} />
                           )}
                         </div>
-                      ))}
+                      );
+                      })}
                     </div>
                   );
                 })()}
@@ -3463,7 +3525,6 @@ const ModelFriendlyPage = () => {
         { id: 14, text: "Recommend an underrated movie or show that doesn't get enough hype!" },
         { id: 15, text: "Post Anything! Share whatever is on your mind today—a random thought, life update, or funny hot take." }
           ];
-      const [activePromptIndex, setActivePromptIndex] = useState(0);
       const [response, setResponse] = useState("");
       const [postLocation, setPostLocation] = useState("");
       const [displayName, setDisplayName] = useState("");
@@ -3503,8 +3564,6 @@ const ModelFriendlyPage = () => {
           .catch(err => console.error('Failed to load display name:', err));
       }
     }, [authToken]);
-    
-      const activePrompt = prompts[activePromptIndex];
     
       const handleDumaBatchUpload = (e) => {
             if (!e.target.files || e.target.files.length === 0) return;
@@ -3887,7 +3946,7 @@ export default function App() {
       storage.setItem("rankTitle", newRank);
       return newScore;
     });
-  }, [authToken]);
+  }, []);
 
   const followUser = useCallback((personEmail) => {
     if (!following.includes(personEmail)) {

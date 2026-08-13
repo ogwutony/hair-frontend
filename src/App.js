@@ -2796,6 +2796,7 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
   const [allItems, setAllItems] = useState(items);
   const [followedAt, setFollowedAt] = useState({});
   const [avatarByUser, setAvatarByUser] = useState({});
+  const [nameByUser, setNameByUser] = useState({}); // NEW: Track display names
 
   useEffect(() => {
     if (!Array.isArray(following)) return;
@@ -2818,17 +2819,23 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
       .catch(err => console.error("Failed to load perspectives:", err));
   }, []);
 
+  // NEW: Map display names alongside avatars
   useEffect(() => {
     const uniqueSubmitters = [...new Set(allItems.map(item => item.submittedBy))].filter(Boolean).filter(p => p !== userEmail);
     setFollowingList(uniqueSubmitters);
 
     const nextAvatarMap = {};
+    const nextNameMap = {};
+
     allItems.forEach(item => {
-      if (item?.submittedBy && item?.submitterAvatar) {
-        nextAvatarMap[item.submittedBy] = item.submitterAvatar;
+      if (item?.submittedBy) {
+        if (item.submitterAvatar) nextAvatarMap[item.submittedBy] = item.submitterAvatar;
+        if (item.submitterDisplayName) nextNameMap[item.submittedBy] = item.submitterDisplayName;
       }
     });
+
     setAvatarByUser(nextAvatarMap);
+    setNameByUser(nextNameMap);
   }, [allItems, userEmail]);
 
   const handleFollowingToggle = (person) => {
@@ -2847,27 +2854,20 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
     }
   };
 
+  // Always include own posts, even if following length is 0
   useEffect(() => {
-    if (selectedFollowing.length === 0) {
-      setFilteredItems([]);
-    } else {
-      const orderedFollowing = [...selectedFollowing].sort((a, b) => (followedAt[b] || 0) - (followedAt[a] || 0));
-      const followingPriority = orderedFollowing.reduce((acc, person, idx) => {
-        acc[person] = idx;
-        return acc;
-      }, {});
-      const filtered = allItems
-        .filter(item => selectedFollowing.includes(item.submittedBy) || item.submittedBy === userEmail)
-        .sort((a, b) => {
-          const aPriority = followingPriority[a.submittedBy] ?? Number.MAX_SAFE_INTEGER;
-          const bPriority = followingPriority[b.submittedBy] ?? Number.MAX_SAFE_INTEGER;
-          if (aPriority !== bPriority) return aPriority - bPriority;
-          const aTime = new Date(a.createdAt || a.updatedAt || a.timestamp || 0).getTime() || 0;
-          const bTime = new Date(b.createdAt || b.updatedAt || b.timestamp || 0).getTime() || 0;
-          return bTime - aTime;
-        });
-      setFilteredItems(filtered);
-    }
+    const relevantItems = allItems.filter(item =>
+      selectedFollowing.includes(item.submittedBy) ||
+      (item.submittedBy && item.submittedBy.toLowerCase() === userEmail?.toLowerCase())
+    );
+
+    const sorted = relevantItems.sort((a, b) => {
+      const aTime = new Date(a.createdAt || a.updatedAt || a.timestamp || 0).getTime() || 0;
+      const bTime = new Date(b.createdAt || b.updatedAt || b.timestamp || 0).getTime() || 0;
+      return bTime - aTime;
+    });
+
+    setFilteredItems(sorted);
   }, [selectedFollowing, allItems, followedAt, userEmail]);
 
   useEffect(() => {
@@ -2913,10 +2913,11 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
         )}
 
         <div style={{ ...styles.dumaCard, marginBottom: '30px' }}>
+          {/* Avatar bubbles row */}
           {followingList.length > 0 && (
             <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '10px', marginBottom: '12px' }}>
               {followingList.map(person => (
-                <div key={`avatar-${person}`} title={person} onClick={() => navigate(`/perspectives?person=${encodeURIComponent(person)}`)} style={{ width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden', border: '2px solid #eee', cursor: 'pointer', flexShrink: 0, backgroundColor: '#f3f3f3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div key={`avatar-${person}`} title={nameByUser[person] || person} onClick={() => navigate(`/perspectives?person=${encodeURIComponent(person)}`)} style={{ width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden', border: '2px solid #eee', cursor: 'pointer', flexShrink: 0, backgroundColor: '#f3f3f3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {avatarByUser[person] ? (
                     /\.(mp4|mov|webm)$/i.test(avatarByUser[person]) || avatarByUser[person].includes('/video/upload/') ? (
                       <video src={normalizeMediaVideoUrl(avatarByUser[person])} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay loop muted playsInline />
@@ -2950,14 +2951,25 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
                         <span style={{ fontSize: '11px', fontWeight: '700', color: '#444' }}>{person[0]?.toUpperCase() || '?'}</span>
                       )}
                     </div>
+
+                    {/* Displays name if available, falls back to email handle */}
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                       <div style={{ fontSize: '13px', fontWeight: selectedFollowing.includes(person) ? '700' : '600', color: '#222', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                          {nameByUser[person] || person.split('@')[0]}
+                       </div>
+                       <div style={{ fontSize: '11px', color: '#888', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                          {person}
+                       </div>
+                    </div>
+
                     <button
                       onClick={() => handleFollowingToggle(person)}
-                      style={{ flex: 1, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '13px', fontWeight: selectedFollowing.includes(person) ? '700' : '500', color: '#222', textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: 0 }}
+                      style={{ border: '1px solid #ddd', background: selectedFollowing.includes(person) ? '#eee' : '#fff', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '600', padding: '6px 12px' }}
                     >
-                      {person}
+                      {selectedFollowing.includes(person) ? 'Unfollow' : 'Follow'}
                     </button>
                   </div>
-                  <button onClick={() => navigate(`/perspectives?person=${encodeURIComponent(person)}`)} style={{ marginTop: '8px', width: '100%', border: '1px solid #ccc', borderRadius: '6px', padding: '6px 8px', background: '#fff', fontSize: '11px', cursor: 'pointer' }}>
+                  <button onClick={() => navigate(`/perspectives?person=${encodeURIComponent(person)}`)} style={{ marginTop: '4px', width: '100%', border: '1px solid #ccc', borderRadius: '6px', padding: '6px 8px', background: '#fff', fontSize: '11px', cursor: 'pointer' }}>
                     View perspectives
                   </button>
                 </div>
@@ -2969,11 +2981,8 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
 
         <div>
           <h3 style={{ marginBottom: '16px' }}>Perspectives Feed ({filteredItems.length})</h3>
-          {filteredItems.length === 0 && selectedFollowing.length === 0 ? (
-            <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>
-              Select people you follow to see their perspectives here.
-            </div>
-          ) : selectedFollowing.length > 0 && filteredItems.length === 0 ? (
+
+          {filteredItems.length === 0 ? (
             <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>
               No perspectives yet. Follow people from the Duma or share your own perspective!
             </div>
@@ -2994,13 +3003,12 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
                 {item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
                 {item.location && (
                   <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
-                    📍 {item.location}
+                    ð {item.location}
                   </div>
                 )}
                 <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
                 <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6' }}>{item.response || item.reason || item.desc}</p>
 
-                {/* MEDIA DISPLAY: INJECTED BLOCK */}
                 {(() => {
                   const mediaList = Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0
                     ? item.mediaUrls
@@ -3034,7 +3042,6 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
     </div>
   );
 };
-
 // --- ADMIN ORDER TRACKING & FULFILLMENT SYSTEM ---
 const AdminOrdersPage = ({ authToken, userEmail }) => {
   const [orders, setOrders] = useState([]);

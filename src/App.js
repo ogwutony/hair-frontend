@@ -2857,7 +2857,7 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
         return acc;
       }, {});
       const filtered = allItems
-        .filter(item => selectedFollowing.includes(item.submittedBy))
+        .filter(item => selectedFollowing.includes(item.submittedBy) || item.submittedBy === userEmail)
         .sort((a, b) => {
           const aPriority = followingPriority[a.submittedBy] ?? Number.MAX_SAFE_INTEGER;
           const bPriority = followingPriority[b.submittedBy] ?? Number.MAX_SAFE_INTEGER;
@@ -2868,7 +2868,7 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
         });
       setFilteredItems(filtered);
     }
-  }, [selectedFollowing, allItems, followedAt]);
+  }, [selectedFollowing, allItems, followedAt, userEmail]);
 
   useEffect(() => {
     const person = new URLSearchParams(location.search).get("person");
@@ -2937,13 +2937,26 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
             <div style={{ maxHeight: '560px', overflowY: 'auto', paddingRight: '4px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
               {followingList.map(person => (
-                <div key={person} style={{ border: selectedFollowing.includes(person) ? '2px solid #222' : '1px solid #ddd', borderRadius: '8px', padding: '10px', backgroundColor: selectedFollowing.includes(person) ? '#f9f9f9' : '#fff' }}>
-                  <button
-                    onClick={() => handleFollowingToggle(person)}
-                    style={{ width: '100%', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '12px', fontWeight: selectedFollowing.includes(person) ? '600' : '400', color: '#222', textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: 0 }}
-                  >
-                    {person}
-                  </button>
+                <div key={person} style={{ border: selectedFollowing.includes(person) ? '2px solid #222' : '1px solid #ddd', borderRadius: '8px', padding: '10px', backgroundColor: selectedFollowing.includes(person) ? '#f9f9f9' : '#fff', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', backgroundColor: '#eee', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {avatarByUser[person] ? (
+                        /\.(mp4|mov|webm)$/i.test(avatarByUser[person]) || avatarByUser[person].includes('/video/upload/') ? (
+                          <video src={normalizeMediaVideoUrl(avatarByUser[person])} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay loop muted playsInline />
+                        ) : (
+                          <img src={avatarByUser[person]} alt={person} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        )
+                      ) : (
+                        <span style={{ fontSize: '11px', fontWeight: '700', color: '#444' }}>{person[0]?.toUpperCase() || '?'}</span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleFollowingToggle(person)}
+                      style={{ flex: 1, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '13px', fontWeight: selectedFollowing.includes(person) ? '700' : '500', color: '#222', textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: 0 }}
+                    >
+                      {person}
+                    </button>
+                  </div>
                   <button onClick={() => navigate(`/perspectives?person=${encodeURIComponent(person)}`)} style={{ marginTop: '8px', width: '100%', border: '1px solid #ccc', borderRadius: '6px', padding: '6px 8px', background: '#fff', fontSize: '11px', cursor: 'pointer' }}>
                     View perspectives
                   </button>
@@ -2962,7 +2975,7 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
             </div>
           ) : selectedFollowing.length > 0 && filteredItems.length === 0 ? (
             <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>
-              No perspectives yet from people you follow.
+              No perspectives yet. Follow people from the Duma or share your own perspective!
             </div>
           ) : (
             filteredItems.map(item => (

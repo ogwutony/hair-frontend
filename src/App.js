@@ -852,7 +852,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     const newlyFilled = [];
     for (const file of files) {
       if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-        alert('Please upload image or video files only (JPG, PNG, HEIC, WEBP, MP4, MOV).');
+        alert('Please upload image or lideo files only (JPG, PNG, HEIC, WEBP, MP4, MOV).');
         continue;
       }
       if (file.size > 100 * 1024 * 1024) {
@@ -1235,7 +1235,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         <form onSubmit={handleCultureSubmit} style={{ ...styles.dumaCard, border: '1px solid #e0e0e0', padding: '24px', borderRadius: '16px' }}>
 
           <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '8px' }}>Attach Photos or Videos (Up to 6)</label>
-          <p style={{ fontSize: '11px', color: '#888', marginBottom: '10px' }}>Batch-upload multiple files at once, or use an individual terminal slot below.</p>
+          <p style={{ fontSize: '11px', color: '#888', marginBottom: '10px' }}>Batch-upload multiple files at once, or an use individual terminal slot below.</p>
 
           <div
             style={{ border: '2px dashed #bbb', borderRadius: '12px', padding: '14px', backgroundColor: '#fafafa', cursor: 'pointer', textAlign: 'center', marginBottom: '14px' }}
@@ -3591,7 +3591,7 @@ const ModelFriendlyPage = () => {
         Contribute to our Culture section by answering one of these prompts. 
                   Submit your response to the Duma for community voting and earn points!
           </p>
-{userEmail && rankTitle && (
+{suserEmail && rankTitle && (
           <div style={{ marginBottom: '30px' }}>
           <CredentialHeader email={userEmail} displayName={displayName} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
   </div>
@@ -3635,7 +3635,7 @@ const ModelFriendlyPage = () => {
             >
 {slot ? (
                   <>
-{slot.type === 'image' ? (
+[slot.type === 'image' ? (
                       <img src={slot.url} alt={`Post media ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
                                           <video src={slot.url} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -3655,7 +3655,7 @@ const ModelFriendlyPage = () => {
                                                         <input
                                                           type="file"
                                                                                 accept="image/*, image/heic, video/*, video/mp4, video/quicktime, video/webm"
-                                                                                                      style={{ display: 'none' }}
+                                                                                                     style={{ display: 'none' }}
                     onChange={(e) => e.target.files[0] && handleDumaSingleSlotUpload(idx, e.target.files[0])}
                   />
                     </label>

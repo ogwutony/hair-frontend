@@ -382,7 +382,15 @@ const CredentialHeader = ({ email, displayName, rankTitle, rankScore, avatarUrl,
         ...(isTopRank && !avatarUrl ? { boxShadow: '0 0 12px rgba(255,215,0,0.8)' } : {})
       }}>
         {avatarUrl
-          ? <img src={avatarUrl} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ? <img
+              src={avatarUrl}
+              alt={nameToDisplay}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(nameToDisplay)}&background=333&color=fff`;
+              }}
+            />
           : initial}
       </div>
       <span style={{ fontWeight: '600', fontSize: '14px', color: '#333', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '220px' }}>
@@ -2468,7 +2476,12 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                         {mediaList.map((url, idx) => (
                           <div key={idx} style={{ textAlign: 'center' }}>
                             {/\.(mp4|mov|webm)$/i.test(url) || url.includes('/video/upload/') ? (
-                              <video src={normalizeMediaVideoUrl(url)} style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000' }} controls playsInline preload="metadata" />
+                              <video
+                                src={normalizeMediaVideoUrl(url)}
+                                poster={url.includes('cloudinary.com') ? url.replace(/\.(mp4|mov|webm|m4v)$/i, '.jpg') : undefined}
+                                style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000', objectFit: 'contain' }}
+                                controls playsInline preload="metadata"
+                              />
                             ) : (
                               <img src={url} alt={`Attachment ${idx + 1}`} style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover' }} />
                             )}
@@ -2975,7 +2988,12 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
                       {mediaList.map((url, idx) => (
                         <div key={idx} style={{ textAlign: 'center' }}>
                           {/\.(mp4|mov|webm)$/i.test(url) || url.includes('/video/upload/') ? (
-                            <video src={normalizeMediaVideoUrl(url)} style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000' }} controls playsInline preload="metadata" />
+                            <video
+                              src={normalizeMediaVideoUrl(url)}
+                              poster={url.includes('cloudinary.com') ? url.replace(/\.(mp4|mov|webm|m4v)$/i, '.jpg') : undefined}
+                              style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000', objectFit: 'contain' }}
+                              controls playsInline preload="metadata"
+                            />
                           ) : (
                             <img src={url} alt={`Attachment ${idx + 1}`} style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover' }} />
                           )}

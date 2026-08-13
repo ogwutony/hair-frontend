@@ -3591,7 +3591,7 @@ const ModelFriendlyPage = () => {
         Contribute to our Culture section by answering one of these prompts. 
                   Submit your response to the Duma for community voting and earn points!
           </p>
-{suserEmail && rankTitle && (
+{userEmail && rankTitle && (
           <div style={{ marginBottom: '30px' }}>
           <CredentialHeader email={userEmail} displayName={displayName} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
   </div>

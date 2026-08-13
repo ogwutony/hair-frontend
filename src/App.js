@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate, useLocation, useParams } from "react-router-dom";
 import { trackEvent } from "./components/AdMonetization";
 
@@ -58,8 +58,7 @@ const useIsMobile = () => {
 // --- LOCATION AUTOCOMPLETE COMPONENT (Google Places) ---
 const LocationAutocomplete = ({ value, onChange, placeholder, style }) => {
   const inputRef = React.useRef(null);
-  const autocompleteRef = React.useRef(null); 
-  
+  const autocompleteRef = React.useRef(null); // CRITICAL: Prevents double-binding
   useEffect(() => {
     const styleEl = document.createElement('style');
     styleEl.innerHTML = `.pac-container { z-index: 10000 !important; }`;
@@ -72,19 +71,13 @@ const LocationAutocomplete = ({ value, onChange, placeholder, style }) => {
 
     function initAutocomplete() {
       if (cancelled || !window.google || !window.google.maps || !inputRef.current) return;
-      if (autocompleteRef.current) return; 
+      if (autocompleteRef.current) return; // CRITICAL: Stops double-binding
       const autocomplete = autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
         fields: ['formatted_address', 'name'],
       });
       autocomplete.addListener('place_changed', () => {
         const place = autocomplete.getPlace();
-        let locationText = '';
-        if (place.name && place.formatted_address && !place.formatted_address.includes(place.name)) {
-          locationText = `${place.name}, ${place.formatted_address}`;
-        } else {
-          locationText = place.formatted_address || place.name || '';
-        }
-        onChange(locationText);
+        onChange(place.formatted_address || place.name || '');
       });
       inputRef.current.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') e.preventDefault();
@@ -111,11 +104,12 @@ const LocationAutocomplete = ({ value, onChange, placeholder, style }) => {
     return () => { cancelled = true; };
   }, [onChange]);
 
-  useEffect(() => {
-    if (inputRef.current && value !== undefined && inputRef.current.value !== value) {
-      inputRef.current.value = value;
-    }
-  }, [value]);
+  // Sync external value changes (e.g., when the backend loads a saved location) into the input
+    useEffect(() => {
+          if (inputRef.current && value !== undefined && inputRef.current.value !== value) {
+                  inputRef.current.value = value;
+          }
+    }, [value]);
   
   return (
     <div style={{ position: 'relative', width: '100%' }}>
@@ -341,25 +335,18 @@ const safeSocialUrl = (raw) => {
   return `https://${raw}`;
 };
 
-const isVideoUrl = (url) => {
-  if (!url || typeof url !== 'string') return false;
-  if (url.startsWith('data:video/') || url.startsWith('blob:')) return true;
-  return /\.(mp4|mov|webm|m4v|ogv|3gp|mkv)($|\?)/i.test(url) || 
-         url.includes('/video/upload/') || 
-         url.includes('/f_mp4') || 
-         (url.includes('cloudinary.com') && /\.(mov|webm|m4v)$/i.test(url));
-};
-
 const normalizeMediaVideoUrl = (url) => {
-  if (!url || typeof url !== 'string') return url;
-  let normalized = url;
-  
-  if (normalized.includes('cloudinary.com')) {
-    normalized = normalized.replace('/image/upload/', '/video/upload/');
-    if (normalized.includes('/upload/') && !normalized.includes('/upload/f_mp4/') && !normalized.includes('/upload/f_auto/')) {
-      normalized = normalized.replace('/upload/', '/upload/f_mp4,q_auto/');
+  if (!url) return url;
+  let normalized = url.replace('.mov', '.mp4').replace('.webm', '.mp4');
+  try {
+    const parsed = new URL(normalized);
+    const host = parsed.hostname.toLowerCase();
+    const isCloudinaryHost = host === 'cloudinary.com' || host.endsWith('.cloudinary.com');
+    if (isCloudinaryHost && parsed.pathname.includes('/video/upload/') && !parsed.pathname.includes('/video/upload/f_mp4/')) {
+      normalized = normalized.replace('/video/upload/', '/video/upload/f_mp4/');
     }
-    normalized = normalized.replace(/\.(mov|webm|m4v)$/i, '.mp4');
+  } catch {
+    return normalized;
   }
   return normalized;
 };
@@ -371,12 +358,11 @@ const SnapchatIcon = () => (
 );
 
 const CredentialHeader = ({ email, displayName, rankTitle, rankScore, avatarUrl, socialLinks = {} }) => {
-  const nameToDisplay = displayName || (email ? email.split('@')[0] : 'Community Member');
+  const nameToDisplay = displayName || email;
   const initial = (nameToDisplay || 'C')[0].toUpperCase();
   const color = getRankColor(rankTitle || 'Comrade');
   const isTopRank = rankTitle === "Nice and Helpful";
   const formattedRankTitle = getFormattedRankTitle(rankTitle || 'Comrade', getCompletedPromptIds(email).length);
-  
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', background: '#fff', flexWrap: 'wrap', marginBottom: '12px' }}>
       <div style={{
@@ -396,7 +382,7 @@ const CredentialHeader = ({ email, displayName, rankTitle, rankScore, avatarUrl,
         ...(isTopRank && !avatarUrl ? { boxShadow: '0 0 12px rgba(255,215,0,0.8)' } : {})
       }}>
         {avatarUrl ? (
-          isVideoUrl(avatarUrl) ? (
+          /\.(mp4|mov|webm)$/i.test(avatarUrl) || avatarUrl.includes('/video/upload/') ? (
             <video src={normalizeMediaVideoUrl(avatarUrl)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay loop muted playsInline />
           ) : (
             <img
@@ -779,6 +765,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   const avatarBatchInputRef = React.useRef(null);
   const dumaBatchInputRef = React.useRef(null);
 
+  // --- Post About Anything States ---
   const [postDescription, setCultureResponse] = useState("");
   const [postLocation, setPostLocation] = useState("");
   const [dumaSlots, setDumaSlots] = useState(Array(6).fill(null)); 
@@ -871,7 +858,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
     const newlyFilled = [];
     for (const file of files) {
       if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-        alert('Please upload image or video files only (JPG, PNG, HEIC, WEBP, MP4, MOV).');
+        alert('Please upload image or lideo files only (JPG, PNG, HEIC, WEBP, MP4, MOV).');
         continue;
       }
       if (file.size > 100 * 1024 * 1024) {
@@ -1110,8 +1097,8 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
 
           <div style={{ textAlign: 'center', marginBottom: '20px' }}>
             {avatarUrl ? (
-              isVideoUrl(avatarUrl) ? (
-                <video src={normalizeMediaVideoUrl(avatarUrl)} style={{ width: '110px', height: '110px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #222' }} autoPlay loop muted playsInline />
+              /\.(mp4|mov|webm)$/i.test(avatarUrl) ? (
+                <video src={avatarUrl} style={{ width: '110px', height: '110px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #222' }} autoPlay loop muted />
               ) : (
                 <img src={avatarUrl} alt="Main Avatar" style={{ width: '110px', height: '110px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #222' }} />
               )
@@ -1158,7 +1145,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
                 {slot ? (
                   <>
                     {slot.type === 'video' ? (
-                      <video src={normalizeMediaVideoUrl(slot.url)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay loop muted playsInline />
+                      <video src={slot.url} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
                       <img src={slot.url} alt={`Slot ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     )}
@@ -1254,7 +1241,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         <form onSubmit={handleCultureSubmit} style={{ ...styles.dumaCard, border: '1px solid #e0e0e0', padding: '24px', borderRadius: '16px' }}>
 
           <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '8px' }}>Attach Photos or Videos (Up to 6)</label>
-          <p style={{ fontSize: '11px', color: '#888', marginBottom: '10px' }}>Batch-upload multiple files at once, or use an individual terminal slot below.</p>
+          <p style={{ fontSize: '11px', color: '#888', marginBottom: '10px' }}>Batch-upload multiple files at once, or an use individual terminal slot below.</p>
 
           <div
             style={{ border: '2px dashed #bbb', borderRadius: '12px', padding: '14px', backgroundColor: '#fafafa', cursor: 'pointer', textAlign: 'center', marginBottom: '14px' }}
@@ -1398,10 +1385,955 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   );
 };
 
-// --- DUMA PAGE ---
-const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints, userAvatar, following, onFollowUser, onUnfollowUser }) => {
-  const isMobile = useIsMobile();
+// --- FORGOT PASSWORD PAGE ---
+const ForgotPasswordPage = () => {
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setSubmitted(true);
+      } else {
+        setError(data.error || "Something went wrong. Please try again.");
+      }
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div style={styles.authContainer}>
+        <div style={{ ...styles.authCard, textAlign: 'center' }}>
+          <h2>Forgot Password?</h2>
+          <div style={{ fontSize: '48px', margin: '20px 0' }}></div>
+          <p style={{ color: '#555', lineHeight: '1.6' }}>
+            If that email is registered, we've sent a reset link.<br />
+            Check your inbox (and spam folder).
+          </p>
+          <p style={{ color: '#888', fontSize: '13px', marginTop: '10px' }}>
+            The email may have landed in your <strong>spam or junk folder</strong> - please check there if you don't see it in your inbox.
+          </p>
+          <Link to="/login">
+            <button style={{ ...styles.authButton, marginTop: '20px' }}>Back to Sign In</button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.authContainer}>
+      <div style={styles.authCard}>
+        <h2>Forgot Password?</h2>
+        <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
+          Enter your email and we'll send you a link to reset your password.
+        </p>
+        <input
+          type="email"
+          placeholder="Enter your email"
+          style={styles.input}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        {error && <p style={{ color: 'red', fontSize: '13px', marginTop: '8px' }}>{error}</p>}
+        <button style={styles.authButton} onClick={handleSubmit} disabled={isLoading}>
+          {isLoading ? "Sending..." : "Send Reset Link"}
+        </button>
+        <Link to="/login" style={{ display: 'block', marginTop: '15px', fontSize: '13px', color: '#666', textDecoration: 'none' }}>
+          Back to Sign In
+        </Link>
+      </div>
+    </div>
+  );
+};
+
+// --- RESET PASSWORD PAGE ---
+const ResetPasswordPage = () => {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
+
+  const { token } = useParams();
+
+  const handleSubmit = async () => {
+    if (password !== confirm) { setError("Passwords do not match."); return; }
+    if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
+    setIsLoading(true);
+    setError("");
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, newPassword: password })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setSubmitted(true);
+        setTimeout(() => navigate('/login'), 3000);
+      } else {
+        setError(data.error || "Something went wrong. Please try again.");
+      }
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div style={styles.authContainer}>
+        <div style={{ ...styles.authCard, textAlign: 'center' }}>
+          <h2>Password Reset!</h2>
+          <div style={{ fontSize: '48px', margin: '20px 0' }}></div>
+          <p style={{ color: '#555' }}>Your password has been updated successfully.</p>
+          <p style={{ color: '#888', fontSize: '13px' }}>Redirecting to sign in...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.authContainer}>
+      <div style={styles.authCard}>
+        <h2>Reset Password</h2>
+        <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Enter your new password below.</p>
+        <input
+          type="password"
+          placeholder="New password"
+          style={styles.input}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <input
+          type="password"
+          placeholder="Confirm new password"
+          style={styles.input}
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+        />
+        {error && <p style={{ color: 'red', fontSize: '13px', marginTop: '8px' }}>{error}</p>}
+        <button style={styles.authButton} onClick={handleSubmit} disabled={isLoading}>
+          {isLoading ? "Resetting..." : "Reset Password"}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// --- AUTH COMPONENTS ---
+const LoginPage = ({ onLogin }) => {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [socialError, setSocialError] = useState("");
+
+  const handleLogin = async () => {
+    setIsLoading(true);
+    setSocialError("");
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await response.json();
+      if (response.ok) { onLogin(email, data.token, true, data.rank_title, data.rank_score); navigate("/profile"); }
+      else { alert(data.error || "Invalid login"); }
+    } catch (err) { alert("Server is waking up. Try again in 30s."); }
+    finally { setIsLoading(false); }
+  };
+
+  const handleGoogleLogin = () => {
+    setSocialError("");
+    const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+    if (!clientId) { setSocialError("Google login is not configured."); return; }
+    const redirectUri = window.location.origin + "/auth/google/callback";
+    const scope = "openid email profile";
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&prompt=select_account`;
+    window.location.href = authUrl;
+  };
+
+  const handleInstagramLogin = () => {
+    setSocialError("");
+    const appId = process.env.REACT_APP_FACEBOOK_APP_ID;
+    if (!appId) { setSocialError("Instagram login is not configured yet."); return; }
+    const redirectUri = window.location.origin + "/auth/instagram/callback";
+    const scope = "email,public_profile";
+    const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=token`;
+    window.location.href = authUrl;
+  };
+
+  const handleTikTokLogin = () => {
+    setSocialError("");
+  };
+
+  return (
+    <div style={styles.authContainer}>
+      <div style={{ ...styles.authCard, maxWidth: '420px' }}>
+        <h1 style={{ fontSize: '22px', fontWeight: '700', marginBottom: '4px', letterSpacing: '-0.5px' }}>The Majorities</h1>
+        <p style={{ fontSize: '13px', color: '#888', marginBottom: '24px' }}>Sign in to your account</p>
+        {socialError && <div style={{ background: '#fff0f0', color: '#c00', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '16px', textAlign: 'left' }}>{socialError}</div>}
+        <button onClick={handleGoogleLogin} style={{ ...styles.socialButton, backgroundColor: '#fff', color: '#222', border: '1px solid #ddd' }}>
+          <svg style={{ width: '18px', height: '18px', marginRight: '10px' }} viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Continue with Google
+        </button>
+        <button onClick={handleInstagramLogin} style={{ ...styles.socialButton, background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)', color: '#fff', border: 'none' }}>
+          <svg style={{ width: '18px', height: '18px', marginRight: '10px', fill: '#fff' }} viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+          Continue with Instagram
+        </button>
+        <button onClick={handleTikTokLogin} style={{ ...styles.socialButton, backgroundColor: '#000', color: '#fff', border: 'none' }}>
+          <svg style={{ width: '18px', height: '18px', marginRight: '10px', fill: '#fff' }} viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 0 0-.79-.05A6.34 6.34 0 0 0 3.15 15a6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V8.42a8.21 8.21 0 0 0 4.76 1.52V6.5a4.83 4.83 0 0 1-1-.19z"/></svg>
+          Continue with TikTok
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0' }}>
+          <div style={{ flex: 1, height: '1px', backgroundColor: '#e0e0e0' }} />
+          <span style={{ padding: '0 12px', fontSize: '12px', color: '#999' }}>OR</span>
+          <div style={{ flex: 1, height: '1px', backgroundColor: '#e0e0e0' }} />
+        </div>
+        <input type="email" placeholder="Email" style={styles.input} value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input type="password" placeholder="Password" style={styles.input} value={password} onChange={(e) => setPassword(e.target.value)} />
+        <button style={styles.authButton} onClick={handleLogin}>{isLoading ? '...' : 'Login'}</button>
+        <Link to="/forgot-password" style={{ display: 'block', marginTop: '12px', fontSize: '13px', color: '#666', textDecoration: 'none', textAlign: 'center' }}>
+          Forgot password?
+        </Link>
+      </div>
+    </div>
+  );
+};
+
+const OAuthCallbackPage = ({ onLogin, provider }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [status, setStatus] = useState("Authenticating...");
+
+  useEffect(() => {
+    const hash = location.hash.substring(1);
+    const hashParams = new URLSearchParams(hash);
+    const queryParams = new URLSearchParams(location.search);
+    const accessToken = hashParams.get("access_token");
+    const code = queryParams.get("code");
+    const error = queryParams.get("error") || hashParams.get("error");
+
+    if (error) { setStatus(provider + " authentication was cancelled."); setTimeout(() => navigate("/login"), 2500); return; }
+    if (provider === "google" && !code) { setStatus("Authentication failed. No authorization code received."); setTimeout(() => navigate("/login"), 2500); return; }
+    if (provider !== "google" && !accessToken) { setStatus("Authentication failed. No token received."); setTimeout(() => navigate("/login"), 2500); return; }
+
+    const endpoint = provider === "instagram" ? "/api/auth/instagram" : "/api/auth/google";
+    const body = provider === "google"
+      ? { code, redirectUri: window.location.origin + "/auth/google/callback" }
+      : { accessToken };
+
+    fetch(BACKEND_URL + endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      .then(r => r.json().then(data => ({ ok: r.ok, data })))
+      .then(({ ok, data }) => {
+        if (ok && data.token) { onLogin(data.email, data.token, true, data.rank_title, data.rank_score); navigate("/profile"); }
+        else { setStatus(data.error || "Account not linked. Please try again."); setTimeout(() => navigate("/login"), 3000); }
+      })
+      .catch(() => { setStatus("Server error. Please try again."); setTimeout(() => navigate("/login"), 3000); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div style={styles.authContainer}>
+      <div style={{ ...styles.authCard, textAlign: 'center' }}>
+        <h2 style={{ marginBottom: '12px' }}>{provider.charAt(0).toUpperCase() + provider.slice(1)}</h2>
+        <p style={{ color: '#666', fontSize: '14px' }}>{status}</p>
+      </div>
+    </div>
+  );
+};
+
+const SignupPage = () => {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const handleSignup = async () => {
+    if (password !== confirmPassword) return alert("Passwords do not match");
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      if (response.ok) { alert("Success! Log in now."); navigate("/login"); }
+    } catch (err) { alert("Server error."); }
+  };
+  return (
+    <div style={styles.authContainer}><div style={styles.authCard}>
+      <h2>Sign Up</h2>
+      <input type="email" placeholder="Email" style={styles.input} onChange={(e) => setEmail(e.target.value)} />
+      <input type="password" placeholder="Password" style={styles.input} onChange={(e) => setPassword(e.target.value)} />
+      <input type="password" placeholder="Confirm" style={styles.input} onChange={(e) => setConfirmPassword(e.target.value)} />
+      <button style={styles.authButton} onClick={handleSignup}>Create Account</button>
+    </div></div>
+  );
+};
+
+// --- LANDING PAGE ---
+function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
+  const [selection, setSelection] = useState([]);
+  const [focusedItem, setFocusedItem] = useState(null);
+  const MOBILE_BREAKPOINT = 768;
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= MOBILE_BREAKPOINT);
+
+  useEffect(() => {
+    let debounceTimer;
+    const handleResize = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => setIsMobile(window.innerWidth <= MOBILE_BREAKPOINT), 150);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => { clearTimeout(debounceTimer); window.removeEventListener('resize', handleResize); };
+  }, []);
+
+  const handleSelect = (item) => {
+    setFocusedItem(item);
+    setSelection(prev => {
+      const alreadySelected = prev.some(i => i.name === item.name);
+      if (alreadySelected) return prev.filter(i => i.name !== item.name);
+      if (prev.length >= 6) return prev;
+      return [...prev, item];
+    });
+  };
+  
+  const selectedItems = selection;
+  const isSetComplete = selectedItems.length === 6;
+  const setTotals = calculateSetTotals(selectedItems);
+  const subscriptionSavings = Math.max(0, setTotals.oneTime - setTotals.subscription);
+  
+  const handleOneTimeCheckout = () => {
+    if (!isSetComplete) return;
+    trackEvent("checkout_started", {
+      placement: "landing_page",
+      purchaseType: "one_time",
+      itemCount: selectedItems.length,
+      checkoutValue: setTotals.oneTime
+    });
+    submitShopifyCheckout(selectedItems, "one-time");
+  };
+
+  const handleSubscriptionCheckout = () => {
+    if (!isSetComplete) return;
+    trackEvent("checkout_started", {
+      placement: "landing_page",
+      purchaseType: "subscription",
+      itemCount: selectedItems.length,
+      checkoutValue: setTotals.subscription
+    });
+    submitShopifyCheckout(selectedItems, "subscription");
+  };
+  
+  const renderRow = (label, category) => (
+    <div style={styles.rowSection}>
+      <h3 style={styles.rowLabel}>{label}</h3>
+      <div style={styles.scrollRow}>
+        {productsData[category].map(item => {
+          const isSelected = selection.some(i => i.name === item.name);
+          const { pricing } = getProductCommerceConfig(item.name);
+          return (
+            <div key={item.name} onClick={() => handleSelect(item)} style={{ ...styles.card, border: isSelected ? "2px solid #222" : "1px solid #eee" }}>
+              <div style={styles.imagePlaceholder}>{item.name[0]}</div>
+              <div style={styles.itemName}>{item.name}</div>
+              <div style={{ fontSize: '11px', color: '#555', marginTop: '8px', lineHeight: '1.5' }}>
+                <div>One-time {formatCurrency(pricing.oneTime)}</div>
+                <div>Subscribe {formatCurrency(pricing.subscription)}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+  
+  return (
+    <div style={{ ...styles.layout, flexDirection: isMobile ? 'column' : 'row', padding: isMobile ? '20px 16px' : '20px 60px', overflowX: isMobile ? 'hidden' : 'visible', boxSizing: 'border-box' }}>
+      <div style={{ ...styles.left, width: isMobile ? '100%' : '70%', paddingRight: isMobile ? 0 : '40px', minWidth: 0, overflowX: 'hidden' }}>
+        {renderRow("Pick Shampoos", "shampoos")}
+        {renderRow("Pick Conditioners", "conditioners")}
+        {renderRow("Pick Oils", "oils")}
+        {renderRow("Pick Face Scrubs", "faceScrubs")}
+        {renderRow("Pick Toners", "toners")}
+        {renderRow("Pick Creams", "faceCreams")}
+      </div>
+      <aside style={{ ...styles.right, width: isMobile ? '100%' : '30%', position: isMobile ? 'static' : 'sticky', top: isMobile ? 'auto' : '20px', boxSizing: 'border-box', height: 'auto', maxHeight: 'none' }}>
+        <div style={{ minHeight: '100px', marginBottom: '15px' }}>
+          {focusedItem ? (
+            <div>
+              <h3>{focusedItem.name}</h3>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: '#333' }}>
+                  One-time {formatCurrency(getProductCommerceConfig(focusedItem.name).pricing.oneTime)}
+                </span>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: '#2d6a4f' }}>
+                  Subscribe {formatCurrency(getProductCommerceConfig(focusedItem.name).pricing.subscription)}
+                </span>
+              </div>
+              <div style={{ fontSize: '13px', color: '#666', lineHeight: '1.6' }}>
+                {focusedItem.desc}
+              </div>
+            </div>
+          ) : <p style={{color: '#888'}}>Select a product</p>}
+        </div>
+        <div style={styles.summaryContainer}>
+          <h4 style={{ fontSize: '14px', borderBottom: '1px solid #eee', paddingBottom: '10px', marginTop: 0 }}>Your Custom Set ({selectedItems.length}/6)</h4>
+          <div style={{ margin: '10px 0' }}>
+            {(() => {
+              const counts = {};
+              selectedItems.forEach(item => { counts[item.name] = (counts[item.name] || 0) + 1; });
+              return Object.entries(counts).map(([name, count]) => (
+                <p key={name} style={{ fontSize: '11px', margin: '4px 0' }}>
+                  {name}{count > 1 ? ` x${count}` : ''} · {formatCurrency(getProductCommerceConfig(name).pricing.oneTime)} / {formatCurrency(getProductCommerceConfig(name).pricing.subscription)}
+                </p>
+              ));
+            })()}
+          </div>
+          {isSetComplete ? (
+            <div style={{ borderTop: '2px solid #222', paddingTop: '15px' }}>
+              <div style={{ fontSize: '12px', color: '#666', marginBottom: '12px', lineHeight: '1.6' }}>
+                <div>One-time total: <strong>{formatCurrency(setTotals.oneTime)}</strong></div>
+                <div>Subscription total: <strong>{formatCurrency(setTotals.subscription)} / month</strong></div>
+                <div>You save <strong>{formatCurrency(subscriptionSavings)}</strong> on each monthly set.</div>
+              </div>
+              {/* Delivery promise callout */}
+              <div style={{ backgroundColor: '#f4f9f4', border: '1px solid #c2e1c2', padding: '12px', borderRadius: '8px', marginBottom: '14px', textAlign: 'left' }}>
+                <span style={{ fontSize: '13px', color: '#1e4620', fontWeight: '700', display: 'block' }}>
+                  🚚 Fast US Fulfillment via ShipBob
+                </span>
+                <span style={{ fontSize: '11px', color: '#2e6f32', display: 'block', marginTop: '3px' }}>
+                  Estimated Delivery: <strong>{
+                    new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                  } - {
+                    new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                  }</strong> (+ Shipping & Handling)
+                </span>
+              </div>
+              <button style={styles.checkoutBtn} onClick={handleOneTimeCheckout}>1 time Checkout ({formatCurrency(setTotals.oneTime)})</button>
+              <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={handleSubscriptionCheckout}>Monthly Subscription Checkout ({formatCurrency(setTotals.subscription)} / month)</button>
+            </div>
+          ) : <p style={{ fontSize: '12px', color: '#888' }}>Select 6 products to checkout</p>}
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+// --- RECOMMEND PAGE ---
+const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, userAvatar }) => {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({ 
+    name: "", 
+    company: "", 
+    productType: "",
+    websiteLink: "",
+    whyRecommend: "", 
+    photo: null,
+    video: null
+  });
+  const [submitted, setSubmitted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [showGuestPrompt, setShowGuestPrompt] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setShowGuestPrompt(false);
+
+    // Validation
+    if (!formData.name || !formData.company || !formData.productType || !formData.websiteLink || !formData.whyRecommend) {
+      setErrorMsg("Please fill in all required fields.");
+      return;
+    }
+
+    if (formData.whyRecommend.split(' ').length < 15) {
+      setErrorMsg("Justification must be at least 2-3 sentences (15+ words).");
+      return;
+    }
+
+    // Check for valid URL
+    try {
+      new URL(formData.websiteLink);
+    } catch (err) {
+      setErrorMsg("Website Link must be a valid URL starting with http:// or https://");
+      return;
+    }
+
+    if (!authToken) {
+      setShowGuestPrompt(true);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const submitData = new FormData();
+      submitData.append('name', formData.name);
+      submitData.append('company', formData.company);
+      submitData.append('productType', formData.productType);
+      submitData.append('websiteLink', formData.websiteLink);
+      submitData.append('whyRecommend', formData.whyRecommend);
+      if (formData.photo) submitData.append('photo', formData.photo);
+      if (formData.video) submitData.append('video', formData.video);
+
+      const res = await fetch(`${BACKEND_URL}/api/duma/recommend`, { method: 'POST', headers: { Authorization: `Bearer ${authToken}` }, body: submitData });
+      const data = await res.json();
+      if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); setIsLoading(false); return; }
+
+      addDumaItem({ ...formData, id: Date.now(), type: "Product Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'Comrade', section: "Commerce" });
+      setSubmitted(true);
+    } catch (err) {
+      addDumaItem({ ...formData, id: Date.now(), type: "Product Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'Comrade', section: "Commerce" });
+      setSubmitted(true);
+    }
+    setIsLoading(false);
+  };
+
+  if (submitted) {
+    return (
+      <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
+          <div style={{ fontSize: '40px', marginBottom: '16px' }}></div>
+          <h2 style={{ marginBottom: '10px' }}>Recommendation Submitted!</h2>
+          <p style={{ color: '#666', marginBottom: '20px' }}>Your product recommendation has been sent to The Majorities' Duma Commerce section for community review and voting.</p>
+          {rankTitle && <RankBadge rankTitle={rankTitle} />}
+          <div style={{ marginTop: '20px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <button style={styles.authButton} onClick={() => navigate("/duma")}>View the Duma</button>
+            <button style={{ ...styles.authButton, background: '#f5f5f5', color: '#222' }} onClick={() => setSubmitted(false)}>Submit Another</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+      <h2>Submit Product Recommendation</h2>
+      <p style={{ color: '#666', fontSize: '14px', marginBottom: '30px' }}>
+        Submit products or ideas to The Duma for community review and voting.
+      </p>
+
+      {userEmail && rankTitle && <div style={{ marginBottom: '20px' }}><CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} /></div>}
+      {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
+      {showGuestPrompt && <GuestSubmissionPrompt message="Log in or register to submit this recommendation to The Duma." />}
+
+      <form style={styles.dumaCard} onSubmit={handleSubmit}>
+        <div style={{ marginBottom: '25px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '700', marginBottom: '15px', textTransform: 'uppercase', color: '#222' }}>1. Product Identification</h3>
+          <input required placeholder="Product Name (e.g., 'Rosemary Mint Scalp & Hair Strengthening Oil') *" style={styles.input} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+          <input required placeholder="Company Name (legal brand name, e.g., 'Mielle Organics') *" style={styles.input} value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
+        </div>
+
+        <div style={{ marginBottom: '25px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '700', marginBottom: '15px', textTransform: 'uppercase', color: '#222' }}>2. Categorization & Sourcing</h3>
+          <input required placeholder="Product Type (e.g., 'Moisturizer', 'Regrowth', 'Shampoo', 'Oil') *" style={styles.input} value={formData.productType} onChange={e => setFormData({...formData, productType: e.target.value})} />
+          <input required type="url" placeholder="Website Link (direct product page URL, not retailer links like Amazon unless exclusive) *" style={styles.input} value={formData.websiteLink} onChange={e => setFormData({...formData, websiteLink: e.target.value})} />
+        </div>
+
+        <div style={{ marginBottom: '25px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '700', marginBottom: '15px', textTransform: 'uppercase', color: '#222' }}>3. Justification & Evidence</h3>
+          <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginBottom: '8px' }}>Why Recommend? (2-3 sentences, focus on results) *</label>
+          <textarea required placeholder="Good: 'Highly effective for type 4C hair; significantly reduced breakage within 3 weeks of consistent use without heavy buildup.' *" style={{ ...styles.input, height: '100px' }} value={formData.whyRecommend} onChange={e => setFormData({...formData, whyRecommend: e.target.value})} />
+
+          <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginTop: '15px', marginBottom: '8px' }}>Upload Product Photo (high-resolution, label must be legible)</label>
+          <input type="file" accept="image/*, image/heic, image/jpeg, image/png, image/webp" style={styles.input} onChange={e => setFormData({...formData, photo: e.target.files?.[0] || null})} />
+
+          <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginTop: '15px', marginBottom: '8px' }}>Upload Product Video (under 60s, or link to review)</label>
+          <input type="file" accept="video/*, video/mp4, video/quicktime, video/webm" style={styles.input} onChange={e => setFormData({...formData, video: e.target.files?.[0] || null})} />
+        </div>
+
+        <button type="submit" style={styles.authButton} disabled={isLoading}>{isLoading ? "Submitting..." : "Submit to the Duma"}</button>
+      </form>
+
+      <div style={{ ...styles.dumaCard, background: '#f9f9f9', marginTop: '30px' }}>
+        <h3 style={{ marginTop: 0, fontSize: '14px', fontWeight: '700' }}>Before You Submit:</h3>
+        <ul style={{ fontSize: '13px', color: '#555', lineHeight: '1.8', marginLeft: '20px' }}>
+          <li>Verify you are logged in with your profile (displayed above) to ensure points are tracked</li>
+          <li>Double-check the Website Link for valid access before submitting</li>
+          <li>Ensure product photo label is legible and high-resolution</li>
+          <li>Keep video under 60 seconds</li>
+          <li>Justification must be 2-3 sentences focused on results, not personal opinions</li>
+        </ul>
+      </div>
+    </div>
+  );
+};
+
+const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, userAvatar }) => {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    name: "",
+    contactEmail: "",
+    phoneNumber: "",
+    ein: "",
+    company: "",
+    websiteOrSocial: "",
+    countryOfOrigin: "",
+    operatingCountry: "",
+    productType: "",
+    productDescription: "",
+    whyPartner: "",
+    photoFile: null,
+    videoFile: null,
+    unitsOf34Oz: "500",
+    desiredOrderQuantity: "",
+    pricing5Gallon: "",
+    standardUnitPrice: "5",
+    promotionalUnitPrice: "4",
+    commission25AgreedTo: false,
+    customerRewardAgreed: false,
+    shippingReturnsAgreed: false,
+    ownershipTitleAgreed: false,
+    tier: "National Associate"
+  });
+  const [errorMsg, setErrorMsg] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [videoPreview, setVideoPreview] = useState(null);
+  const [showGuestPrompt, setShowGuestPrompt] = useState(false);
+
+  const userScore = rankScore || 1;
+  const canApplyPremium = isPolitburoOrHigher(userScore);
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData({...formData, photoFile: file});
+      setPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleVideoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData({...formData, videoFile: file});
+      setVideoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setShowGuestPrompt(false);
+
+    // Validation
+    if (!formData.name || !formData.contactEmail || !formData.phoneNumber || !formData.ein) {
+      setErrorMsg("Please fill in all contact information fields.");
+      return;
+    }
+    if (!formData.company || !formData.countryOfOrigin || !formData.operatingCountry) {
+      setErrorMsg("Please fill in all company information fields.");
+      return;
+    }
+    if (!formData.productType || !formData.productDescription || !formData.whyPartner) {
+      setErrorMsg("Please fill in all product details.");
+      return;
+    }
+    if (!formData.desiredOrderQuantity) {
+      setErrorMsg("Please provide your desired inventory fulfillment quantity.");
+      return;
+    }
+    if (!formData.standardUnitPrice) {
+      setErrorMsg("Please provide the standard unit price to consumers.");
+      return;
+    }
+    if (!formData.promotionalUnitPrice) {
+      setErrorMsg("Please provide the promotional unit price to consumers.");
+      return;
+    }
+    if (!formData.commission25AgreedTo) {
+      setErrorMsg("You must agree to the 25% commission agreement.");
+      return;
+    }
+    if (!formData.shippingReturnsAgreed) {
+      setErrorMsg("You must agree to the Shipping & Returns Policy.");
+      return;
+    }
+    if (!formData.ownershipTitleAgreed) {
+      setErrorMsg("You must agree to the Ownership & Title Policy.");
+      return;
+    }
+
+    if (formData.tier === "Premium Partner" && !canApplyPremium) {
+      setErrorMsg("Premium Partner status requires Politburo rank or higher. Keep building your influence!");
+      return;
+    }
+
+    if (!authToken) {
+      setShowGuestPrompt(true);
+      return;
+    }
+
+    try {
+      const formDataObj = new FormData();
+      formDataObj.append('name', formData.name);
+      formDataObj.append('contactEmail', formData.contactEmail);
+      formDataObj.append('phoneNumber', formData.phoneNumber);
+      formDataObj.append('ein', formData.ein);
+      formDataObj.append('company', formData.company);
+      formDataObj.append('websiteOrSocial', formData.websiteOrSocial);
+      formDataObj.append('countryOfOrigin', formData.countryOfOrigin);
+      formDataObj.append('operatingCountry', formData.operatingCountry);
+      formDataObj.append('productType', formData.productType);
+      formDataObj.append('productDescription', formData.productDescription);
+      formDataObj.append('whyPartner', formData.whyPartner);
+      formDataObj.append('unitsOf34Oz', formData.unitsOf34Oz);
+      formDataObj.append('desiredOrderQuantity', formData.desiredOrderQuantity);
+      formDataObj.append('pricing5Gallon', formData.pricing5Gallon);
+      formDataObj.append('standardUnitPrice', formData.standardUnitPrice);
+      formDataObj.append('promotionalUnitPrice', formData.promotionalUnitPrice);
+      formDataObj.append('tier', formData.tier);
+      if (formData.photoFile) formDataObj.append('photo', formData.photoFile);
+      if (formData.videoFile) formDataObj.append('video', formData.videoFile);
+
+      const res = await fetch(`${BACKEND_URL}/api/duma/partner`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${authToken}` },
+        body: formDataObj
+      });
+      const data = await res.json();
+      if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); return; }
+      
+      addDumaItem({
+        ...formData,
+        id: Date.now(),
+        type: "Partner",
+        submittedBy: userEmail || "anonymous",
+        submitterRank: rankTitle || 'Comrade',
+        hasPhoto: !!formData.photoFile,
+        hasVideo: !!formData.videoFile
+      });
+      setSubmitted(true);
+    } catch (err) {
+      addDumaItem({
+        ...formData,
+        id: Date.now(),
+        type: "Partner",
+        submittedBy: userEmail || "anonymous",
+        submitterRank: rankTitle || 'Comrade',
+        hasPhoto: !!formData.photoFile,
+        hasVideo: !!formData.videoFile
+      });
+      setSubmitted(true);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
+          <div style={{ fontSize: '40px', marginBottom: '16px' }}></div>
+          <h2>Partnership Application Submitted!</h2>
+          <p style={{ color: '#666' }}>Your partnership application has been sent to The Majorities' Duma for review.</p>
+          <button style={{ ...styles.authButton, marginTop: '20px', width: 'auto', padding: '12px 24px' }} onClick={() => navigate("/duma")}>View the Duma</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+      <h2>Partner with The Majorities</h2>
+      <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
+        Apply to become a partner and sell on our marketplace
+      </p>
+      {userEmail && rankTitle && (
+        <div style={{ marginBottom: '20px' }}>
+          <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
+        </div>
+      )}
+      {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
+      {showGuestPrompt && <GuestSubmissionPrompt message="Log in or register to submit this partnership application to The Duma." />}
+
+      <form style={styles.dumaCard} onSubmit={handleSubmit}>
+        
+        {/* SECTION 1: CONTACT INFORMATION */}
+        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>1. CONTACT INFORMATION</h3>
+          <p style={{ fontSize: '12px', color: '#666', marginBottom: '14px', fontStyle: 'italic', backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', borderLeft: '3px solid #2980b9' }}>
+            Contact information will be kept private.
+          </p>
+          <input required placeholder="Full Name *" style={styles.input} 
+            value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+          <input required placeholder="Business Email *" type="email" style={styles.input} 
+            value={formData.contactEmail} onChange={e => setFormData({...formData, contactEmail: e.target.value})} />
+          <input required placeholder="Phone Number *" style={styles.input} 
+            value={formData.phoneNumber} onChange={e => setFormData({...formData, phoneNumber: e.target.value})} />
+          <input required placeholder="EIN (Employer Identification Number) *" style={styles.input} 
+            value={formData.ein} onChange={e => setFormData({...formData, ein: e.target.value})} />
+        </div>
+
+        {/* SECTION 2: COMPANY INFORMATION */}
+        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>2. COMPANY INFORMATION</h3>
+          <input required placeholder="Company Name *" style={styles.input} 
+            value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
+          <input required placeholder="Country of Origin *" style={styles.input} 
+            value={formData.countryOfOrigin} onChange={e => setFormData({...formData, countryOfOrigin: e.target.value})} />
+          <input required placeholder="Operating Country *" style={styles.input} 
+            value={formData.operatingCountry} onChange={e => setFormData({...formData, operatingCountry: e.target.value})} />
+          <input placeholder="Website or Social Media (e.g., www.yoursite.com or @yourhandle)" style={styles.input} 
+            value={formData.websiteOrSocial} onChange={e => setFormData({...formData, websiteOrSocial: e.target.value})} />
+        </div>
+
+        {/* SECTION 3: PRODUCT DETAILS */}
+        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>3. PRODUCT DETAILS</h3>
+          <input required placeholder="Product Type (e.g., Shampoo, Conditioner, Oil) *" style={styles.input} 
+            value={formData.productType} onChange={e => setFormData({...formData, productType: e.target.value})} />
+          <textarea required placeholder="Product Description *" style={{ ...styles.input, height: '80px' }}
+            value={formData.productDescription} onChange={e => setFormData({...formData, productDescription: e.target.value})} />
+          <textarea required placeholder="Why should we partner with you? *" style={{ ...styles.input, height: '100px' }}
+            value={formData.whyPartner} onChange={e => setFormData({...formData, whyPartner: e.target.value})} />
+        </div>
+
+        {/* SECTION 4: MEDIA UPLOADS */}
+        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>4. MEDIA</h3>
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Product Photo</label>
+          <input type="file" accept="image/*, image/heic, image/jpeg, image/png, image/webp" style={styles.input} onChange={handlePhotoChange} />
+          {photoPreview && <img src={photoPreview} style={{ maxWidth: '150px', marginTop: '10px', borderRadius: '8px' }} alt="Preview" />}
+
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>Product Video</label>
+          <input type="file" accept="video/*, video/mp4, video/quicktime, video/webm" style={styles.input} onChange={handleVideoChange} />
+          {videoPreview && <video src={videoPreview} style={{ maxWidth: '150px', marginTop: '10px', borderRadius: '8px' }} controls />}
+        </div>
+
+        {/* SECTION 5: LOGISTICS & REQUIREMENTS */}
+        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>5. LOGISTICS & REQUIREMENTS</h3>
+          <p style={{ fontSize: '12px', color: '#666', marginBottom: '14px', marginTop: 0 }}>
+            Desired fulfillment of 3.4 ounce bottles
+          </p>
+          
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
+            Fulfillment Quantity *
+          </label>
+          <input required placeholder="Fulfillment quantity" type="number" min="500" style={styles.input}
+            value={formData.desiredOrderQuantity} onChange={e => setFormData({...formData, desiredOrderQuantity: e.target.value})} />
+          <p style={{ fontSize: '11px', color: '#999', marginTop: '4px', margin: '4px 0 0 0' }}>Minimum fulfillment of 500 units</p>
+          
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>
+            Pricing for 5-gallon units (optional)
+          </label>
+          <input placeholder="Please provide pricing for bulk 5-gallon units" style={styles.input}
+            value={formData.pricing5Gallon} onChange={e => setFormData({...formData, pricing5Gallon: e.target.value})} />
+        </div>
+
+        {/* SECTION 6: REVENUE AGREEMENT & PRICING */}
+        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>6. REVENUE AGREEMENT & PRICING</h3>
+          
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
+            One Time Check out: Unit Price to Consumers *
+          </label>
+          <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', marginTop: 0 }}>
+            One Time unit price (Recommended: $5)
+          </p>
+          <input required placeholder="e.g., $5.00" style={styles.input}
+            value={formData.standardUnitPrice} onChange={e => setFormData({...formData, standardUnitPrice: e.target.value})} />
+          
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>
+            Subscription Pricing: Unit Price for Promotions *
+          </label>
+          <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', marginTop: 0 }}>
+            Subscription unit price (Recommended: $4)
+          </p>
+          <input required placeholder="e.g., $4.00" style={styles.input}
+            value={formData.promotionalUnitPrice} onChange={e => setFormData({...formData, promotionalUnitPrice: e.target.value})} />
+          
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '14px' }}>
+            <input type="checkbox" required checked={formData.customerRewardAgreed}
+              onChange={e => setFormData({...formData, customerRewardAgreed: e.target.checked})}
+              style={{ marginTop: '4px', accentColor: '#222', cursor: 'pointer' }} />
+            <span>I acknowledge and agree to the Customer Reward program: Customers can make a one-time purchase at the Subscription unit price for each promotion of a new rank. *</span>
+          </label>
+          
+          <div style={{ backgroundColor: '#f5f5f5', padding: '16px', borderRadius: '8px', marginTop: '16px', marginBottom: '14px' }}>
+            <p style={{ fontSize: '13px', color: '#333', margin: '0 0 10px 0', lineHeight: '1.6' }}>
+              <strong>Commission Structure:</strong> The Majorities take a <strong>25%</strong> commission on all partner charges to customers.
+            </p>
+            {formData.standardUnitPrice && (
+              <p style={{ fontSize: '12px', color: '#2980b9', margin: 0, fontWeight: '600', backgroundColor: '#e3f2fd', padding: '8px', borderRadius: '4px' }}>
+                One Time: At ${formData.standardUnitPrice}, you'd earn ~${(parseFloat(formData.standardUnitPrice) * 0.75).toFixed(2)} per unit (75%), with The Majorities taking ~${(parseFloat(formData.standardUnitPrice) * 0.25).toFixed(2)} (25%)
+              </p>
+            )}
+            {formData.promotionalUnitPrice && (
+              <p style={{ fontSize: '12px', color: '#27ae60', margin: '8px 0 0 0', fontWeight: '600', backgroundColor: '#e8f8f5', padding: '8px', borderRadius: '4px' }}>
+                Subscription: At ${formData.promotionalUnitPrice}, you'd earn ~${(parseFloat(formData.promotionalUnitPrice) * 0.75).toFixed(2)} per unit (75%), with The Majorities taking ~${(parseFloat(formData.promotionalUnitPrice) * 0.25).toFixed(2)} (25%)
+              </p>
+            )}
+          </div>
+          
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer' }}>
+            <input type="checkbox" required checked={formData.commission25AgreedTo} 
+              onChange={e => setFormData({...formData, commission25AgreedTo: e.target.checked})}
+              style={{ marginTop: '4px', accentColor: '#222', cursor: 'pointer' }} />
+            <span>I acknowledge and agree to the 25% commission structure *</span>
+          </label>
+          
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '12px' }}>
+            <input type="checkbox" required checked={formData.shippingReturnsAgreed}
+              onChange={e => setFormData({...formData, shippingReturnsAgreed: e.target.checked})}
+              style={{ marginTop: '4px', accentColor: '#222', cursor: 'pointer' }} />
+            <span>I acknowledge and agree to The Majorities' Shipping & Returns Policy: Partners are responsible for fulfilling orders within the agreed timeframe. Returns and refunds are handled in accordance with platform guidelines, and any disputes will be reviewed by The Majorities' support team. *</span>
+          </label>
+          
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '12px' }}>
+            <input type="checkbox" required checked={formData.ownershipTitleAgreed}
+              onChange={e => setFormData({...formData, ownershipTitleAgreed: e.target.checked})}
+              style={{ marginTop: '4px', accentColor: '#222', cursor: 'pointer' }} />
+            <span>I acknowledge and agree to The Majorities' Ownership & Title Policy: I confirm that I own or have legal rights to sell the listed products, that the products meet all applicable regulations, and that title transfers to the buyer upon delivery. *</span>
+          </label>
+        </div>
+
+        {/* SECTION 7: PARTNER TIER */}
+        <div style={{ marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>7. PARTNER TIER</h3>
+          <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', cursor: 'pointer' }}>
+              <input type="radio" name="tier" value="National Associate"
+                checked={formData.tier === "National Associate"}
+                onChange={e => setFormData({...formData, tier: e.target.value})} />
+              National Associate
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', cursor: canApplyPremium ? 'pointer' : 'not-allowed', opacity: canApplyPremium ? 1 : 0.5 }}>
+              <input type="radio" name="tier" value="Premium Partner"
+                checked={formData.tier === "Premium Partner"}
+                disabled={!canApplyPremium}
+                onChange={e => setFormData({...formData, tier: e.target.value})} />
+              Premium Partner {!canApplyPremium && <span style={{ fontSize: '11px', color: '#aaa' }}>(Politburo+ only)</span>}
+            </label>
+          </div>
+        </div>
+
+        <button type="submit" style={{ ...styles.authButton, marginTop: '20px' }}>Submit partnership to the duma</button>
+      </form>
+    </div>
+  );
+};
+
+// --- DUMA PAGE ---
+const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints, userAvatar }) => {
+  const isMobile = useIsMobile();
   const [dumaItems, setDumaItems] = useState(items);
   const [userVotes, setUserVotes] = useState({});
   const [showScores, setShowScores] = useState({});
@@ -1409,11 +2341,11 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
   const [comments, setComments] = useState({});
   const [commentText, setCommentText] = useState({});
   const [activeSection, setActiveSection] = useState("Culture");
-  const [expandedImage, setExpandedImage] = useState(null); 
 
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/duma`).then(r => r.json()).then(data => {
       if (Array.isArray(data) && data.length > 0) {
+        // De-duplicate items by ID so only one unique entry is rendered per submission
         const uniqueMap = new Map();
         [...data, ...items].forEach(item => {
           const id = item._id || item.id;
@@ -1494,6 +2426,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
         <button onClick={() => window.location.href = authToken ? '/culture' : '/login'} style={{ padding: '8px 14px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', marginLeft: isMobile ? '0' : 'auto', flexShrink: 0 }}>{authToken ? '+ Share Your Perspective' : 'Log in to Share'}</button>
       </div>
 
+      
       {activeSection === "Culture" && (
         <div>
           {culturalItems.length === 0 ? (
@@ -1501,6 +2434,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
           ) : (
             culturalItems.map(item => {
               const itemId = item._id || item.id;
+              // Dynamically recalculate rank badge from stored score to always reflect correct tier
               const verifiedRank = item.rankScore ? getRankTitle(item.rankScore) : (item.submitterRank || "Comrade");
 
               return (
@@ -1517,23 +2451,16 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      {item.submittedBy && (
-                        <Link to={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-                          <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={verifiedRank} rankScore={item.rankScore || null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />
-                        </Link>
-                      )}
-                    </div>
-                    {authToken && item.submittedBy && userEmail && item.submittedBy.toLowerCase() !== userEmail.toLowerCase() && (
-                      <button 
-                        onClick={() => following?.includes(item.submittedBy) ? onUnfollowUser?.(item.submittedBy) : onFollowUser?.(item.submittedBy)} 
-                        style={{ marginLeft: '10px', padding: '6px 14px', fontSize: '11px', fontWeight: 'bold', borderRadius: '20px', border: following?.includes(item.submittedBy) ? '1px solid #ccc' : 'none', backgroundColor: following?.includes(item.submittedBy) ? 'transparent' : '#222', color: following?.includes(item.submittedBy) ? '#666' : '#fff', cursor: 'pointer', flexShrink: 0, transition: 'all 0.2s' }}
-                      >
-                        {following?.includes(item.submittedBy) ? 'Following' : 'Follow'}
-                      </button>
-                    )}
-                  </div>
+                  {item.submittedBy && (
+                    <CredentialHeader
+                      email={item.submittedBy}
+                      displayName={item.submitterDisplayName || null}
+                      rankTitle={verifiedRank}
+                      rankScore={item.rankScore || null}
+                      avatarUrl={item.submitterAvatar || null}
+                      socialLinks={item.submitterSocialLinks || null}
+                    />
+                  )}
 
                   {item.location && (
                     <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
@@ -1544,33 +2471,28 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                   <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
                   <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6', marginBottom: '14px' }}>{item.response || item.reason || item.desc}</p>
 
+                  {/* MEDIA DISPLAY: renders uploaded images or videos inline */}
                   {(() => {
-                    const mediaList = Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0 ? item.mediaUrls : item.mediaUrl ? [item.mediaUrl] : item.videoUrl ? [item.videoUrl] : [];
+                    const mediaList = Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0
+                      ? item.mediaUrls
+                      : item.mediaUrl ? [item.mediaUrl] : [];
                     if (mediaList.length === 0) return null;
                     return (
                       <div style={{ display: 'grid', gridTemplateColumns: mediaList.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', margin: '15px 0', background: '#fafafa', padding: '10px', borderRadius: '12px', border: '1px solid #eee' }}>
-                        {mediaList.map((url, idx) => {
-                          const isVideo = isVideoUrl(url);
-                          return (
-                            <div key={idx} style={{ textAlign: 'center' }}>
-                              {isVideo ? (
-                                <video
-                                  src={normalizeMediaVideoUrl(url)}
-                                  poster={url.includes('cloudinary.com') ? url.replace(/\.(mp4|mov|webm|m4v)$/i, '.jpg') : undefined}
-                                  style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000', objectFit: 'contain' }}
-                                  controls playsInline preload="metadata"
-                                />
-                              ) : (
-                                <img 
-                                  src={url} 
-                                  alt={`Attachment ${idx + 1}`} 
-                                  onClick={() => setExpandedImage(url)}
-                                  style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover', cursor: 'zoom-in' }} 
-                                />
-                              )}
-                            </div>
-                          );
-                        })}
+                        {mediaList.map((url, idx) => (
+                          <div key={idx} style={{ textAlign: 'center' }}>
+                            {/\.(mp4|mov|webm)$/i.test(url) || url.includes('/video/upload/') ? (
+                              <video
+                                src={normalizeMediaVideoUrl(url)}
+                                poster={url.includes('cloudinary.com') ? url.replace(/\.(mp4|mov|webm|m4v)$/i, '.jpg') : undefined}
+                                style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000', objectFit: 'contain' }}
+                                controls playsInline preload="metadata"
+                              />
+                            ) : (
+                              <img src={url} alt={`Attachment ${idx + 1}`} style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover' }} />
+                            )}
+                          </div>
+                        ))}
                       </div>
                     );
                   })()}
@@ -1645,25 +2567,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                     )}
                   </div>
                 </div>
-                
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    {item.submittedBy && (
-                      <Link to={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-                        <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />
-                      </Link>
-                    )}
-                  </div>
-                  {authToken && item.submittedBy && userEmail && item.submittedBy.toLowerCase() !== userEmail.toLowerCase() && (
-                    <button 
-                      onClick={() => following?.includes(item.submittedBy) ? onUnfollowUser?.(item.submittedBy) : onFollowUser?.(item.submittedBy)} 
-                      style={{ marginLeft: '10px', padding: '6px 14px', fontSize: '11px', fontWeight: 'bold', borderRadius: '20px', border: following?.includes(item.submittedBy) ? '1px solid #ccc' : 'none', backgroundColor: following?.includes(item.submittedBy) ? 'transparent' : '#222', color: following?.includes(item.submittedBy) ? '#666' : '#fff', cursor: 'pointer', flexShrink: 0, transition: 'all 0.2s' }}
-                    >
-                      {following?.includes(item.submittedBy) ? 'Following' : 'Follow'}
-                    </button>
-                  )}
-                </div>
-
+                {item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
                 {item.location && (
                   <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
                     📍 {item.location}
@@ -1672,37 +2576,6 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                 <h3 style={{ marginTop: '8px', marginBottom: '6px' }}>{item.name || item.product} by {item.company}</h3>
                 <p style={{ color: '#666', fontSize: '14px', marginBottom: '14px' }}>{item.reason || item.desc}</p>
                 
-                {(() => {
-                  const mediaList = Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0 ? item.mediaUrls : item.mediaUrl ? [item.mediaUrl] : item.videoUrl ? [item.videoUrl] : [];
-                  if (mediaList.length === 0) return null;
-                  return (
-                    <div style={{ display: 'grid', gridTemplateColumns: mediaList.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', margin: '15px 0', background: '#fafafa', padding: '10px', borderRadius: '12px', border: '1px solid #eee' }}>
-                      {mediaList.map((url, idx) => {
-                        const isVideo = isVideoUrl(url);
-                        return (
-                          <div key={idx} style={{ textAlign: 'center' }}>
-                            {isVideo ? (
-                              <video
-                                src={normalizeMediaVideoUrl(url)}
-                                poster={url.includes('cloudinary.com') ? url.replace(/\.(mp4|mov|webm|m4v)$/i, '.jpg') : undefined}
-                                style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000', objectFit: 'contain' }}
-                                controls playsInline preload="metadata"
-                              />
-                            ) : (
-                              <img 
-                                src={url} 
-                                alt={`Attachment ${idx + 1}`} 
-                                onClick={() => setExpandedImage(url)}
-                                style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover', cursor: 'zoom-in' }} 
-                              />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
-
                 {authToken && (
                   <div>
                     <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
@@ -1774,25 +2647,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
                     )}
                   </div>
                 </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    {item.submittedBy && (
-                      <Link to={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-                        <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />
-                      </Link>
-                    )}
-                  </div>
-                  {authToken && item.submittedBy && userEmail && item.submittedBy.toLowerCase() !== userEmail.toLowerCase() && (
-                    <button 
-                      onClick={() => following?.includes(item.submittedBy) ? onUnfollowUser?.(item.submittedBy) : onFollowUser?.(item.submittedBy)} 
-                      style={{ marginLeft: '10px', padding: '6px 14px', fontSize: '11px', fontWeight: 'bold', borderRadius: '20px', border: following?.includes(item.submittedBy) ? '1px solid #ccc' : 'none', backgroundColor: following?.includes(item.submittedBy) ? 'transparent' : '#222', color: following?.includes(item.submittedBy) ? '#666' : '#fff', cursor: 'pointer', flexShrink: 0, transition: 'all 0.2s' }}
-                    >
-                      {following?.includes(item.submittedBy) ? 'Following' : 'Follow'}
-                    </button>
-                  )}
-                </div>
-
+                {item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
                 {item.location && (
                   <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
                     📍 {item.location}
@@ -1927,18 +2782,6 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
           )}
         </div>
       )}
-
-      {/* FULLSCREEN IMAGE LIGHTBOX */}
-      {expandedImage && (
-        <div 
-          style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
-          onClick={() => setExpandedImage(null)}
-        >
-          <button style={{ position: 'absolute', top: '20px', right: '30px', background: 'transparent', color: '#fff', border: 'none', fontSize: '36px', cursor: 'pointer' }} onClick={() => setExpandedImage(null)}>✕</button>
-          <img src={expandedImage} alt="Expanded" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: '8px', objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
-        </div>
-      )}
-
     </div>
   );
 };
@@ -1953,7 +2796,6 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
   const [allItems, setAllItems] = useState(items);
   const [followedAt, setFollowedAt] = useState({});
   const [avatarByUser, setAvatarByUser] = useState({});
-  const [expandedImage, setExpandedImage] = useState(null); 
 
   useEffect(() => {
     if (!Array.isArray(following)) return;
@@ -2006,60 +2848,34 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
   };
 
   useEffect(() => {
-    const person = new URLSearchParams(location.search).get("person");
-    if (!person) return;
-    setSelectedFollowing(prev => (prev.includes(person) ? prev : [...prev, person]));
-    setFollowedAt(prev => (prev[person] ? prev : { ...prev, [person]: Date.now() }));
-  }, [location.search]);
-
-  const personParam = new URLSearchParams(location.search).get("person");
-  const isPublicProfile = Boolean(personParam);
-  const profileEmail = personParam;
-
-  const profileInfo = useMemo(() => {
-    if (!isPublicProfile) return null;
-    const userPost = allItems.find(item => item.submittedBy === profileEmail);
-    if (userPost) {
-       return {
-         email: userPost.submittedBy,
-         displayName: userPost.submitterDisplayName,
-         rankTitle: userPost.submitterRank,
-         avatarUrl: userPost.submitterAvatar,
-         socialLinks: userPost.submitterSocialLinks
-       };
-    }
-    return { email: profileEmail, rankTitle: 'Comrade' }; 
-  }, [isPublicProfile, profileEmail, allItems]);
-
-  useEffect(() => {
-    if (isPublicProfile) {
-      setFilteredItems(allItems.filter(item => item.submittedBy === profileEmail).sort((a,b) => {
-        const aTime = new Date(a.createdAt || a.updatedAt || a.timestamp || 0).getTime() || 0;
-        const bTime = new Date(b.createdAt || b.updatedAt || b.timestamp || 0).getTime() || 0;
-        return bTime - aTime;
-      }));
+    if (selectedFollowing.length === 0) {
+      setFilteredItems([]);
     } else {
       const orderedFollowing = [...selectedFollowing].sort((a, b) => (followedAt[b] || 0) - (followedAt[a] || 0));
       const followingPriority = orderedFollowing.reduce((acc, person, idx) => {
         acc[person] = idx;
         return acc;
       }, {});
-
       const filtered = allItems
         .filter(item => selectedFollowing.includes(item.submittedBy) || item.submittedBy === userEmail)
         .sort((a, b) => {
           const aPriority = followingPriority[a.submittedBy] ?? Number.MAX_SAFE_INTEGER;
           const bPriority = followingPriority[b.submittedBy] ?? Number.MAX_SAFE_INTEGER;
           if (aPriority !== bPriority) return aPriority - bPriority;
-          
           const aTime = new Date(a.createdAt || a.updatedAt || a.timestamp || 0).getTime() || 0;
           const bTime = new Date(b.createdAt || b.updatedAt || b.timestamp || 0).getTime() || 0;
           return bTime - aTime;
         });
-        
       setFilteredItems(filtered);
     }
-  }, [isPublicProfile, profileEmail, selectedFollowing, allItems, followedAt, userEmail]);
+  }, [selectedFollowing, allItems, followedAt, userEmail]);
+
+  useEffect(() => {
+    const person = new URLSearchParams(location.search).get("person");
+    if (!person) return;
+    setSelectedFollowing(prev => (prev.includes(person) ? prev : [...prev, person]));
+    setFollowedAt(prev => (prev[person] ? prev : { ...prev, [person]: Date.now() }));
+  }, [location.search]);
 
   const handleDeletePost = async (itemId) => {
     if (!authToken) return alert("Please log in to delete posts.");
@@ -2083,93 +2899,81 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
 
   return (
     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
-        
-        {isPublicProfile ? (
-          <div style={{ marginBottom: '40px' }}>
-            <button onClick={() => navigate('/perspectives')} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', marginBottom: '20px', fontSize: '13px', padding: 0 }}>← Back to My Feed</button>
-            
-            <div style={{ ...styles.dumaCard, padding: '40px 30px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-               <div style={{ width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden', backgroundColor: '#eee', marginBottom: '15px', border: '3px solid #222' }}>
-                  {profileInfo?.avatarUrl ? (
-                    isVideoUrl(profileInfo.avatarUrl) ? (
-                      <video src={normalizeMediaVideoUrl(profileInfo.avatarUrl)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay loop muted playsInline />
-                    ) : (
-                      <img src={profileInfo.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    )
-                  ) : (
-                    <span style={{ fontSize: '36px', color: '#888', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>👤</span>
-                  )}
-               </div>
-               <h2 style={{ margin: '0 0 10px 0' }}>{profileInfo?.displayName || profileEmail?.split('@')[0]}</h2>
-               <RankBadge rankTitle={profileInfo?.rankTitle || 'Comrade'} />
-               
-               {authToken && userEmail && profileEmail !== userEmail && (
-                  <button 
-                    onClick={() => handleFollowingToggle(profileEmail)} 
-                    style={{ marginTop: '25px', padding: '10px 24px', fontSize: '13px', fontWeight: 'bold', borderRadius: '24px', border: selectedFollowing.includes(profileEmail) ? '1px solid #ccc' : 'none', backgroundColor: selectedFollowing.includes(profileEmail) ? 'transparent' : '#222', color: selectedFollowing.includes(profileEmail) ? '#666' : '#fff', cursor: 'pointer', transition: 'all 0.2s' }}
-                  >
-                    {selectedFollowing.includes(profileEmail) ? 'Following' : 'Follow'}
-                  </button>
-               )}
-            </div>
-            <h3 style={{ marginTop: '30px', marginBottom: '16px' }}>{profileInfo?.displayName || profileEmail?.split('@')[0]}'s Perspectives</h3>
+        <div style={{ marginBottom: '30px' }}>
+          <h2 style={{ marginBottom: '6px' }}>My Perspectives</h2>
+          <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
+            Follow people from The Duma to see their perspectives in your personalized feed. Earn +1 point for each person you follow!
+          </p>
+        </div>
+
+        {userEmail && rankTitle && (
+          <div style={{ marginBottom: '20px' }}>
+            <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
           </div>
-        ) : (
-          <>
-            <div style={{ marginBottom: '30px' }}>
-              <h2 style={{ marginBottom: '6px' }}>My Perspectives</h2>
-              <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
-                Follow people from The Duma to see their perspectives in your personalized feed. Earn +1 point for each person you follow!
-              </p>
-            </div>
-
-            <div style={{ ...styles.dumaCard, marginBottom: '30px' }}>
-              <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Who You Follow ({selectedFollowing.length}/{followingList.length})</h3>
-              {followingList.length === 0 ? (
-                <p style={{ color: '#888', fontSize: '13px' }}>No people yet. Submit to the Duma to build your community!</p>
-              ) : (
-                <div style={{ maxHeight: '560px', overflowY: 'auto', paddingRight: '4px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
-                  {followingList.map(person => (
-                    <div key={person} style={{ border: selectedFollowing.includes(person) ? '2px solid #222' : '1px solid #ddd', borderRadius: '8px', padding: '10px', backgroundColor: selectedFollowing.includes(person) ? '#f9f9f9' : '#fff', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', backgroundColor: '#eee', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {avatarByUser[person] ? (
-                            /\.(mp4|mov|webm)$/i.test(avatarByUser[person]) || avatarByUser[person].includes('/video/upload/') ? (
-                              <video src={normalizeMediaVideoUrl(avatarByUser[person])} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay loop muted playsInline />
-                            ) : (
-                              <img src={avatarByUser[person]} alt={person} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            )
-                          ) : (
-                            <span style={{ fontSize: '11px', fontWeight: '700', color: '#444' }}>{person[0]?.toUpperCase() || '?'}</span>
-                          )}
-                        </div>
-                        
-                        <button
-                          onClick={() => handleFollowingToggle(person)}
-                          style={{ flex: 1, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '13px', fontWeight: selectedFollowing.includes(person) ? '700' : '500', color: '#222', textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: 0 }}
-                        >
-                          {person}
-                        </button>
-                      </div>
-
-                      <button onClick={() => navigate(`/perspectives?person=${encodeURIComponent(person)}`)} style={{ width: '100%', border: '1px solid #ccc', borderRadius: '6px', padding: '6px 8px', background: '#fff', fontSize: '11px', cursor: 'pointer' }}>
-                        View perspectives
-                      </button>
-                    </div>
-                  ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <h3 style={{ marginBottom: '16px' }}>Perspectives Feed ({filteredItems.length})</h3>
-          </>
         )}
 
+        <div style={{ ...styles.dumaCard, marginBottom: '30px' }}>
+          {followingList.length > 0 && (
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '10px', marginBottom: '12px' }}>
+              {followingList.map(person => (
+                <div key={`avatar-${person}`} title={person} onClick={() => navigate(`/perspectives?person=${encodeURIComponent(person)}`)} style={{ width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden', border: '2px solid #eee', cursor: 'pointer', flexShrink: 0, backgroundColor: '#f3f3f3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {avatarByUser[person] ? (
+                    /\.(mp4|mov|webm)$/i.test(avatarByUser[person]) || avatarByUser[person].includes('/video/upload/') ? (
+                      <video src={normalizeMediaVideoUrl(avatarByUser[person])} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay loop muted playsInline />
+                    ) : (
+                      <img src={avatarByUser[person]} alt={person} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    )
+                  ) : (
+                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#444' }}>{person[0]?.toUpperCase() || '?'}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Who You Follow ({selectedFollowing.length}/{followingList.length})</h3>
+          {followingList.length === 0 ? (
+            <p style={{ color: '#888', fontSize: '13px' }}>No people yet. Submit to the Duma to build your community!</p>
+          ) : (
+            <div style={{ maxHeight: '560px', overflowY: 'auto', paddingRight: '4px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
+              {followingList.map(person => (
+                <div key={person} style={{ border: selectedFollowing.includes(person) ? '2px solid #222' : '1px solid #ddd', borderRadius: '8px', padding: '10px', backgroundColor: selectedFollowing.includes(person) ? '#f9f9f9' : '#fff', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', backgroundColor: '#eee', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {avatarByUser[person] ? (
+                        /\.(mp4|mov|webm)$/i.test(avatarByUser[person]) || avatarByUser[person].includes('/video/upload/') ? (
+                          <video src={normalizeMediaVideoUrl(avatarByUser[person])} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay loop muted playsInline />
+                        ) : (
+                          <img src={avatarByUser[person]} alt={person} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        )
+                      ) : (
+                        <span style={{ fontSize: '11px', fontWeight: '700', color: '#444' }}>{person[0]?.toUpperCase() || '?'}</span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleFollowingToggle(person)}
+                      style={{ flex: 1, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '13px', fontWeight: selectedFollowing.includes(person) ? '700' : '500', color: '#222', textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: 0 }}
+                    >
+                      {person}
+                    </button>
+                  </div>
+                  <button onClick={() => navigate(`/perspectives?person=${encodeURIComponent(person)}`)} style={{ marginTop: '8px', width: '100%', border: '1px solid #ccc', borderRadius: '6px', padding: '6px 8px', background: '#fff', fontSize: '11px', cursor: 'pointer' }}>
+                    View perspectives
+                  </button>
+                </div>
+              ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         <div>
-          {filteredItems.length === 0 ? (
+          <h3 style={{ marginBottom: '16px' }}>Perspectives Feed ({filteredItems.length})</h3>
+          {filteredItems.length === 0 && selectedFollowing.length === 0 ? (
+            <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>
+              Select people you follow to see their perspectives here.
+            </div>
+          ) : selectedFollowing.length > 0 && filteredItems.length === 0 ? (
             <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>
               No perspectives yet. Follow people from the Duma or share your own perspective!
             </div>
@@ -2187,25 +2991,7 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
                     )}
                   </div>
                 </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    {item.submittedBy && (
-                      <Link to={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-                        <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />
-                      </Link>
-                    )}
-                  </div>
-                  {authToken && item.submittedBy && userEmail && item.submittedBy.toLowerCase() !== userEmail.toLowerCase() && (
-                    <button 
-                      onClick={() => following?.includes(item.submittedBy) ? onUnfollowUser?.(item.submittedBy) : onFollowUser?.(item.submittedBy)} 
-                      style={{ marginLeft: '10px', padding: '6px 14px', fontSize: '11px', fontWeight: 'bold', borderRadius: '20px', border: following?.includes(item.submittedBy) ? '1px solid #ccc' : 'none', backgroundColor: following?.includes(item.submittedBy) ? 'transparent' : '#222', color: following?.includes(item.submittedBy) ? '#666' : '#fff', cursor: 'pointer', flexShrink: 0, transition: 'all 0.2s' }}
-                    >
-                      {following?.includes(item.submittedBy) ? 'Following' : 'Follow'}
-                    </button>
-                  )}
-                </div>
-
+                {item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
                 {item.location && (
                   <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
                     📍 {item.location}
@@ -2214,33 +3000,30 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
                 <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
                 <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6' }}>{item.response || item.reason || item.desc}</p>
 
+                {/* MEDIA DISPLAY: INJECTED BLOCK */}
                 {(() => {
-                  const mediaList = Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0 ? item.mediaUrls : item.mediaUrl ? [item.mediaUrl] : item.videoUrl ? [item.videoUrl] : [];
+                  const mediaList = Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0
+                    ? item.mediaUrls
+                    : item.mediaUrl ? [item.mediaUrl] : item.videoUrl ? [item.videoUrl] : [];
+
                   if (mediaList.length === 0) return null;
+
                   return (
                     <div style={{ display: 'grid', gridTemplateColumns: mediaList.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', margin: '15px 0', background: '#fafafa', padding: '10px', borderRadius: '12px', border: '1px solid #eee' }}>
-                      {mediaList.map((url, idx) => {
-                        const isVideo = isVideoUrl(url);
-                        return (
-                          <div key={idx} style={{ textAlign: 'center' }}>
-                            {isVideo ? (
-                              <video
-                                src={normalizeMediaVideoUrl(url)}
-                                poster={url.includes('cloudinary.com') ? url.replace(/\.(mp4|mov|webm|m4v)$/i, '.jpg') : undefined}
-                                style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000', objectFit: 'contain' }}
-                                controls playsInline preload="metadata"
-                              />
-                            ) : (
-                              <img 
-                                src={url} 
-                                alt={`Attachment ${idx + 1}`} 
-                                onClick={() => setExpandedImage(url)}
-                                style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover', cursor: 'zoom-in' }} 
-                              />
-                            )}
-                          </div>
-                        );
-                      })}
+                      {mediaList.map((url, idx) => (
+                        <div key={idx} style={{ textAlign: 'center' }}>
+                          {/\.(mp4|mov|webm)$/i.test(url) || url.includes('/video/upload/') ? (
+                            <video
+                              src={normalizeMediaVideoUrl(url)}
+                              poster={url.includes('cloudinary.com') ? url.replace(/\.(mp4|mov|webm|m4v)$/i, '.jpg') : undefined}
+                              style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000', objectFit: 'contain' }}
+                              controls playsInline preload="metadata"
+                            />
+                          ) : (
+                            <img src={url} alt={`Attachment ${idx + 1}`} style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover' }} />
+                          )}
+                        </div>
+                      ))}
                     </div>
                   );
                 })()}
@@ -2248,17 +3031,6 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
             ))
           )}
         </div>
-
-        {/* FULLSCREEN IMAGE LIGHTBOX */}
-        {expandedImage && (
-          <div 
-            style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
-            onClick={() => setExpandedImage(null)}
-          >
-            <button style={{ position: 'absolute', top: '20px', right: '30px', background: 'transparent', color: '#fff', border: 'none', fontSize: '36px', cursor: 'pointer' }} onClick={() => setExpandedImage(null)}>✕</button>
-            <img src={expandedImage} alt="Expanded" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: '8px', objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
-          </div>
-        )}
     </div>
   );
 };
@@ -2888,7 +3660,7 @@ const ModelFriendlyPage = () => {
             >
 {slot ? (
                   <>
-{slot.type === 'image' ? (
+[slot.type === 'image' ? (
                       <img src={slot.url} alt={`Post media ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
                                           <video src={slot.url} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -2908,7 +3680,7 @@ const ModelFriendlyPage = () => {
                                                         <input
                                                           type="file"
                                                                                 accept="image/*, image/heic, video/*, video/mp4, video/quicktime, video/webm"
-                                                                                                      style={{ display: 'none' }}
+                                                                                                     style={{ display: 'none' }}
                     onChange={(e) => e.target.files[0] && handleDumaSingleSlotUpload(idx, e.target.files[0])}
                   />
                     </label>
@@ -3140,9 +3912,9 @@ export default function App() {
           <Route path="/recommend" element={<RecommendPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
           <Route path="/partner" element={<PartnerPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
           <Route path="/culture" element={isLoggedIn ? <CultureLabPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
-          <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} following={following} onFollowUser={followUser} onUnfollowUser={unfollowUser} />} />
+          <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} />} />
           <Route path="/perspectives" element={isLoggedIn ? <PerspectivesPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} following={following} onFollowUser={followUser} onUnfollowUser={unfollowUser} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
-          <Route path="/legislature" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} following={following} onFollowUser={followUser} onUnfollowUser={unfollowUser} />} />
+          <Route path="/legislature" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} />} />
           <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={handleAvatarUpdate} tokens={tokens} addDumaItem={addDumaItem} />} />
           <Route path="/orders" element={<div style={{ padding: '60px', textAlign: 'center' }}><h2>Payment Received!</h2><p>Your custom hair set is being prepared. Check your Profile to see your formula.</p><Link to="/profile">Go to Profile</Link></div>} />
           <Route path="/admin/orders" element={<AdminOrdersPage authToken={authToken} userEmail={userEmail} />} />

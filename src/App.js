@@ -707,7 +707,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
         setAvatarSlots(mappedSlots);
       }
       if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
-    }).catch(() => {});
+    }).catch(err => console.error('Failed to load profile:', err));
   }, [authToken, onAvatarUpdate]);
 
   const handleSaveProfileField = async (field, val) => {
@@ -799,7 +799,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
       body: JSON.stringify({ avatarSlots: urls })
-    }).catch(() => {});
+    }).catch(err => console.error('Failed to sync avatar slots:', err));
   };
 
   const uploadFileToBackend = async (file, index, isMain) => {
@@ -903,6 +903,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       return;
     }
     const wasMain = avatarSlots[index] && avatarSlots[index].url === avatarUrl;
+    if (avatarSlots[index]?.url?.startsWith('blob:')) URL.revokeObjectURL(avatarSlots[index].url);
     const previewObj = {
       url: URL.createObjectURL(file),
       type: file.type.startsWith('video/') ? 'video' : 'image',
@@ -922,6 +923,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
 
   const removeAvatarSlot = (index) => {
     const removedUrl = avatarSlots[index] ? avatarSlots[index].url : null;
+    if (removedUrl && removedUrl.startsWith('blob:')) URL.revokeObjectURL(removedUrl);
     const updatedSlots = [...avatarSlots];
     updatedSlots[index] = null;
     setAvatarSlots(updatedSlots);
@@ -953,6 +955,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
 
   const handleDumaSingleSlotUpload = (index, file) => {
     if (!file) return;
+    if (dumaSlots[index]?.url?.startsWith('blob:')) URL.revokeObjectURL(dumaSlots[index].url);
     const updatedSlots = [...dumaSlots];
     updatedSlots[index] = {
       url: URL.createObjectURL(file),
@@ -963,6 +966,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   };
 
   const removeDumaSlot = (index) => {
+    if (dumaSlots[index]?.url?.startsWith('blob:')) URL.revokeObjectURL(dumaSlots[index].url);
     const updatedSlots = [...dumaSlots];
     updatedSlots[index] = null;
     setDumaSlots(updatedSlots);
@@ -1709,10 +1713,16 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
   const handleSelect = (item) => {
     setFocusedItem(item);
     setSelection(prev => {
-      const alreadySelected = prev.some(i => i.name === item.name);
-      if (alreadySelected) return prev.filter(i => i.name !== item.name);
       if (prev.length >= 6) return prev;
       return [...prev, item];
+    });
+  };
+
+  const handleRemoveFromCart = (name) => {
+    setSelection(prev => {
+      const lastIdx = prev.map(i => i.name).lastIndexOf(name);
+      if (lastIdx === -1) return prev;
+      return prev.filter((_, i) => i !== lastIdx);
     });
   };
   
@@ -1801,9 +1811,12 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
               const counts = {};
               selectedItems.forEach(item => { counts[item.name] = (counts[item.name] || 0) + 1; });
               return Object.entries(counts).map(([name, count]) => (
-                <p key={name} style={{ fontSize: '11px', margin: '4px 0' }}>
-                  {name}{count > 1 ? ` x${count}` : ''} · {formatCurrency(getProductCommerceConfig(name).pricing.oneTime)} / {formatCurrency(getProductCommerceConfig(name).pricing.subscription)}
-                </p>
+                <div key={name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '4px 0' }}>
+                  <p style={{ fontSize: '11px', margin: 0 }}>
+                    {name}{count > 1 ? ` x${count}` : ''} · {formatCurrency(getProductCommerceConfig(name).pricing.oneTime)} / {formatCurrency(getProductCommerceConfig(name).pricing.subscription)}
+                  </p>
+                  <button onClick={() => handleRemoveFromCart(name)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px', color: '#aaa', lineHeight: 1, padding: '0 4px' }} title="Remove one">×</button>
+                </div>
               ));
             })()}
           </div>
@@ -2353,7 +2366,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
         });
         setDumaItems(Array.from(uniqueMap.values()));
       }
-    }).catch(() => {});
+    }).catch(err => console.error('Failed to load duma items:', err));
   }, [items]);
 
   const handleVote = async (itemId, voteType) => {
@@ -3478,7 +3491,7 @@ const ModelFriendlyPage = () => {
         fetch(`${BACKEND_URL}/api/profile`, { headers: { Authorization: `Bearer ${authToken}` } })
           .then(r => r.json())
           .then(data => { if (data.displayName) setDisplayName(data.displayName); })
-          .catch(() => {});
+          .catch(err => console.error('Failed to load display name:', err));
       }
     }, [authToken]);
     
@@ -3513,6 +3526,7 @@ const ModelFriendlyPage = () => {
                     return;
             }
             if (file.size > 100 * 1024 * 1024) return;
+            if (dumaSlots[index]?.url?.startsWith('blob:')) URL.revokeObjectURL(dumaSlots[index].url);
             const updatedSlots = [...dumaSlots];
             updatedSlots[index] = {
                     url: URL.createObjectURL(file),
@@ -3523,6 +3537,7 @@ const ModelFriendlyPage = () => {
       };
     
       const removeDumaSlot = (index) => {
+            if (dumaSlots[index]?.url?.startsWith('blob:')) URL.revokeObjectURL(dumaSlots[index].url);
             const updatedSlots = [...dumaSlots];
             updatedSlots[index] = null;
             setDumaSlots(updatedSlots);

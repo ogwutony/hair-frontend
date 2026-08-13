@@ -682,7 +682,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
   
   const [backendRankScore, setBackendRankScore] = useState(rankScore || 1);
   const [backendRankTitle, setBackendRankTitle] = useState(rankTitle || "Comrade");
-  const [avatarSaveStatus, setAvatarSaveStatus] = useState("idle");
+  const [, setAvatarSaveStatus] = useState("idle");
 
   const [displayName, setDisplayName] = useState("");
   const [userLocation, setUserLocation] = useState("");
@@ -740,7 +740,7 @@ const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, on
       }
       if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
     }).catch(err => console.error('Failed to load profile:', err));
-  }, [authToken, onAvatarUpdate]);
+  }, [authToken, onAvatarUpdate, userEmail]);
 
   const handleSaveProfileField = async (field, val) => {
     if (!authToken) return;
@@ -2833,7 +2833,6 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
 
 // --- PERSPECTIVES PAGE (CULTURE FEED WITH SIDEBAR ADS) ---
 const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, following, onFollowUser, onUnfollowUser, onAddPoints, userAvatar }) => {
-  const navigate = useNavigate();
   const location = useLocation();
   const [followingList, setFollowingList] = useState([]);
   const [selectedFollowing, setSelectedFollowing] = useState(following || []);
@@ -3526,7 +3525,6 @@ const ModelFriendlyPage = () => {
         { id: 14, text: "Recommend an underrated movie or show that doesn't get enough hype!" },
         { id: 15, text: "Post Anything! Share whatever is on your mind today—a random thought, life update, or funny hot take." }
           ];
-      const [activePromptIndex, setActivePromptIndex] = useState(0);
       const [response, setResponse] = useState("");
       const [postLocation, setPostLocation] = useState("");
       const [displayName, setDisplayName] = useState("");
@@ -3566,8 +3564,6 @@ const ModelFriendlyPage = () => {
           .catch(err => console.error('Failed to load display name:', err));
       }
     }, [authToken]);
-    
-      const activePrompt = prompts[activePromptIndex];
     
       const handleDumaBatchUpload = (e) => {
             if (!e.target.files || e.target.files.length === 0) return;
@@ -3950,7 +3946,7 @@ export default function App() {
       storage.setItem("rankTitle", newRank);
       return newScore;
     });
-  }, [authToken]);
+  }, []);
 
   const followUser = useCallback((personEmail) => {
     if (!following.includes(personEmail)) {

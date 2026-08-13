@@ -3538,6 +3538,14 @@ const ModelFriendlyPage = () => {
             setCultureSubmitStatus("uploading");
             const activePrompt = selectedPromptIndex !== null ? prompts[selectedPromptIndex] : null;
             const filledDumaSlots = dumaSlots.filter((slot) => slot !== null);
+            // Grab the user's 6 profile picture slots from localStorage
+            let userAvatarSlots = [];
+            if (userEmail) {
+              try {
+                const localSlotsStr = localStorage.getItem(`avatarSlots_${userEmail}`);
+                if (localSlotsStr) userAvatarSlots = JSON.parse(localSlotsStr);
+              } catch (_) {}
+            }
             try {
                     let uploadedMediaUrls = [];
                     if (filledDumaSlots.length > 0 && authToken) {
@@ -3567,7 +3575,8 @@ const ModelFriendlyPage = () => {
                                                         response: response,
                                                         category: "Culture",
                                                         location: postLocation,
-                                                        mediaUrls: uploadedMediaUrls
+                                                        mediaUrls: uploadedMediaUrls,
+                                                        submitterAvatarSlots: userAvatarSlots
                                           })
                               });
                     }
@@ -3584,6 +3593,7 @@ const ModelFriendlyPage = () => {
                                           submitterDisplayName: displayName,
                                           submitterRank: rankTitle || 'Comrade',
                                           submitterAvatar: userAvatar || null,
+                                          submitterAvatarSlots: userAvatarSlots,
                                           votes: { yes: 0 }
                               });
                     }

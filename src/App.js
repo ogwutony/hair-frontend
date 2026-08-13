@@ -381,8 +381,11 @@ const CredentialHeader = ({ email, displayName, rankTitle, rankScore, avatarUrl,
         overflow: 'hidden',
         ...(isTopRank && !avatarUrl ? { boxShadow: '0 0 12px rgba(255,215,0,0.8)' } : {})
       }}>
-        {avatarUrl
-          ? <img
+        {avatarUrl ? (
+          /\.(mp4|mov|webm)$/i.test(avatarUrl) || avatarUrl.includes('/video/upload/') ? (
+            <video src={normalizeMediaVideoUrl(avatarUrl)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay loop muted playsInline />
+          ) : (
+            <img
               src={avatarUrl}
               alt={nameToDisplay}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
@@ -391,7 +394,10 @@ const CredentialHeader = ({ email, displayName, rankTitle, rankScore, avatarUrl,
                 e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(nameToDisplay)}&background=333&color=fff`;
               }}
             />
-          : initial}
+          )
+        ) : (
+          initial
+        )}
       </div>
       <span style={{ fontWeight: '600', fontSize: '14px', color: '#333', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '220px' }}>
         {nameToDisplay}
@@ -2911,9 +2917,15 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
             <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '10px', marginBottom: '12px' }}>
               {followingList.map(person => (
                 <div key={`avatar-${person}`} title={person} onClick={() => navigate(`/perspectives?person=${encodeURIComponent(person)}`)} style={{ width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden', border: '2px solid #eee', cursor: 'pointer', flexShrink: 0, backgroundColor: '#f3f3f3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {avatarByUser[person]
-                    ? <img src={avatarByUser[person]} alt={person} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <span style={{ fontSize: '13px', fontWeight: '700', color: '#444' }}>{person[0]?.toUpperCase() || '?'}</span>}
+                  {avatarByUser[person] ? (
+                    /\.(mp4|mov|webm)$/i.test(avatarByUser[person]) || avatarByUser[person].includes('/video/upload/') ? (
+                      <video src={normalizeMediaVideoUrl(avatarByUser[person])} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay loop muted playsInline />
+                    ) : (
+                      <img src={avatarByUser[person]} alt={person} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    )
+                  ) : (
+                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#444' }}>{person[0]?.toUpperCase() || '?'}</span>
+                  )}
                 </div>
               ))}
             </div>

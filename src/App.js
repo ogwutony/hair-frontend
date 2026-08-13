@@ -337,16 +337,21 @@ const safeSocialUrl = (raw) => {
 
 const normalizeMediaVideoUrl = (url) => {
   if (!url) return url;
-  let normalized = url.replace('.mov', '.mp4').replace('.webm', '.mp4');
+  let normalized = url;
   try {
-    const parsed = new URL(normalized);
+    const parsed = new URL(url);
     const host = parsed.hostname.toLowerCase();
     const isCloudinaryHost = host === 'cloudinary.com' || host.endsWith('.cloudinary.com');
-    if (isCloudinaryHost && parsed.pathname.includes('/video/upload/') && !parsed.pathname.includes('/video/upload/f_mp4/')) {
-      normalized = normalized.replace('/video/upload/', '/video/upload/f_mp4/');
+    if (isCloudinaryHost && parsed.pathname.includes('/video/upload/')) {
+      // Force Cloudinary to transcode iPhone .mov to universal .mp4 with h264 codec
+      if (!parsed.pathname.includes('/f_mp4')) {
+        normalized = normalized.replace('/video/upload/', '/video/upload/f_mp4,vc_h264/');
+      }
+      // Swap out the extension
+      normalized = normalized.replace(/\.(mov|webm|hevc)$/i, '.mp4');
     }
   } catch {
-    return normalized;
+    return normalized.replace(/\.(mov|webm|hevc)$/i, '.mp4');
   }
   return normalized;
 };
@@ -2809,7 +2814,8 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
   const [allItems, setAllItems] = useState(items);
   const [followedAt, setFollowedAt] = useState({});
   const [avatarByUser, setAvatarByUser] = useState({});
-  const [nameByUser, setNameByUser] = useState({}); // NEW: Track display names
+  const [nameByUser, setNameByUser] = useState({});
+  const [avatarSlotsByUser, setAvatarSlotsByUser] = useState({}); // NEW: Track the 6 slots per user
 
   useEffect(() => {
     if (!Array.isArray(following)) return;
@@ -2832,23 +2838,27 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
       .catch(err => console.error("Failed to load perspectives:", err));
   }, []);
 
-  // NEW: Map display names alongside avatars
   useEffect(() => {
     const uniqueSubmitters = [...new Set(allItems.map(item => item.submittedBy))].filter(Boolean).filter(p => p !== userEmail);
     setFollowingList(uniqueSubmitters);
 
     const nextAvatarMap = {};
     const nextNameMap = {};
+    const nextSlotsMap = {};
 
     allItems.forEach(item => {
       if (item?.submittedBy) {
         if (item.submitterAvatar) nextAvatarMap[item.submittedBy] = item.submitterAvatar;
         if (item.submitterDisplayName) nextNameMap[item.submittedBy] = item.submitterDisplayName;
+        if (item.submitterAvatarSlots && item.submitterAvatarSlots.length > 0) {
+          nextSlotsMap[item.submittedBy] = item.submitterAvatarSlots;
+        }
       }
     });
 
     setAvatarByUser(nextAvatarMap);
     setNameByUser(nextNameMap);
+    setAvatarSlotsByUser(nextSlotsMap);
   }, [allItems, userEmail]);
 
   const handleFollowingToggle = (person) => {
@@ -2867,7 +2877,6 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
     }
   };
 
-  // Always include own posts, even if following length is 0
   useEffect(() => {
     const relevantItems = allItems.filter(item =>
       selectedFollowing.includes(item.submittedBy) ||
@@ -2926,24 +2935,6 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
         )}
 
         <div style={{ ...styles.dumaCard, marginBottom: '30px' }}>
-          {/* Avatar bubbles row */}
-          {followingList.length > 0 && (
-            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '10px', marginBottom: '12px' }}>
-              {followingList.map(person => (
-                <div key={`avatar-${person}`} title={nameByUser[person] || person} onClick={() => navigate(`/perspectives?person=${encodeURIComponent(person)}`)} style={{ width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden', border: '2px solid #eee', cursor: 'pointer', flexShrink: 0, backgroundColor: '#f3f3f3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {avatarByUser[person] ? (
-                    /\.(mp4|mov|webm)$/i.test(avatarByUser[person]) || avatarByUser[person].includes('/video/upload/') ? (
-                      <video src={normalizeMediaVideoUrl(avatarByUser[person])} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay loop muted playsInline />
-                    ) : (
-                      <img src={avatarByUser[person]} alt={person} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    )
-                  ) : (
-                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#444' }}>{person[0]?.toUpperCase() || '?'}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
           <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Who You Follow ({selectedFollowing.length}/{followingList.length})</h3>
           {followingList.length === 0 ? (
             <p style={{ color: '#888', fontSize: '13px' }}>No people yet. Submit to the Duma to build your community!</p>
@@ -2952,8 +2943,10 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
               {followingList.map(person => (
                 <div key={person} style={{ border: selectedFollowing.includes(person) ? '2px solid #222' : '1px solid #ddd', borderRadius: '8px', padding: '10px', backgroundColor: selectedFollowing.includes(person) ? '#f9f9f9' : '#fff', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+
+                  {/* TOP ROW: THUMBNAIL, NAME, BUTTON */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', backgroundColor: '#eee', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', backgroundColor: '#eee', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {avatarByUser[person] ? (
                         /\.(mp4|mov|webm)$/i.test(avatarByUser[person]) || avatarByUser[person].includes('/video/upload/') ? (
                           <video src={normalizeMediaVideoUrl(avatarByUser[person])} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay loop muted playsInline />
@@ -2961,30 +2954,46 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
                           <img src={avatarByUser[person]} alt={person} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         )
                       ) : (
-                        <span style={{ fontSize: '11px', fontWeight: '700', color: '#444' }}>{person[0]?.toUpperCase() || '?'}</span>
+                        <span style={{ fontSize: '14px', fontWeight: '700', color: '#444' }}>{person[0]?.toUpperCase() || '?'}</span>
                       )}
                     </div>
 
-                    {/* Displays name if available, falls back to email handle */}
                     <div style={{ flex: 1, overflow: 'hidden' }}>
-                       <div style={{ fontSize: '13px', fontWeight: selectedFollowing.includes(person) ? '700' : '600', color: '#222', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                       <div style={{ fontSize: '14px', fontWeight: selectedFollowing.includes(person) ? '700' : '600', color: '#222', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
                           {nameByUser[person] || person.split('@')[0]}
                        </div>
-                       <div style={{ fontSize: '11px', color: '#888', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                       <div style={{ fontSize: '12px', color: '#888', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
                           {person}
                        </div>
                     </div>
 
                     <button
                       onClick={() => handleFollowingToggle(person)}
-                      style={{ border: '1px solid #ddd', background: selectedFollowing.includes(person) ? '#eee' : '#fff', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '600', padding: '6px 12px' }}
+                      style={{ border: '1px solid #ddd', background: selectedFollowing.includes(person) ? '#eee' : '#fff', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', padding: '8px 16px' }}
                     >
                       {selectedFollowing.includes(person) ? 'Unfollow' : 'Follow'}
                     </button>
                   </div>
-                  <button onClick={() => navigate(`/perspectives?person=${encodeURIComponent(person)}`)} style={{ marginTop: '4px', width: '100%', border: '1px solid #ccc', borderRadius: '6px', padding: '6px 8px', background: '#fff', fontSize: '11px', cursor: 'pointer' }}>
-                    View perspectives
-                  </button>
+
+                  {/* BOTTOM ROW: THE 6 PROFILE PICTURE SLOTS */}
+                  {avatarSlotsByUser[person] && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px', marginTop: '6px' }}>
+                      {avatarSlotsByUser[person].slice(0, 6).map((slotUrl, idx) => (
+                        <div key={idx} style={{ width: '100%', aspectRatio: '1/1', borderRadius: '6px', overflow: 'hidden', backgroundColor: '#f0f0f0', border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {slotUrl ? (
+                            /\.(mp4|mov|webm)$/i.test(slotUrl) || slotUrl.includes('/video/upload/') ? (
+                              <video src={normalizeMediaVideoUrl(slotUrl)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay muted loop playsInline />
+                            ) : (
+                              <img src={slotUrl} alt={`Slot ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            )
+                          ) : (
+                             <span style={{ fontSize: '10px', color: '#ccc' }}>Empty</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                 </div>
               ))}
               </div>
@@ -3016,7 +3025,7 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
                 {item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
                 {item.location && (
                   <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
-                    ð {item.location}
+                    📍 {item.location}
                   </div>
                 )}
                 <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
@@ -3033,10 +3042,10 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
                     <div style={{ display: 'grid', gridTemplateColumns: mediaList.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', margin: '15px 0', background: '#fafafa', padding: '10px', borderRadius: '12px', border: '1px solid #eee' }}>
                       {mediaList.map((url, idx) => (
                         <div key={idx} style={{ textAlign: 'center' }}>
-                          {/\.(mp4|mov|webm)$/i.test(url) || url.includes('/video/upload/') ? (
+                          {/\.(mp4|mov|hevc|webm)$/i.test(url) || url.includes('/video/upload/') ? (
                             <video
                               src={normalizeMediaVideoUrl(url)}
-                              poster={url.includes('cloudinary.com') ? url.replace(/\.(mp4|mov|webm|m4v)$/i, '.jpg') : undefined}
+                              poster={url.includes('cloudinary.com') ? url.replace(/\.(mp4|mov|webm|hevc|m4v)$/i, '.jpg') : undefined}
                               style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000', objectFit: 'contain' }}
                               controls playsInline preload="metadata"
                             />

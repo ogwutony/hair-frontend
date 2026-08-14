@@ -2308,7 +2308,7 @@ const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoin
   return (
       <div style={{ padding: isMobile ? '25px 16px' : '40px 60px', maxWidth: '1100px', margin: '0 auto', flex: '1 1 auto', minWidth: 0 }}>
       <Helmet>
-        <title>The Duma | The Majorities</title>
+        <title>The Duma Ledger | The Majorities</title>
         <meta name="description" content="The Majorities Duma — explore culture, recommendations, and perspectives from our community." />
         <link rel="canonical" href="https://themajorities.com/duma" />
       </Helmet>
@@ -2803,6 +2803,11 @@ const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, f
 
   return (
     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+        <Helmet>
+          <title>My Perspectives | The Majorities Community</title>
+          <meta name="description" content="Your personalized perspectives feed from the people you follow in The Majorities community." />
+          <link rel="canonical" href="https://themajorities.com/perspectives" />
+        </Helmet>
         <MediaModal media={activeMedia} onClose={() => setActiveMedia(null)} />
         <div style={{ marginBottom: '30px' }}>
           <h2 style={{ marginBottom: '6px' }}>My Perspectives</h2>

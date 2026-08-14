@@ -528,7 +528,7 @@ const productsData = {
   shampoos: [
     { 
       name: "The Majorities Shampoo", 
-      imageUrl: "/IMG_5744.jpg",
+      imageUrl: "/IMG_5744_1.jpg",
       desc: (
         <>
           <p>Reset and revive stressed hair with a salon-grade, deep-cleansing wash designed for all hair types. This high-foaming, rinse-off shampoo creates a rich, decadent lather that effortlessly lifts away stubborn scalp buildup, excess oils, and environmental pollutants without stripping away natural moisture.</p>

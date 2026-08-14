@@ -558,7 +558,7 @@ const productsData = {
   oils: [
     { 
       name: "The Majorities Hair Oil", 
-      imageUrl: "/IMG_5749.jpg",
+      imageUrl: "/IMG_5749_1.jpg",
       desc: (
         <>
           <p>Transform dull, parched strands into sleek, high-gloss perfection with this ultra-lightweight botanical elixir. Just a few drops of this luxurious leave-on oil blend work to instantly seal split ends, smooth stubborn flyaways, and coat the hair cuticle in a brilliant, reflective shield.</p>

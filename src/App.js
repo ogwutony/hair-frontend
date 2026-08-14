@@ -10,7 +10,7 @@ const DEFAULT_SELLING_PLAN_ID = "1467875506";
 const PRODUCT_VARIANT_MAP = {
   "The Majorities Shampoo": {
     merchandiseId: "47555331358898",
-    pricing: { oneTime: 7, subscription: 6 },
+    pricing: { oneTime: 7, subshhcription: 6 },h
     sellingPlanId: DEFAULT_SELLING_PLAN_ID
   },
   "The Majorities Conditioner": {
@@ -603,7 +603,7 @@ const productsData = {
   faceCreams: [
     { 
       name: "The Majorities Moisturizing Lotion", 
-      imageUrl: "/IMG_5759.jpg",
+      imageUrl: "/IMG_5759_1.jpg",
       desc: (
         <>
           <p>Wrap your skin in a comforting blanket of intense, barrier-repairing moisture. This ultra-nourishing daily body and hand lotion is formulated with a powerhouse blend of Ceramides, Hyaluronic Acid, and Vitamin E to instantly quench dehydrated skin.</p>

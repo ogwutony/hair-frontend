@@ -506,13 +506,12 @@ const MediaModal = ({ media, onClose }) => {
 };
 
 const GuestSubmissionPrompt = ({ message = "Please log in or create an account before submitting." }) => {
-  const navigate = useNavigate();
   return (
     <div style={{ ...styles.dumaCard, background: '#fff8e1', border: '1px solid #f1d78c', marginBottom: '20px' }}>
       <p style={{ marginTop: 0, marginBottom: '14px', color: '#5f4b00', fontSize: '13px' }}>{message}</p>
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-        <button type="button" style={styles.authButton} onClick={() => navigate('/login')}>Log In</button>
-        <button type="button" style={{ ...styles.authButton, background: '#fff', color: '#222', border: '1px solid #222' }} onClick={() => navigate('/signup')}>Register</button>
+        <Link to="/login" style={{ ...styles.authButton, display: 'inline-block', textDecoration: 'none', textAlign: 'center' }}>Log In</Link>
+        <Link to="/signup" style={{ ...styles.authButton, display: 'inline-block', textDecoration: 'none', textAlign: 'center', background: '#fff', color: '#222', border: '1px solid #222' }}>Register</Link>
       </div>
     </div>
   );

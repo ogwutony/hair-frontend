@@ -10,7 +10,7 @@ const DEFAULT_SELLING_PLAN_ID = "1467875506";
 const PRODUCT_VARIANT_MAP = {
   "The Majorities Shampoo": {
     merchandiseId: "47555331358898",
-    pricing: { oneTime: 7, subshhcription: 6 },h
+    pricing: { oneTime: 7, subscription: 6 },
     sellingPlanId: DEFAULT_SELLING_PLAN_ID
   },
   "The Majorities Conditioner": {

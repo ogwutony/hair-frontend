@@ -528,6 +528,7 @@ const productsData = {
   shampoos: [
     { 
       name: "The Majorities Shampoo", 
+      imageUrl: "/IMG_5744.jpg",
       desc: (
         <>
           <p>Reset and revive stressed hair with a salon-grade, deep-cleansing wash designed for all hair types. This high-foaming, rinse-off shampoo creates a rich, decadent lather that effortlessly lifts away stubborn scalp buildup, excess oils, and environmental pollutants without stripping away natural moisture.</p>
@@ -542,6 +543,7 @@ const productsData = {
   conditioners: [
     { 
       name: "The Majorities Conditioner", 
+      imageUrl: "/IMG_5746.jpg",
       desc: (
         <>
           <p>Rescue and restore chronically dry, brittle, or damaged hair with an intensive moisture therapy treatment. This ultra-rich, rinse-off conditioner melts into parched strands, delivering a powerful infusion of tropical Coconut Oil, liquid gold Argan Oil, and nourishing Olive Oil. It actively mends frayed cuticles, eliminates stubborn knots, and neutralizes static cling.</p>
@@ -556,6 +558,7 @@ const productsData = {
   oils: [
     { 
       name: "The Majorities Hair Oil", 
+      imageUrl: "/IMG_5749.jpg",
       desc: (
         <>
           <p>Transform dull, parched strands into sleek, high-gloss perfection with this ultra-lightweight botanical elixir. Just a few drops of this luxurious leave-on oil blend work to instantly seal split ends, smooth stubborn flyaways, and coat the hair cuticle in a brilliant, reflective shield.</p>
@@ -570,6 +573,7 @@ const productsData = {
   faceScrubs: [
     { 
       name: "The Majorities Facial Scrub", 
+      imageUrl: "/IMG_5753.jpg",
       desc: (
         <>
           <p>Unveil your smoothest, most radiant complexion yet with this dual-action facial polish. This creamy, rinse-off scrub combines micro-fine Bambusa Arundinacea (Bamboo) Stem Powder to gently buff away dulling, dead skin cells, while deep-cleansing Salicylic Acid (BHA) dissolves pore-clogging impurities and targets oil buildup.</p>
@@ -584,6 +588,7 @@ const productsData = {
   toners: [
     { 
       name: "The Majorities Face Toner", 
+      imageUrl: "/IMG_5756 (1).jpg",
       desc: (
         <>
           <p>Elevate your daily skincare routine with a clean, revitalizing splash of weightless hydration. This advanced leave-on toner balances oil production, tightens the appearance of pores, and instantly calms the skin.</p>
@@ -598,6 +603,7 @@ const productsData = {
   faceCreams: [
     { 
       name: "The Majorities Moisturizing Lotion", 
+      imageUrl: "/IMG_5759.jpg",
       desc: (
         <>
           <p>Wrap your skin in a comforting blanket of intense, barrier-repairing moisture. This ultra-nourishing daily body and hand lotion is formulated with a powerhouse blend of Ceramides, Hyaluronic Acid, and Vitamin E to instantly quench dehydrated skin.</p>
@@ -1793,7 +1799,20 @@ function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
           const { pricing } = getProductCommerceConfig(item.name);
           return (
             <div key={item.name} onClick={() => handleSelect(item)} style={{ ...styles.card, border: isSelected ? "2px solid #222" : "1px solid #eee" }}>
-              <div style={styles.imagePlaceholder}>{item.name[0]}</div>
+
+              {item.imageUrl ? (
+                <img
+                  src={item.imageUrl}
+                  alt={item.name}
+                  style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '10px', backgroundColor: '#f0f0f0', marginBottom: '8px' }}
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none';
+                    const placeholder = event.currentTarget.nextElementSibling;
+                    if (placeholder) placeholder.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              <div style={{ ...styles.imagePlaceholder, display: item.imageUrl ? 'none' : 'flex' }}>{item.name[0]}</div>
               <div style={styles.itemName}>{item.name}</div>
               <div style={{ fontSize: '11px', color: '#555', marginTop: '8px', lineHeight: '1.5' }}>
                 <div>One-time {formatCurrency(pricing.oneTime)}</div>

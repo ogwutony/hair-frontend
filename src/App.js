@@ -588,7 +588,7 @@ const productsData = {
   toners: [
     { 
       name: "The Majorities Face Toner", 
-      imageUrl: "/IMG_5756 (1).jpg",
+      imageUrl: "/IMG_5756_2.jpg",
       desc: (
         <>
           <p>Elevate your daily skincare routine with a clean, revitalizing splash of weightless hydration. This advanced leave-on toner balances oil production, tightens the appearance of pores, and instantly calms the skin.</p>

@@ -543,7 +543,7 @@ const productsData = {
   conditioners: [
     { 
       name: "The Majorities Conditioner", 
-      imageUrl: "/IMG_5746.jpg",
+      imageUrl: "/IMG_5746_2.jpg",
       desc: (
         <>
           <p>Rescue and restore chronically dry, brittle, or damaged hair with an intensive moisture therapy treatment. This ultra-rich, rinse-off conditioner melts into parched strands, delivering a powerful infusion of tropical Coconut Oil, liquid gold Argan Oil, and nourishing Olive Oil. It actively mends frayed cuticles, eliminates stubborn knots, and neutralizes static cling.</p>

@@ -29,6 +29,7 @@ import { AdminOrdersPage } from './pages/AdminOrdersPage';
 import { ModelFriendlyPage } from './pages/ModelFriendlyPage';
 import { TermsOfServicePage } from './pages/TermsOfServicePage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
+import { ReturnPolicyPage } from './pages/ReturnPolicyPage';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -173,11 +174,13 @@ export default function App() {
           <Route path="/admin/orders" element={<AdminOrdersPage authToken={authToken} userEmail={userEmail} />} />
           <Route path="/model" element={<ModelFriendlyPage />} />
           <Route path="/TermsofService" element={<TermsOfServicePage />} />
+                        <Route path="/returns" element={<ReturnPolicyPage />} />
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
         </Routes>
         <footer style={{ marginTop: '60px', padding: '20px 60px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'center', gap: '30px', fontSize: '12px' }}>
-          <Link to="/TermsofService" style={{ color: '#666', textDecoration: 'none' }}>Terms of Service</Link>
+          <Link to="/TermsofService" style={{ color: '#h666', textDecoration: 'none' }}>Terms of Service</Link>
           <Link to="/Privacy" style={{ color: '#666', textDecoration: 'none' }}>Privacy Policy</Link>
+                        <Link to="/returns" style={{ color: '#666', textDecoration: 'none' }}>Return Policy</Link>
         </footer>
       </div>
     </Router>

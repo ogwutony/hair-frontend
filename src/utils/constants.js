@@ -31,7 +31,7 @@ merchandiseId: "47555332145330",
 pricing: { oneTime: 7, subscription: 6 },
 sellingPlanId: DEFAULT_SELLING_PLAN_ID
 },
-"The Majorities Moisturizing Lotion": {
+"The Majorities Lotion": {
 merchandiseId: "47555332309170",
 pricing: { oneTime: 7, subscription: 6 },
 sellingPlanId: DEFAULT_SELLING_PLAN_ID
@@ -163,7 +163,7 @@ desc: (
 ],
 faceCreams: [
 {
-name: "The Majorities Moisturizing Lotion",
+name: "The Majorities Lotion",
 imageUrl: "https://picsum.photos/seed/lotion/400/300",
 desc: (
 <>

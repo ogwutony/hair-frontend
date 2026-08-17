@@ -164,7 +164,7 @@ desc: (
 faceCreams: [
 {
 name: "The Majorities Lotion",
-imageUrl: "https://picsum.photos/seed/lotion/400/300",
+imageUrl: "https://themajorities.com/Lotion.jpg",
 desc: (
 <>
 <p>Wrap your skin in a comforting blanket of intense, barrier-repairing moisture. This ultra-nourishing daily body and hand lotion is formulated with a powerhouse blend of Ceramides, Hyaluronic Acid, and Vitamin E to instantly quench dehydrated skin.</p>

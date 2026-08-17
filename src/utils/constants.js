@@ -149,7 +149,7 @@ desc: (
 toners: [
 {
 name: "The Majorities Face Toner",
-imageUrl: "https://picsum.photos/seed/toner/400/300",
+imageUrl: "https://themajorities.com/Face%20Tonner.jpg",
 desc: (
 <>
 <p>Elevate your daily skincare routine with a clean, revitalizing splash of weightless hydration. This advanced leave-on toner balances oil production, tightens the appearance of pores, and instantly calms the skin.</p>

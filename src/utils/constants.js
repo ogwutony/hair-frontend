@@ -119,7 +119,7 @@ desc: (
 oils: [
 {
 name: "The Majorities Hair Oil",
-imageUrl: "https://picsum.photos/seed/hairoil/400/300",
+imageUrl: "https://themajorities.com/Hair%20Oil.png",
 desc: (
 <>
 <p>Transform dull, parched strands into sleek, high-gloss perfection with this ultra-lightweight botanical elixir. Just a few drops of this luxurious leave-on oil blend work to instantly seal split ends, smooth stubborn flyaways, and coat the hair cuticle in a brilliant, reflective shield.</p>

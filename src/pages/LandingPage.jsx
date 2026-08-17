@@ -79,7 +79,7 @@ return (
 <img
 src={item.imageUrl}
 alt={item.name}
-style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '10px', backgroundColor: '#f0f0f0', marginBottom: '8px' }}
+style={{ width: '100%', height: '120px', objectFit: 'contain', borderRadius: '10px', backgroundColor: '#f0f0f0', marginBottom: '8px' }}
 />
 
 <div style={styles.itemName}>{item.name}</div>

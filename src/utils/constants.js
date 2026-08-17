@@ -1,4 +1,4 @@
-// src/utils/constants.js
+h// src/utils/constants.js
 // Central config — imported by App.js (and eventually individual page files)
 
 export const SHOP_DOMAIN = "c0bqfe-z2.myshopify.com";
@@ -7,7 +7,7 @@ export const DEFAULT_SELLING_PLAN_ID = "1467875506";
 
 export const PRODUCT_VARIANT_MAP = {
 "The Majorities Shampoo": {
-merchandiseId: "47555331358898",
+merchandiseId: "47555331358898",h
 pricing: { oneTime: 7, subscription: 6 },
 sellingPlanId: DEFAULT_SELLING_PLAN_ID
 },
@@ -104,7 +104,7 @@ desc: (
 conditioners: [
 {
 name: "The Majorities Conditioner",
-imageUrl: "https://picsum.photos/seed/conditioner/400/300",
+imageUrl: "https://themajorities.com/Conditioner.png",
 desc: (
 <>
 <p>Rescue and restore chronically dry, brittle, or damaged hair with an intensive moisture therapy treatment. This ultra-rich, rinse-off conditioner melts into parched strands, delivering a powerful infusion of tropical Coconut Oil, liquid gold Argan Oil, and nourishing Olive Oil. It actively mends frayed cuticles, eliminates stubborn knots, and neutralizes static cling.</p>

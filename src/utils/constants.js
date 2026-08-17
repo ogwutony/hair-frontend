@@ -1,4 +1,4 @@
-h// src/utils/constants.js
+// src/utils/constants.js
 // Central config — imported by App.js (and eventually individual page files)
 
 export const SHOP_DOMAIN = "c0bqfe-z2.myshopify.com";
@@ -7,9 +7,9 @@ export const DEFAULT_SELLING_PLAN_ID = "1467875506";
 
 export const PRODUCT_VARIANT_MAP = {
 "The Majorities Shampoo": {
-merchandiseId: "47555331358898",h
+merchandiseId: "47555331358898",
 pricing: { oneTime: 7, subscription: 6 },
-sellingPlanId: DEFAULT_SELLING_PLAN_IDh
+sellingPlanId: DEFAULT_SELLING_PLAN_ID
 },
 "The Majorities Conditioner": {
 merchandiseId: "47555331555506",

@@ -9,7 +9,7 @@ export const PRODUCT_VARIANT_MAP = {
 "The Majorities Shampoo": {
 merchandiseId: "47555331358898",h
 pricing: { oneTime: 7, subscription: 6 },
-sellingPlanId: DEFAULT_SELLING_PLAN_ID
+sellingPlanId: DEFAULT_SELLING_PLAN_IDh
 },
 "The Majorities Conditioner": {
 merchandiseId: "47555331555506",
@@ -134,7 +134,7 @@ desc: (
 faceScrubs: [
 {
 name: "The Majorities Facial Scrub",
-imageUrl: "https://picsum.photos/seed/scrub/400/300",
+imageUrl: "https://themajorities.com/Facial%20Scrub.jpg",
 desc: (
 <>
 <p>Unveil your smoothest, most radiant complexion yet with this dual-action facial polish. This creamy, rinse-off scrub combines micro-fine Bambusa Arundinacea (Bamboo) Stem Powder to gently buff away dulling, dead skin cells, while deep-cleansing Salicylic Acid (BHA) dissolves pore-clogging impurities and targets oil buildup.</p>

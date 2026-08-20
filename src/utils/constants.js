@@ -135,7 +135,7 @@ desc: (
 faceScrubs: [
 {
 name: "The Majorities Facial Scrub",
-imageUrl: "https://themajorities.com/Facial%20Scrub.jpg",
+imageUrl: "/facial Front.jpg",      images: ["/facial Front.jpg", "/Facial Side.jpg", "/Facial Back.jpg"],
 desc: (
 <>
 <p>Unveil your smoothest, most radiant complexion yet with this dual-action facial polish. This creamy, rinse-off scrub combines micro-fine Bambusa Arundinacea (Bamboo) Stem Powder to gently buff away dulling, dead skin cells, while deep-cleansing Salicylic Acid (BHA) dissolves pore-clogging impurities and targets oil buildup.</p>

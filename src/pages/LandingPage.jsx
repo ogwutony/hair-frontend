@@ -128,13 +128,26 @@ Subscribe {formatCurrency(getProductCommerceConfig(focusedItem.name).pricing.sub
 {focusedItem.desc}
 </div>
 
-{focusedItem.imageUrl && (
+{(focusedItem.images || focusedItem.imageUrl) && (
 <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+{focusedItem.images ? (
+<div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+{focusedItem.images.map((src, idx) => (
+<img
+key={idx}
+src={src}
+alt={focusedItem.name + ' view ' + (idx + 1)}
+style={{ maxWidth: '30%', maxHeight: '250px', objectFit: 'contain', borderRadius: '12px', border: '1px solid #ddd', padding: '8px', backgroundColor: '#fff', flex: '1 1 28%' }}
+/>
+))}
+</div>
+) : (
 <img
 src={focusedItem.imageUrl}
 alt={focusedItem.name}
 style={{ maxWidth: '100%', maxHeight: '350px', objectFit: 'contain', borderRadius: '12px', border: '1px solid #ddd', padding: '10px', backgroundColor: '#fff' }}
 />
+)}
 </div>
 )}
 </div>

@@ -89,7 +89,8 @@ export const productsData = {
 shampoos: [
 {
 name: "The Majorities Shampoo",
-imageUrl: "https://themajorities.com/Shampoo.png",
+imageUrl: "/Front Shampoo.jpg",
+images: ["/Front Shampoo.jpg", "/Middle shampoo.jpg", "/Back Shampoo.jpg"],
 desc: (
 <>
 <p>Reset and revive stressed hair with a salon-grade, deep-cleansing wash designed for all hair types. This high-foaming, rinse-off shampoo creates a rich, decadent lather that effortlessly lifts away stubborn scalp buildup, excess oils, and environmental pollutants without stripping away natural moisture.</p>
@@ -179,7 +180,7 @@ desc: (
 };
 
 export const SOCIAL_FIELDS = [
-{ key: 'instagram', label: '\u{1F4F7} Instagram', placeholder: 'instagram.com/yourprofile' },
-{ key: 'tiktok', label: '\u{1F3B5} TikTok', placeholder: 'tiktok.com/@yourprofile' },
-{ key: 'snapchat', label: '\u{1F47B} Snapchat', placeholder: 'snapchat.com/add/yourprofile' },
+{ key: 'instagram', label: '📷 Instagram', placeholder: 'instagram.com/yourprofile' },
+{ key: 'tiktok', label: '🎵 TikTok', placeholder: 'tiktok.com/@yourprofile' },
+{ key: 'snapchat', label: '👻 Snapchat', placeholder: 'snapchat.com/add/yourprofile' },
 ];

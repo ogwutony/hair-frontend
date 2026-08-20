@@ -150,8 +150,8 @@ desc: (
 toners: [
 {
 name: "The Majorities Face Toner",
-imageUrl: "/Face Tonner.jpg",
-images: ["/Face Tonner.jpg", "/Tonner Side.jpg", "/Tonner Back.jpg"],
+imageUrl: "/tonner Front.jpg",
+images: ["/tonner Front.jpg", "/Tonner Side.jpg", "/Tonner Back.jpg"],
 desc: (
 <>
 <p>Elevate your daily skincare routine with a clean, revitalizing splash of weightless hydration. This advanced leave-on toner balances oil production, tightens the appearance of pores, and instantly calms the skin.</p>

@@ -11,7 +11,7 @@ merchandiseId: "47555331358898",h
 pricing: { oneTime: 7, subscription: 6 },
 sellingPlanId: DEFAULT_SELLING_PLAN_ID
 },
-"The Majorities Conditioner": {
+"The Majorities Conditioner": {h
 merchandiseId: "47555331555506",
 pricing: { oneTime: 7, subscription: 6 },
 sellingPlanId: DEFAULT_SELLING_PLAN_ID
@@ -150,7 +150,8 @@ desc: (
 toners: [
 {
 name: "The Majorities Face Toner",
-imageUrl: "https://themajorities.com/Face%20Tonner.jpg",
+imageUrl: "/Face Tonner.jpg",
+images: ["/Face Tonner.jpg", "/Tonner Side.jpg", "/Tonner Back.jpg"],
 desc: (
 <>
 <p>Elevate your daily skincare routine with a clean, revitalizing splash of weightless hydration. This advanced leave-on toner balances oil production, tightens the appearance of pores, and instantly calms the skin.</p>

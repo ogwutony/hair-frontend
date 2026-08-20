@@ -7,11 +7,11 @@ export const DEFAULT_SELLING_PLAN_ID = "1467875506";
 
 export const PRODUCT_VARIANT_MAP = {
 "The Majorities Shampoo": {
-merchandiseId: "47555331358898",h
+merchandiseId: "47555331358898",
 pricing: { oneTime: 7, subscription: 6 },
 sellingPlanId: DEFAULT_SELLING_PLAN_ID
-},h
-"The Majorities Conditioner": {h
+},
+"The Majorities Conditioner": {
 merchandiseId: "47555331555506",
 pricing: { oneTime: 7, subscription: 6 },
 sellingPlanId: DEFAULT_SELLING_PLAN_ID
@@ -167,7 +167,8 @@ faceCreams: [
 {
 name: "The Majorities Lotion",
 imageUrl: "/Lotion Front.jpg",
-images: ["/Lotion Front.jpg", "/Lotion side.jpg", "/Lotion Back (3).jpg"],desc: (
+images: ["/Lotion Front.jpg", "/Lotion side.jpg", "/Lotion Back (3).jpg"],
+desc: (
 <>
 <p>Wrap your skin in a comforting blanket of intense, barrier-repairing moisture. This ultra-nourishing daily body and hand lotion is formulated with a powerhouse blend of Ceramides, Hyaluronic Acid, and Vitamin E to instantly quench dehydrated skin.</p>
 <p>The fast-absorbing, non-greasy formula sinks in deep to lock out environmental dryness and rebuild your skin's natural moisture barrier, leaving hands and body touchably plush, supple, and healthy-looking all day long.</p>

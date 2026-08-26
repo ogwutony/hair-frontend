@@ -82,15 +82,12 @@ export const RANK_TIERS = [
 { title: "Comrade", min: 1 },
 ];
 
-// NOTE: imageUrl values below are temporary placeholders.
-// Replace each one with the real path once product photos are uploaded to /public
-// e.g. "/IMG_5744_1.jpg" once that file is in the public folder.
 export const productsData = {
 shampoos: [
 {
 name: "The Majorities Shampoo",
-imageUrl: "/Front Shampoo.jpg",
-images: ["/Front Shampoo.jpg", "/Middle shampoo.jpg", "/Back Shampoo.jpg"],
+imageUrl: "/Amazon S.jpg",
+images: ["/Amazon S.jpg", "/Amazon S side.jpg", "/Amazon S Back.jpg"],
 desc: (
 <>
 <p>Reset and revive stressed hair with a salon-grade, deep-cleansing wash designed for all hair types. This high-foaming, rinse-off shampoo creates a rich, decadent lather that effortlessly lifts away stubborn scalp buildup, excess oils, and environmental pollutants without stripping away natural moisture.</p>
@@ -105,7 +102,7 @@ desc: (
 conditioners: [
 {
 name: "The Majorities Conditioner",
-imageUrl: "/Conditioner Front.jpg",      images: ["/Conditioner Front.jpg", "/Conditioner Side.jpg", "/Conditioner Back.jpg"],
+imageUrl: "/Amazon hc.jpg", images: ["/Amazon hc.jpg", "/Amazon hc side.png", "/Amazon hc back.jpg"],
 desc: (
 <>
 <p>Rescue and restore chronically dry, brittle, or damaged hair with an intensive moisture therapy treatment. This ultra-rich, rinse-off conditioner melts into parched strands, delivering a powerful infusion of tropical Coconut Oil, liquid gold Argan Oil, and nourishing Olive Oil. It actively mends frayed cuticles, eliminates stubborn knots, and neutralizes static cling.</p>
@@ -120,7 +117,7 @@ desc: (
 oils: [
 {
 name: "The Majorities Hair Oil",
-imageUrl: "/Hair oil Front.jpg",      images: ["/Hair oil Front.jpg", "/Hair oil Side.jpg", "/Hair oil Back.jpg"],
+imageUrl: "/amazon HO.jpg", images: ["/amazon HO.jpg", "/Amazon HO Side.jpg", "/Amazon HO back.jpg"],
 desc: (
 <>
 <p>Transform dull, parched strands into sleek, high-gloss perfection with this ultra-lightweight botanical elixir. Just a few drops of this luxurious leave-on oil blend work to instantly seal split ends, smooth stubborn flyaways, and coat the hair cuticle in a brilliant, reflective shield.</p>
@@ -135,7 +132,7 @@ desc: (
 faceScrubs: [
 {
 name: "The Majorities Facial Scrub",
-imageUrl: "/facial Front.jpg",      images: ["/facial Front.jpg", "/Facial Side.jpg", "/Facial Back.jpg"],
+imageUrl: "/Amazon fs.jpg", images: ["/Amazon fs.jpg", "/Amazon fs side.jpg", "/Amazon fs back.jpg"],
 desc: (
 <>
 <p>Unveil your smoothest, most radiant complexion yet with this dual-action facial polish. This creamy, rinse-off scrub combines micro-fine Bambusa Arundinacea (Bamboo) Stem Powder to gently buff away dulling, dead skin cells, while deep-cleansing Salicylic Acid (BHA) dissolves pore-clogging impurities and targets oil buildup.</p>
@@ -150,8 +147,8 @@ desc: (
 toners: [
 {
 name: "The Majorities Face Toner",
-imageUrl: "/tonner Front.jpg",
-images: ["/tonner Front.jpg", "/Tonner Side.jpg", "/Tonner Back.jpg"],
+imageUrl: "/Amazon FT.jpg",
+images: ["/Amazon FT.jpg", "/Amazon FT side.jpg", "/Amazon FT Back.jpg"],
 desc: (
 <>
 <p>Elevate your daily skincare routine with a clean, revitalizing splash of weightless hydration. This advanced leave-on toner balances oil production, tightens the appearance of pores, and instantly calms the skin.</p>
@@ -166,8 +163,8 @@ desc: (
 faceCreams: [
 {
 name: "The Majorities Lotion",
-imageUrl: "/Lotion Front.jpg",
-images: ["/Lotion Front.jpg", "/Lotion side.jpg", "/Lotion Back (3).jpg"],
+imageUrl: "/Amazon FT.jpg",
+images: ["/Amazon FT.jpg", "/Amazon FT side.jpg", "/Amazon FT Back.jpg"],
 desc: (
 <>
 <p>Wrap your skin in a comforting blanket of intense, barrier-repairing moisture. This ultra-nourishing daily body and hand lotion is formulated with a powerhouse blend of Ceramides, Hyaluronic Acid, and Vitamin E to instantly quench dehydrated skin.</p>

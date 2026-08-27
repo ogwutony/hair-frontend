@@ -51,7 +51,7 @@ export const ReturnPolicyPage = () => {
                                 <li><strong>Expedited Shipping:</strong> 2–3 business days</li>
                                 <li><strong>Overnight Shipping:</strong> 1 business day</li>
                         </ul>
-                        <p>Shipping costs are calculated at checkout based on the selected method and delivery address. Free standard shipping is available on orders over <strong>$50</strong>. Please note that business days exclude weekends and public holidays. Once an order has shipped, you will receive a confirmation email with a tracking number.</p>
+                        <p>Shipping costs are calculated at checkout based on the selected method and delivery address. Please note that business days exclude weekends and public holidays. Once an order has shipped, you will receive a confirmation email with a tracking number.</p>
 
                         <h2 style={h2Style}>10. Contact Us</h2>
                         <p>For any questions about your return or shipment, reach us at <a href="mailto:support@themajorities.com" style={{ color: '#222' }}>support@themajorities.com</a>. Please include your order number in all correspondence to help us assist you quickly.</p>

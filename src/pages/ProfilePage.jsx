@@ -156,7 +156,22 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
     { id: 12, text: "What TV show or series are you currently binge-watching that everyone needs to check out?" },
     { id: 13, text: "What is a movie you can watch over and over again without ever getting tired of it?" },
     { id: 14, text: "Recommend an underrated movie or show that doesn't get enough hype!" },
-    { id: 15, text: "Post Anything! Share whatever is on your mind today—a random thought, life update, or funny hot take." }
+    { id: 15, text: "Post Anything! Share whatever is on your mind today—a random thought, life update, or funny hot take." },
+    { id: 16, text: "Team toner or straight to moisturizer?" },
+    { id: 17, text: "How many days do you really go between shampooing?" },
+    { id: 18, text: "Facial scrubs: love them or leave them?" },
+    { id: 19, text: "What’s your emergency fix for a surprise pimple?" },
+    { id: 20, text: "How do you instantly hide morning eye bags?" },
+    { id: 21, text: "What’s the secret to preventing neck bumps after a fresh haircut?" },
+    { id: 22, text: "What is your favorite unconventional use for baby oil?" },
+    { id: 23, text: "Hair oil: split-end lifesaver or grease trap?" },
+    { id: 24, text: "What is your holy grail daily moisturizing lotion?" },
+    { id: 25, text: "What’s the worst DIY skincare trend you’ve ever tried?" },
+    { id: 26, text: "Desert island: Shampoo, conditioner, or hair oil?" },
+    { id: 27, text: "Splurge or save: Which product is always worth the money?" },
+    { id: 28, text: "Drop your best hack for treating razor bumps!" },
+    { id: 29, text: "What was the very first skincare product you ever bought?" },
+    { id: 30, text: "What is your #1 tip for clearing up stubborn breakouts?" }
   ];
 
   const syncAvatarSlotsToBackend = (slotsArray) => {
@@ -696,7 +711,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
             ANSWER PROMPTS FOR POINTS (COMPLETE ALL FOR SPECIAL REWARD)
           </label>
           <p style={{ fontSize: '11px', color: '#888', margin: '0 0 10px 0' }}>
-            Click any prompt below to attach it to your post and earn 120 points! (Scroll to view all 15 prompts)
+            Click any prompt below to attach it to your post and earn 120 points! (Scroll to view all 30 prompts)
           </p>
 
           <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '8px', marginBottom: '20px', backgroundColor: '#fafafa' }}>

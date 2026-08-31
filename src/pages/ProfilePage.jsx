@@ -708,7 +708,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
           />
 
           <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginTop: '16px', marginBottom: '8px' }}>
-            ANSWER PROMPTS FOR POINTS (COMPLETE ALL FOR SPECIAL REWARD)
+            ANSWER PROMPTS FOR EXTRA POINTS
           </label>
           <p style={{ fontSize: '11px', color: '#888', margin: '0 0 10px 0' }}>
             Click any prompt below to attach it to your post and earn 120 points! (Scroll to view all 30 prompts)

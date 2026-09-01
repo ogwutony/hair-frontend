@@ -171,7 +171,22 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
     { id: 27, text: "Splurge or save: Which product is always worth the money?" },
     { id: 28, text: "Drop your best hack for treating razor bumps!" },
     { id: 29, text: "What was the very first skincare product you ever bought?" },
-    { id: 30, text: "What is your #1 tip for clearing up stubborn breakouts?" }
+    { id: 30, text: "What is your #1 tip for clearing up stubborn breakouts?" },
+    { id: 31, text: "Best place to work remotely in your city?" },
+    { id: 32, text: "Where is the best place in your town to run?" },
+    { id: 33, text: "What's a fun run club in your city?" },
+    { id: 34, text: "Best spot to meet new people near you?" },
+    { id: 35, text: "Post about the most fun mini-golf courses in your city." },
+    { id: 36, text: "Best place to relax near the water?" },
+    { id: 37, text: "Coolest pools to check out this summer?" },
+    { id: 38, text: "Best hiking trails to explore?" },
+    { id: 39, text: "Where is the best spot to set up a picnic?" },
+    { id: 40, text: "What's your favorite outdoor activity in town?" },
+    { id: 41, text: "Best outdoor patios to grab a drink?" },
+    { id: 42, text: "Top lake, river, or beach spot near you?" },
+    { id: 43, text: "Best quiet park to relax with a book?" },
+    { id: 44, text: "What local outdoor group should everyone join?" },
+    { id: 45, text: "Post about your ultimate outdoor day in your city." }
   ];
 
   const syncAvatarSlotsToBackend = (slotsArray) => {
@@ -711,7 +726,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
             ANSWER PROMPTS FOR EXTRA POINTS
           </label>
           <p style={{ fontSize: '11px', color: '#888', margin: '0 0 10px 0' }}>
-            Click any prompt below to attach it to your post and earn 120 points! (Scroll to view all 30 prompts)
+            Click any prompt below to attach it to your post and earn 120 points! (Scroll to view all 45 prompts)
           </p>
 
           <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '8px', marginBottom: '20px', backgroundColor: '#fafafa' }}>

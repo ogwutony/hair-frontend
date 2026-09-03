@@ -19,6 +19,8 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
   const [comments, setComments] = useState({});
   const [commentText, setCommentText] = useState({});
   const [activeSection, setActiveSection] = useState("Culture");
+  const [marketplaceListings, setMarketplaceListings] = useState([]);
+  const [boostingId, setBoostingId] = useState(null);
   const socialFeedUrl = process.env.REACT_APP_SOCIAL_FEED_URL;
 
   const isFeaturedContributor = (item) =>
@@ -47,6 +49,47 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
       }
     }).catch(err => console.error('Failed to load duma items:', err));
   }, [items]);
+
+  // Marketplace feed: backend sorts boosted listings (boostedUntil in the future) first, then newest
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/api/marketplace`).then(r => r.json()).then(data => {
+      if (Array.isArray(data)) setMarketplaceListings(data);
+    }).catch(err => console.error('Failed to load marketplace listings:', err));
+  }, []);
+
+  const handleBoostListing = async (listingId) => {
+    if (!authToken) return alert("Please log in to boost listings.");
+    if (!window.confirm("Boost this listing to the top for 24 hours? This costs 500 points.")) return;
+    setBoostingId(listingId);
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/marketplace/boost`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken },
+        body: JSON.stringify({ listingId })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        const boostedItem = data.item;
+        setMarketplaceListings(prev => {
+          const now = new Date();
+          const updated = prev.map(item => (item._id || item.id) === listingId ? { ...item, boostedUntil: boostedItem?.boostedUntil || data.boostedUntil } : item);
+          return [...updated].sort((a, b) => {
+            const aBoosted = a.boostedUntil && new Date(a.boostedUntil) > now ? 1 : 0;
+            const bBoosted = b.boostedUntil && new Date(b.boostedUntil) > now ? 1 : 0;
+            if (bBoosted !== aBoosted) return bBoosted - aBoosted;
+            if (aBoosted && bBoosted) return new Date(b.boostedUntil) - new Date(a.boostedUntil);
+            return new Date(b.createdAt) - new Date(a.createdAt);
+          });
+        });
+        if (onAddPoints) onAddPoints(-500);
+      } else {
+        alert(data.error || "Failed to boost listing.");
+      }
+    } catch (err) {
+      alert("Failed to boost listing.");
+    }
+    setBoostingId(null);
+  };
 
   const handleVote = async (itemId, voteType) => {
     if (!authToken) return alert("Please log in to vote.");
@@ -100,7 +143,7 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
   const culturalItems = dumaItems.filter(item => item.section === "Cultural" || item.category === "Culture" || item.type === "Video" || item.type === "Culture");
   const recommendationItems = dumaItems.filter(item => item.type === "Product Recommendation" || item.type === "Recommendation");
   const partnerItems = dumaItems.filter(item => item.type === "Partner");
-  const marketplaceItems = dumaItems.filter(item => item.section === "Commerce" || item.type === "Marketplace Listing");
+  const marketplaceItems = marketplaceListings;
 
   return (
       <div style={{ padding: isMobile ? '25px 16px' : '40px 60px', maxWidth: '1100px', margin: '0 auto', flex: '1 1 auto', minWidth: 0 }}>
@@ -360,12 +403,6 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
                         Trash
                       </button>
                     )}
-                    {activeSection === "Marketplace" && (
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}><h3>Marketplace</h3><Link to="/recommend" style={styles.authButton}>List a Product</Link></div>
-                        {marketplaceItems.length === 0 ? <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No listings yet. Be the first to offer a product or service.</div> : marketplaceItems.map(item => <div key={item._id || item.id} style={styles.dumaCard}><span style={styles.typeTag}>{item.category || 'Listing'}</span><h3>{item.name}</h3><p>{item.desc}</p><strong>${item.price}</strong>{item.checkoutUrl && <a href={item.checkoutUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: '12px', color: '#222' }}>Visit listing</a>}</div>)}
-                      </div>
-                    )}
                   </div>
                 </div>
                 {item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
@@ -500,6 +537,54 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
                 )}
               </div>
             ))
+          )}
+        </div>
+      )}
+
+      {activeSection === "Marketplace" && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ margin: 0 }}>Marketplace</h3>
+            <Link to={authToken ? '/sell' : '/login'} style={{ ...styles.authButton, width: 'auto', padding: '10px 20px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>List a Product</Link>
+          </div>
+          {!authToken ? (
+            <GuestSubmissionPrompt message="Log in or register to view listings and sell in the Marketplace." />
+          ) : marketplaceItems.length === 0 ? (
+            <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No listings yet. Be the first to offer a product or service.</div>
+          ) : (
+            marketplaceItems.map(item => {
+              const isBoosted = item.boostedUntil && new Date(item.boostedUntil) > new Date();
+              const isOwner = authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase();
+              return (
+                <div key={item._id || item.id} style={{ ...styles.dumaCard, border: isBoosted ? '2px solid #f1c40f' : styles.dumaCard?.border }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <span style={styles.typeTag}>{item.category || 'Listing'}</span>
+                    {isBoosted && (
+                      <span style={{ background: '#f1c40f', color: '#222', padding: '4px 10px', borderRadius: '20px', fontSize: '10px', fontWeight: '800' }}>
+                        ⚡ Boosted until {new Date(item.boostedUntil).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                  {item.imageUrl && <img src={item.imageUrl} alt={item.title} style={{ width: '100%', maxHeight: '280px', objectFit: 'cover', borderRadius: '12px', marginBottom: '12px' }} />}
+                  <h3 style={{ marginTop: 0, marginBottom: '8px' }}>{item.title}</h3>
+                  <p style={{ color: '#666', fontSize: '13px', lineHeight: '1.5' }}>{item.description}</p>
+                  <strong>${Number(item.price).toFixed(2)}</strong>
+                  {item.submittedBy && <div style={{ marginTop: '12px' }}><CredentialHeader email={item.submittedBy} displayName={null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={null} socialLinks={null} /></div>}
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '12px', flexWrap: 'wrap' }}>
+                    {item.externalLink && (
+                      <a href={item.externalLink} target="_blank" rel="noopener noreferrer" style={{ ...styles.authButton, width: 'auto', padding: '10px 20px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', background: '#fff', color: '#222', border: '1px solid #222' }}>
+                        Visit listing
+                      </a>
+                    )}
+                    {isOwner && !isBoosted && (
+                      <button disabled={boostingId === (item._id || item.id)} onClick={() => handleBoostListing(item._id || item.id)} style={{ ...styles.authButton, width: 'auto', padding: '10px 20px', background: '#f1c40f', color: '#222', opacity: boostingId === (item._id || item.id) ? 0.6 : 1 }}>
+                        {boostingId === (item._id || item.id) ? 'Boosting...' : '⚡ Boost to the top for 24 Hours (Costs 500 Points)'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
       )}

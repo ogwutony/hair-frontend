@@ -328,6 +328,21 @@ const Media = mongoose.model('Media', new mongoose.Schema({
   expiresAt:   Date
 }));
 
+// Marketplace listings (Commerce items)
+const MarketplaceListing = mongoose.model('MarketplaceListing', new mongoose.Schema({
+  title:        { type: String, required: true },
+  description:  { type: String, required: true },
+  imageUrl:     { type: String, default: null },
+  price:        { type: Number, required: true },
+  category:     { type: String, required: true },
+  externalLink: { type: String, default: '' },
+  userId:       { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  submittedBy:  { type: String, required: true },
+  submitterRank: String,
+  boostedUntil: { type: Date, default: null },
+  createdAt:    { type: Date, default: Date.now }
+}));
+
 // --- HELPERS ---
 const JWT_SECRET = process.env.JWT_SECRET || 'majority-hair-default-secret-change-me';
 
@@ -1081,9 +1096,130 @@ app.delete('/api/media/:mediaId', authMiddleware, async (req, res) => {
   }
 });
 
-// ========== LEADERBOARD ==========
-app.get('/api/leaderboard', async (req, res) => {
+// ========== MARKETPLACE ROUTES ==========
+
+const BOOST_COST_POINTS = 500;
+const BOOST_DURATION_MS = 24 * 60 * 60 * 1000;
+
+// 1. Marketplace feed: boosted listings (active boosts) first, then newest
+app.get('/api/marketplace', engagementLimiter, async (req, res) => {
   try {
+    const now = new Date();
+    const items = await MarketplaceListing.aggregate([
+      { $addFields: { boostPriority: { $cond: [{ $gt: ['$boostedUntil', now] }, 1, 0] } } },
+      { $sort: { boostPriority: -1, boostedUntil: -1, createdAt: -1 } },
+      { $project: { boostPriority: 0 } }
+    ]);
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch marketplace listings' });
+  }
+});
+
+// 2. Submit a new marketplace listing (Commerce item)
+app.post('/api/marketplace/list', engagementLimiter, authMiddleware, upload.single('image'), async (req, res) => {
+  try {
+    const title = typeof req.body.title === 'string' ? req.body.title.trim() : '';
+    const description = typeof req.body.description === 'string' ? req.body.description.trim() : '';
+    const category = typeof req.body.category === 'string' ? req.body.category.trim() : '';
+    const externalLink = typeof req.body.externalLink === 'string' ? req.body.externalLink.trim() : '';
+    const price = Number(req.body.price);
+
+    if (!title || !description || !category || externalLink === '' || req.body.price === undefined) {
+      return res.status(400).json({ error: 'Title, description, price, category, and external link are required' });
+    }
+    if (!Number.isFinite(price) || price < 0) {
+      return res.status(400).json({ error: 'Price must be a valid non-negative number' });
+    }
+    try {
+      const parsed = new URL(externalLink);
+      if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('bad protocol');
+    } catch {
+      return res.status(400).json({ error: 'External link must be a valid http(s) URL' });
+    }
+
+    // Optional image upload to Cloudinary
+    let imageUrl = null;
+    if (req.file) {
+      if (!req.file.mimetype.startsWith('image')) {
+        return res.status(400).json({ error: 'Only image uploads are allowed' });
+      }
+      if (req.file.size > 5242880) {
+        return res.status(400).json({ error: 'Image must be under 5MB' });
+      }
+      try {
+        const uploadResult = await new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            { resource_type: 'image', folder: 'majority-hair/marketplace', transformation: [{ quality: 'auto', fetch_format: 'auto' }] },
+            (error, result) => { if (error) reject(error); else resolve(result); }
+          );
+          uploadStream.end(req.file.buffer);
+        });
+        imageUrl = uploadResult.secure_url;
+      } catch (cloudinaryErr) {
+        console.error('Cloudinary upload error:', cloudinaryErr.message);
+        return res.status(500).json({ error: 'Image upload to storage failed' });
+      }
+    }
+
+    const item = await MarketplaceListing.create({
+      title,
+      description,
+      imageUrl,
+      price,
+      category,
+      externalLink,
+      userId: req.user._id,
+      submittedBy: req.user.email,
+      submitterRank: req.user.rank_title || getRankTitle(req.user.rank_score || 1)
+    });
+
+    await updateRankScore(req.user._id, 50);
+    res.status(201).json({ success: true, item });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create listing' });
+  }
+});
+
+// 3. Boost a listing to the top of the feed for 24 hours (costs points)
+app.post('/api/marketplace/boost', engagementLimiter, authMiddleware, async (req, res) => {
+  try {
+    const listingId = req.body.listingId || req.body.listing || req.body.id;
+    if (!listingId || !mongoose.Types.ObjectId.isValid(listingId)) {
+      return res.status(400).json({ error: 'A valid listingId is required' });
+    }
+
+    const listing = await MarketplaceListing.findById(listingId);
+    if (!listing) return res.status(404).json({ error: 'Listing not found' });
+    if (listing.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'You can only boost your own listings' });
+    }
+    if (listing.boostedUntil && listing.boostedUntil > new Date()) {
+      return res.status(409).json({ error: 'This listing is already boosted', boostedUntil: listing.boostedUntil });
+    }
+
+    // Check current point balance and deduct atomically (rejects when balance is insufficient)
+    const debitedUser = await User.findOneAndUpdate(
+      { _id: req.user._id, rank_score: { $gte: BOOST_COST_POINTS } },
+      { $inc: { rank_score: -BOOST_COST_POINTS } },
+      { new: true }
+    );
+    if (!debitedUser) {
+      return res.status(402).json({ error: `Insufficient points. Boosting costs ${BOOST_COST_POINTS} points.`, balance: req.user.rank_score || 1 });
+    }
+
+    const boostedUntil = new Date(Date.now() + BOOST_DURATION_MS);
+    listing.boostedUntil = boostedUntil;
+    await listing.save();
+
+    res.json({ success: true, boostedUntil, balance: debitedUser.rank_score, item: listing });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to boost listing' });
+  }
+});
+
+// ========== LEADERBOARD ==========
+app.get('/api/leaderboard', engagementLimiter, async (req, res) => {  try {
     const users = await User.find({}, 'email rank_score rank_title')
       .sort({ rank_score: -1 })
       .limit(50);

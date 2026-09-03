@@ -30,6 +30,7 @@ import { ModelFriendlyPage } from './pages/ModelFriendlyPage';
 import { TermsOfServicePage } from './pages/TermsOfServicePage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { ReturnPolicyPage } from './pages/ReturnPolicyPage';
+import { SellPage } from './pages/SellPage';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -131,6 +132,7 @@ export default function App() {
             <Link to="/recommend" style={styles.navLink}>Recommend</Link>
             <Link to="/partner" style={styles.navLink}>Partner</Link>
             <Link to="/duma" style={styles.navLink}>The Duma</Link>
+            <Link to="/sell" style={styles.navLink}>Sell</Link>
             {isLoggedIn ? (
               <>
                 <Link to="/perspectives" style={styles.navLink}>Perspectives</Link>
@@ -170,6 +172,7 @@ export default function App() {
           <Route path="/perspectives" element={isLoggedIn ? <PerspectivesPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} following={following} onFollowUser={followUser} onUnfollowUser={unfollowUser} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
           <Route path="/legislature" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} />} />
           <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={handleAvatarUpdate} tokens={tokens} addDumaItem={addDumaItem} />} />
+          <Route path="/sell" element={isLoggedIn ? <SellPage userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} onAddPoints={addPoints} /> : <Navigate to="/login" />} />
           <Route path="/orders" element={<div style={{ padding: '60px', textAlign: 'center' }}><h2>Payment Received!</h2><p>Your custom hair set is being prepared. Check your Profile to see your formula.</p><Link to="/profile">Go to Profile</Link></div>} />
           <Route path="/admin/orders" element={<AdminOrdersPage authToken={authToken} userEmail={userEmail} />} />
           <Route path="/model" element={<ModelFriendlyPage />} />

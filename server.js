@@ -730,7 +730,7 @@ app.get('/api/duma', async (req, res) => {
 });
 
 // 2. Voting Logic
-app.post('/api/duma/:id/vote', authMiddleware, engagementLimiter, async (req, res) => {
+app.post('/api/duma/:id/vote', engagementLimiter, authMiddleware, async (req, res) => {
   try {
     const voteType = req.body.voteType || req.body.vote;
     if (!['yes', 'no', 'abstain'].includes(voteType)) {
@@ -762,7 +762,7 @@ app.post('/api/duma/:id/vote', authMiddleware, engagementLimiter, async (req, re
 });
 
 // 3. Submit a culture post to Duma
-app.post('/api/duma/culture', authMiddleware, engagementLimiter, async (req, res) => {
+app.post('/api/duma/culture', engagementLimiter, authMiddleware, async (req, res) => {
   try {
     const { prompt, response, category, location, mediaUrls } = req.body;
     if (!response || !response.trim()) return res.status(400).json({ error: 'A response is required' });
@@ -873,7 +873,7 @@ app.get('/api/profile', authMiddleware, async (req, res) => {
   }
 });
 
-app.post('/api/profile/follow', authMiddleware, engagementLimiter, async (req, res) => {
+app.post('/api/profile/follow', engagementLimiter, authMiddleware, async (req, res) => {
   try {
     const followedEmail = typeof req.body.followedEmail === 'string' ? req.body.followedEmail.trim().toLowerCase() : '';
     if (!followedEmail || followedEmail === req.user.email.toLowerCase()) {

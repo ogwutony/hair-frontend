@@ -706,7 +706,7 @@ app.post('/api/create-payment-intent', async (req, res) => {
 // --- DUMA (LEGISLATURE) ROUTES ---
 
 // 1. Fetch all submissions
-app.get('/api/duma', async (req, res) => {
+app.get('/api/duma', engagementLimiter, async (req, res) => {
   try {
     const items = await DumaItem.find().sort({ createdAt: -1 });
     

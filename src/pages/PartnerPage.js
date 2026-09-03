@@ -234,7 +234,7 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
     return (
       <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
         <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
-          <div style={{ fontSize: '40px', marginBottom: '16px' }}>🤝</div>
+          <div style={{ fontSize: '40px', marginBottom: '16px' }}></div>
           <h2>Partnership Application Submitted!</h2>
           <p style={{ color: '#666' }}>Your partnership application has been sent to The Majorities' Duma for review.</p>
           <Link to="/duma" style={{ ...styles.authButton, marginTop: '20px', width: 'auto', padding: '12px 24px', textDecoration: 'none', display: 'inline-block' }}>View the Duma</Link>
@@ -341,23 +341,20 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
               {[
                 {
                   id: 'Routine Videos',
-                  icon: '🎬',
                   title: 'Routine Videos',
                   desc: 'Step-by-step hair and grooming routines using The Majorities products — wash day, styling, maintenance.'
                 },
                 {
                   id: 'Product Experience Videos',
-                  icon: '✨',
                   title: 'Product Experience Videos',
                   desc: 'Honest first impressions, reviews, before-and-afters, and unboxings that showcase real results.'
                 },
                 {
                   id: 'Commercial Pitches',
-                  icon: '📣',
                   title: 'Commercial Pitches',
                   desc: 'Scripted or ad-style short-form content — reels, spots, and brand-forward promotional videos.'
                 }
-              ].map(({ id, icon, title, desc }) => {
+              ].map(({ id, title, desc }) => {
                 const selected = formData.contentTypes.includes(id);
                 return (
                   <label
@@ -376,7 +373,7 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
                       style={{ marginTop: '3px', flexShrink: 0 }}
                     />
                     <div>
-                      <div style={{ fontWeight: '600', marginBottom: '3px' }}>{icon} {title}</div>
+                      <div style={{ fontWeight: '600', marginBottom: '3px' }}>{title}</div>
                       <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.5' }}>{desc}</div>
                     </div>
                   </label>
@@ -394,7 +391,7 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
 
             {/* Video upload directly in this section for creators */}
             <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '16px', marginBottom: '6px' }}>
-              📹 Upload a Sample Video (routine, experience, or pitch)
+              Upload a Sample Video (routine, experience, or pitch)
             </label>
             <p style={{ fontSize: '12px', color: '#888', marginBottom: '8px' }}>
               Upload one video that best represents your content style. This is your audition reel.
@@ -448,29 +445,25 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
               {[
                 {
                   key: 'advertisingInterest',
-                  icon: '📢',
                   title: 'Advertising Campaigns',
                   desc: 'Run paid ads and co-branded campaigns across The Majorities channels and audience network.'
                 },
                 {
                   key: 'wholesaleInterest',
-                  icon: '📦',
                   title: 'Wholesale Orders',
                   desc: 'Purchase The Majorities products in bulk at wholesale pricing for resale through your own channels.'
                 },
                 {
                   key: 'sponsoredDumaInterest',
-                  icon: '🏛️',
                   title: 'Sponsored Placements in The Duma',
                   desc: 'Verified brand visibility and native sponsored content placements inside The Duma community.'
                 },
                 {
                   key: 'sponsoredMarketplaceInterest',
-                  icon: '🛒',
                   title: 'Sponsored Placements on The Marketplace',
                   desc: 'Featured product slots and promoted listings on The Majorities Marketplace.'
                 }
-              ].map(({ key, icon, title, desc }) => {
+              ].map(({ key, title, desc }) => {
                 const selected = formData[key];
                 return (
                   <label
@@ -488,7 +481,7 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
                       style={{ marginTop: '3px', flexShrink: 0 }}
                     />
                     <div>
-                      <div style={{ fontWeight: '600', marginBottom: '3px' }}>{icon} {title}</div>
+                      <div style={{ fontWeight: '600', marginBottom: '3px' }}>{title}</div>
                       <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.5' }}>{desc}</div>
                     </div>
                   </label>

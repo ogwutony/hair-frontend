@@ -192,7 +192,7 @@ new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { m
 </span>
 </div>
 <button style={styles.checkoutBtn} onClick={handleOneTimeCheckout}>1 time Checkout ({formatCurrency(setTotals.oneTime)})</button>
-<button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={handleSubscriptionCheckout}>Monthly Subscription — {formatCurrency(setTotals.subscription)} / Month</button>
+<button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={handleSubscriptionCheckout}>Monthly Subscription ({formatCurrency(setTotals.subscription)}) / Month</button>
 <div style={{ padding: '12px', marginTop: '4px', borderRadius: '8px', background: '#fff', border: '1px solid #dce9dc', fontSize: '11px', lineHeight: '1.5', color: '#444' }}>
 <strong style={{ display: 'block', color: '#222' }}>🔒 Secure checkout</strong>
 Your payment details are securely processed.

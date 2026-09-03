@@ -16,7 +16,7 @@ export const PartnerPage = ({ userEmail, rankTitle, rankScore, authToken, userAv
     try {
       const response = await fetch(`${BACKEND_URL}/api/duma/partner`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `****** },
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken },
         body: JSON.stringify(formData)
       });
       if (!response.ok) throw new Error('Application failed');

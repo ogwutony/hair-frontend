@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const axios = require('axios');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
+const { rateLimit } = require('express-rate-limit');
 require('dotenv').config();
 
 // ============================================================
@@ -53,6 +54,13 @@ if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && proce
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const app = express();
+const engagementLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many engagement actions. Please try again shortly.' }
+});
 
 // Middleware
 app.use(express.json());
@@ -722,7 +730,7 @@ app.get('/api/duma', async (req, res) => {
 });
 
 // 2. Voting Logic
-app.post('/api/duma/:id/vote', authMiddleware, async (req, res) => {
+app.post('/api/duma/:id/vote', authMiddleware, engagementLimiter, async (req, res) => {
   try {
     const voteType = req.body.voteType || req.body.vote;
     if (!['yes', 'no', 'abstain'].includes(voteType)) {
@@ -754,7 +762,7 @@ app.post('/api/duma/:id/vote', authMiddleware, async (req, res) => {
 });
 
 // 3. Submit a culture post to Duma
-app.post('/api/duma/culture', authMiddleware, async (req, res) => {
+app.post('/api/duma/culture', authMiddleware, engagementLimiter, async (req, res) => {
   try {
     const { prompt, response, category, location, mediaUrls } = req.body;
     if (!response || !response.trim()) return res.status(400).json({ error: 'A response is required' });
@@ -865,7 +873,7 @@ app.get('/api/profile', authMiddleware, async (req, res) => {
   }
 });
 
-app.post('/api/profile/follow', authMiddleware, async (req, res) => {
+app.post('/api/profile/follow', authMiddleware, engagementLimiter, async (req, res) => {
   try {
     const followedEmail = typeof req.body.followedEmail === 'string' ? req.body.followedEmail.trim().toLowerCase() : '';
     if (!followedEmail || followedEmail === req.user.email.toLowerCase()) {

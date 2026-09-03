@@ -1219,7 +1219,7 @@ app.post('/api/marketplace/boost', engagementLimiter, authMiddleware, async (req
 });
 
 // ========== LEADERBOARD ==========
-app.get('/api/leaderboard', async (req, res) => {  try {
+app.get('/api/leaderboard', engagementLimiter, async (req, res) => {  try {
     const users = await User.find({}, 'email rank_score rank_title')
       .sort({ rank_score: -1 })
       .limit(50);

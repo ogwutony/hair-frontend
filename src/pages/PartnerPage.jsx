@@ -9,6 +9,7 @@ import { styles } from '../utils/styles';
 
 export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, userAvatar }) => {
   const navigate = useNavigate();
+  
   const [formData, setFormData] = useState({
     partnerCategory: "Brand & Retail Partners",
     name: "",
@@ -19,11 +20,10 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
     websiteOrSocial: "",
     countryOfOrigin: "",
     operatingCountry: "",
+    // Marketplace fields
     productType: "",
     productDescription: "",
     whyPartner: "",
-    photoFile: null,
-    videoFile: null,
     unitsOf34Oz: "500",
     desiredOrderQuantity: "",
     pricing5Gallon: "",
@@ -33,8 +33,24 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
     customerRewardAgreed: false,
     shippingReturnsAgreed: false,
     ownershipTitleAgreed: false,
+    // Creator fields
+    contentPitch: "",
+    commission8Agreed: false,
+    // Community fields
+    eventDetails: "",
+    majoritiesRole: "",
+    bulkOrderNeeded: false,
+    // Brand fields
+    advertisingInterest: false,
+    wholesaleInterest: false,
+    sponsoredDumaInterest: false,
+    sponsoredMarketplaceInterest: false,
+    // Shared Media
+    photoFile: null,
+    videoFile: null,
     tier: "National Associate"
   });
+
   const [errorMsg, setErrorMsg] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -65,6 +81,7 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
     setErrorMsg("");
     setShowGuestPrompt(false);
 
+    // Global Validations
     if (!formData.name || !formData.contactEmail || !formData.phoneNumber || !formData.ein) {
       setErrorMsg("Please fill in all contact information fields.");
       return;
@@ -73,35 +90,53 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
       setErrorMsg("Please fill in all company information fields.");
       return;
     }
-    if (!formData.productType || !formData.productDescription || !formData.whyPartner) {
-      setErrorMsg("Please fill in all product details.");
-      return;
-    }
-    if (!formData.desiredOrderQuantity) {
-      setErrorMsg("Please provide your desired inventory fulfillment quantity.");
-      return;
-    }
-    if (!formData.standardUnitPrice) {
-      setErrorMsg("Please provide the standard unit price to consumers.");
-      return;
-    }
-    if (!formData.promotionalUnitPrice) {
-      setErrorMsg("Please provide the promotional unit price to consumers.");
-      return;
-    }
-    if (!formData.commission25AgreedTo) {
-      setErrorMsg("You must agree to the 25% commission agreement.");
-      return;
-    }
-    if (!formData.shippingReturnsAgreed) {
-      setErrorMsg("You must agree to the Shipping & Returns Policy.");
-      return;
-    }
-    if (!formData.ownershipTitleAgreed) {
-      setErrorMsg("You must agree to the Ownership & Title Policy.");
-      return;
+
+    // Category-Specific Validations
+    if (formData.partnerCategory === "Marketplace Access") {
+      if (!formData.productType || !formData.productDescription || !formData.whyPartner) {
+        setErrorMsg("Please fill in all product details.");
+        return;
+      }
+      if (!formData.desiredOrderQuantity) {
+        setErrorMsg("Please provide your desired inventory fulfillment quantity.");
+        return;
+      }
+      if (!formData.standardUnitPrice || !formData.promotionalUnitPrice) {
+        setErrorMsg("Please provide both standard and promotional unit prices.");
+        return;
+      }
+      if (!formData.commission25AgreedTo || !formData.shippingReturnsAgreed || !formData.ownershipTitleAgreed || !formData.customerRewardAgreed) {
+        setErrorMsg("You must agree to all marketplace policies and agreements.");
+        return;
+      }
     }
 
+    if (formData.partnerCategory === "Creator / Influencer Partners") {
+      if (!formData.contentPitch) {
+        setErrorMsg("Please share details about your routines, experiences, or commercial pitch.");
+        return;
+      }
+      if (!formData.commission8Agreed) {
+        setErrorMsg("You must agree to the 8% referral commission rate.");
+        return;
+      }
+    }
+
+    if (formData.partnerCategory === "Community / Venue Partners") {
+      if (!formData.eventDetails || !formData.majoritiesRole) {
+        setErrorMsg("Please provide event details and the role you want The Majorities to play.");
+        return;
+      }
+    }
+
+    if (formData.partnerCategory === "Brand & Retail Partners") {
+      if (!formData.advertisingInterest && !formData.wholesaleInterest && !formData.sponsoredDumaInterest && !formData.sponsoredMarketplaceInterest) {
+        setErrorMsg("Please select at least one brand opportunity you are interested in.");
+        return;
+      }
+    }
+
+    // Tier Validation
     if (formData.tier === "Premium Partner" && !canApplyPremium) {
       setErrorMsg("Premium Partner status requires Politburo rank or higher.");
       return;
@@ -114,6 +149,7 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
 
     try {
       const formDataObj = new FormData();
+      // Append shared fields
       formDataObj.append('partnerCategory', formData.partnerCategory);
       formDataObj.append('name', formData.name);
       formDataObj.append('contactEmail', formData.contactEmail);
@@ -123,17 +159,32 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
       formDataObj.append('websiteOrSocial', formData.websiteOrSocial);
       formDataObj.append('countryOfOrigin', formData.countryOfOrigin);
       formDataObj.append('operatingCountry', formData.operatingCountry);
-      formDataObj.append('productType', formData.productType);
-      formDataObj.append('productDescription', formData.productDescription);
-      formDataObj.append('whyPartner', formData.whyPartner);
-      formDataObj.append('unitsOf34Oz', formData.unitsOf34Oz);
-      formDataObj.append('desiredOrderQuantity', formData.desiredOrderQuantity);
-      formDataObj.append('pricing5Gallon', formData.pricing5Gallon);
-      formDataObj.append('standardUnitPrice', formData.standardUnitPrice);
-      formDataObj.append('promotionalUnitPrice', formData.promotionalUnitPrice);
       formDataObj.append('tier', formData.tier);
       if (formData.photoFile) formDataObj.append('photo', formData.photoFile);
       if (formData.videoFile) formDataObj.append('video', formData.videoFile);
+
+      // Append category-specific fields dynamically
+      if (formData.partnerCategory === "Marketplace Access") {
+        formDataObj.append('productType', formData.productType);
+        formDataObj.append('productDescription', formData.productDescription);
+        formDataObj.append('whyPartner', formData.whyPartner);
+        formDataObj.append('unitsOf34Oz', formData.unitsOf34Oz);
+        formDataObj.append('desiredOrderQuantity', formData.desiredOrderQuantity);
+        formDataObj.append('pricing5Gallon', formData.pricing5Gallon);
+        formDataObj.append('standardUnitPrice', formData.standardUnitPrice);
+        formDataObj.append('promotionalUnitPrice', formData.promotionalUnitPrice);
+      } else if (formData.partnerCategory === "Creator / Influencer Partners") {
+        formDataObj.append('contentPitch', formData.contentPitch);
+      } else if (formData.partnerCategory === "Community / Venue Partners") {
+        formDataObj.append('eventDetails', formData.eventDetails);
+        formDataObj.append('majoritiesRole', formData.majoritiesRole);
+        formDataObj.append('bulkOrderNeeded', formData.bulkOrderNeeded);
+      } else if (formData.partnerCategory === "Brand & Retail Partners") {
+        formDataObj.append('advertisingInterest', formData.advertisingInterest);
+        formDataObj.append('wholesaleInterest', formData.wholesaleInterest);
+        formDataObj.append('sponsoredDumaInterest', formData.sponsoredDumaInterest);
+        formDataObj.append('sponsoredMarketplaceInterest', formData.sponsoredMarketplaceInterest);
+      }
 
       const res = await fetch(`${BACKEND_URL}/api/duma/partner`, {
         method: 'POST',
@@ -183,17 +234,20 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
   return (
     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
       <h2>Partner with The Majorities</h2>
-      <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Apply to become a partner and sell on our marketplace</p>
+      <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Apply to become a partner in The Duma</p>
+      
       {userEmail && rankTitle && (
         <div style={{ marginBottom: '20px' }}>
           <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
         </div>
       )}
+      
       {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
       {showGuestPrompt && <GuestSubmissionPrompt message="Log in or register to submit this partnership application to The Duma." />}
 
       <form style={styles.dumaCard} onSubmit={handleSubmit}>
         
+        {/* SECTION 1: CATEGORY */}
         <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
           <h3 style={styles.formSectionTitle}>1. PARTNERSHIP CATEGORY</h3>
           <select 
@@ -214,6 +268,7 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
           </p>
         </div>
 
+        {/* SECTION 2 & 3: CONTACT & COMPANY INFO (Always Visible) */}
         <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
           <h3 style={styles.formSectionTitle}>2. CONTACT INFORMATION</h3>
           <input required placeholder="Full Name *" style={styles.input} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
@@ -223,79 +278,46 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
         </div>
 
         <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-          <h3 style={styles.formSectionTitle}>3. COMPANY INFORMATION</h3>
-          <input required placeholder="Company Name *" style={styles.input} value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
+          <h3 style={styles.formSectionTitle}>3. COMPANY / ENTITY INFORMATION</h3>
+          <input required placeholder="Company / Brand / Profile Name *" style={styles.input} value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
           <input required placeholder="Country of Origin *" style={styles.input} value={formData.countryOfOrigin} onChange={e => setFormData({...formData, countryOfOrigin: e.target.value})} />
           <input required placeholder="Operating Country *" style={styles.input} value={formData.operatingCountry} onChange={e => setFormData({...formData, operatingCountry: e.target.value})} />
-          <input placeholder="Website or Social Media" style={styles.input} value={formData.websiteOrSocial} onChange={e => setFormData({...formData, websiteOrSocial: e.target.value})} />
+          <input placeholder="Website or Social Media Link" style={styles.input} value={formData.websiteOrSocial} onChange={e => setFormData({...formData, websiteOrSocial: e.target.value})} />
         </div>
 
-        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-          <h3 style={styles.formSectionTitle}>4. PRODUCT DETAILS</h3>
-          <input required placeholder="Product Type *" style={styles.input} value={formData.productType} onChange={e => setFormData({...formData, productType: e.target.value})} />
-          <textarea required placeholder="Product Description *" style={{ ...styles.input, height: '80px' }} value={formData.productDescription} onChange={e => setFormData({...formData, productDescription: e.target.value})} />
-          <textarea required placeholder="Why should we partner with you? *" style={{ ...styles.input, height: '100px' }} value={formData.whyPartner} onChange={e => setFormData({...formData, whyPartner: e.target.value})} />
-        </div>
+        {/* SECTION 4: CATEGORY SPECIFIC DETAILS */}
+        
+        {/* 4A: Marketplace Access */}
+        {formData.partnerCategory === "Marketplace Access" && (
+          <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+            <h3 style={styles.formSectionTitle}>4. PRODUCT DETAILS</h3>
+            <input required placeholder="Product Type *" style={styles.input} value={formData.productType} onChange={e => setFormData({...formData, productType: e.target.value})} />
+            <textarea required placeholder="Product Description *" style={{ ...styles.input, height: '80px' }} value={formData.productDescription} onChange={e => setFormData({...formData, productDescription: e.target.value})} />
+            <textarea required placeholder="Why should we partner with you? *" style={{ ...styles.input, height: '100px' }} value={formData.whyPartner} onChange={e => setFormData({...formData, whyPartner: e.target.value})} />
+          </div>
+        )}
 
-        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-          <h3 style={styles.formSectionTitle}>5. MEDIA</h3>
-          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Product Photo</label>
-          <input type="file" accept="image/*" style={styles.input} onChange={handlePhotoChange} />
-          {photoPreview && <img src={photoPreview} style={{ maxWidth: '150px', marginTop: '10px', borderRadius: '8px' }} alt="Preview" />}
-          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>Product Video</label>
-          <input type="file" accept="video/*" style={styles.input} onChange={handleVideoChange} />
-          {videoPreview && <video src={videoPreview} style={{ maxWidth: '150px', marginTop: '10px', borderRadius: '8px' }} controls />}
-        </div>
+        {/* 4B: Creator / Influencer */}
+        {formData.partnerCategory === "Creator / Influencer Partners" && (
+          <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+            <h3 style={styles.formSectionTitle}>4. CONTENT & PITCH DETAILS</h3>
+            <textarea required placeholder="Tell us about your routines, product experiences, and commercial pitch ideas *" style={{ ...styles.input, height: '120px' }} value={formData.contentPitch} onChange={e => setFormData({...formData, contentPitch: e.target.value})} />
+          </div>
+        )}
 
-        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-          <h3 style={styles.formSectionTitle}>6. LOGISTICS</h3>
-          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Fulfillment Quantity *</label>
-          <input required placeholder="Quantity" type="number" min="500" style={styles.input} value={formData.desiredOrderQuantity} onChange={e => setFormData({...formData, desiredOrderQuantity: e.target.value})} />
-          <p style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>Minimum 500 units</p>
-          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>Pricing for 5-gallon units (optional)</label>
-          <input placeholder="Bulk 5-gallon pricing" style={styles.input} value={formData.pricing5Gallon} onChange={e => setFormData({...formData, pricing5Gallon: e.target.value})} />
-        </div>
-
-        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-          <h3 style={styles.formSectionTitle}>7. REVENUE AGREEMENT</h3>
-          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>One-time Unit Price *</label>
-          <input required placeholder="e.g., 5" style={styles.input} value={formData.standardUnitPrice} onChange={e => setFormData({...formData, standardUnitPrice: e.target.value})} />
-          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>Subscription Unit Price *</label>
-          <input required placeholder="e.g., 4" style={styles.input} value={formData.promotionalUnitPrice} onChange={e => setFormData({...formData, promotionalUnitPrice: e.target.value})} />
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '14px' }}>
-            <input type="checkbox" required checked={formData.customerRewardAgreed} onChange={e => setFormData({...formData, customerRewardAgreed: e.target.checked})} style={{ marginTop: '4px' }} />
-            <span>I agree to the Customer Reward program *</span>
-          </label>
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '12px' }}>
-            <input type="checkbox" required checked={formData.commission25AgreedTo} onChange={e => setFormData({...formData, commission25AgreedTo: e.target.checked})} style={{ marginTop: '4px' }} />
-            <span>I agree to the 25% commission structure *</span>
-          </label>
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '12px' }}>
-            <input type="checkbox" required checked={formData.shippingReturnsAgreed} onChange={e => setFormData({...formData, shippingReturnsAgreed: e.target.checked})} style={{ marginTop: '4px' }} />
-            <span>I agree to the Shipping & Returns Policy *</span>
-          </label>
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '12px' }}>
-            <input type="checkbox" required checked={formData.ownershipTitleAgreed} onChange={e => setFormData({...formData, ownershipTitleAgreed: e.target.checked})} style={{ marginTop: '4px' }} />
-            <span>I agree to the Ownership & Title Policy *</span>
-          </label>
-        </div>
-
-        <div style={{ marginBottom: '20px' }}>
-          <h3 style={styles.formSectionTitle}>8. PARTNER TIER</h3>
-          <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', cursor: 'pointer' }}>
-              <input type="radio" name="tier" value="National Associate" checked={formData.tier === "National Associate"} onChange={e => setFormData({...formData, tier: e.target.value})} />
-              National Associate
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', cursor: canApplyPremium ? 'pointer' : 'not-allowed', opacity: canApplyPremium ? 1 : 0.5 }}>
-              <input type="radio" name="tier" value="Premium Partner" checked={formData.tier === "Premium Partner"} disabled={!canApplyPremium} onChange={e => setFormData({...formData, tier: e.target.value})} />
-              Premium Partner {!canApplyPremium && <span style={{ fontSize: '11px', color: '#aaa' }}>(Politburo+ only)</span>}
+        {/* 4C: Community / Venue */}
+        {formData.partnerCategory === "Community / Venue Partners" && (
+          <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+            <h3 style={styles.formSectionTitle}>4. EVENT & VENUE DETAILS</h3>
+            <textarea required placeholder="Tell us about your local spot, run club, barbershop, salon, or upcoming event *" style={{ ...styles.input, height: '80px' }} value={formData.eventDetails} onChange={e => setFormData({...formData, eventDetails: e.target.value})} />
+            <textarea required placeholder="What role do you want The Majorities to play? *" style={{ ...styles.input, height: '80px' }} value={formData.majoritiesRole} onChange={e => setFormData({...formData, majoritiesRole: e.target.value})} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '14px' }}>
+              <input type="checkbox" checked={formData.bulkOrderNeeded} onChange={e => setFormData({...formData, bulkOrderNeeded: e.target.checked})} />
+              <span>We are interested in a one-time bulk order for our event</span>
             </label>
           </div>
-        </div>
+        )}
 
-        <button type="submit" style={{ ...styles.authButton, marginTop: '20px' }}>Submit Partnership Application</button>
-      </form>
-    </div>
-  );
-};
+        {/* 4D: Brand & Retail */}
+        {formData.partnerCategory === "Brand & Retail Partners" && (
+          <div style={{ borderBottom: '2px solid #eee', paddingBottom:

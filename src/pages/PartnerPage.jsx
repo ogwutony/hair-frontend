@@ -9,7 +9,7 @@ import { styles } from '../utils/styles';
 
 export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, userAvatar }) => {
   const navigate = useNavigate();
-  
+
   const [formData, setFormData] = useState({
     partnerCategory: "Brand & Retail Partners",
     name: "",
@@ -34,6 +34,7 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
     shippingReturnsAgreed: false,
     ownershipTitleAgreed: false,
     // Creator fields
+    contentTypes: [],          // ["Routine Videos", "Product Experience Videos", "Commercial Pitches"]
     contentPitch: "",
     commission8Agreed: false,
     // Community fields
@@ -76,6 +77,14 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
     }
   };
 
+  const toggleContentType = (type) => {
+    const current = formData.contentTypes;
+    const updated = current.includes(type)
+      ? current.filter(t => t !== type)
+      : [...current, type];
+    setFormData({...formData, contentTypes: updated});
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
@@ -112,8 +121,12 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
     }
 
     if (formData.partnerCategory === "Creator / Influencer Partners") {
+      if (formData.contentTypes.length === 0) {
+        setErrorMsg("Please select at least one content type.");
+        return;
+      }
       if (!formData.contentPitch) {
-        setErrorMsg("Please share details about your routines, experiences, or commercial pitch.");
+        setErrorMsg("Please share your pitch details.");
         return;
       }
       if (!formData.commission8Agreed) {
@@ -149,7 +162,6 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
 
     try {
       const formDataObj = new FormData();
-      // Append shared fields
       formDataObj.append('partnerCategory', formData.partnerCategory);
       formDataObj.append('name', formData.name);
       formDataObj.append('contactEmail', formData.contactEmail);
@@ -163,7 +175,6 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
       if (formData.photoFile) formDataObj.append('photo', formData.photoFile);
       if (formData.videoFile) formDataObj.append('video', formData.videoFile);
 
-      // Append category-specific fields dynamically
       if (formData.partnerCategory === "Marketplace Access") {
         formDataObj.append('productType', formData.productType);
         formDataObj.append('productDescription', formData.productDescription);
@@ -174,6 +185,7 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
         formDataObj.append('standardUnitPrice', formData.standardUnitPrice);
         formDataObj.append('promotionalUnitPrice', formData.promotionalUnitPrice);
       } else if (formData.partnerCategory === "Creator / Influencer Partners") {
+        formDataObj.append('contentTypes', formData.contentTypes.join(', '));
         formDataObj.append('contentPitch', formData.contentPitch);
       } else if (formData.partnerCategory === "Community / Venue Partners") {
         formDataObj.append('eventDetails', formData.eventDetails);
@@ -193,7 +205,7 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
       });
       const data = await res.json();
       if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); return; }
-      
+
       addDumaItem({
         ...formData,
         id: Date.now(),
@@ -222,7 +234,7 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
     return (
       <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
         <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
-          <div style={{ fontSize: '40px', marginBottom: '16px' }}></div>
+          <div style={{ fontSize: '40px', marginBottom: '16px' }}>🤝</div>
           <h2>Partnership Application Submitted!</h2>
           <p style={{ color: '#666' }}>Your partnership application has been sent to The Majorities' Duma for review.</p>
           <Link to="/duma" style={{ ...styles.authButton, marginTop: '20px', width: 'auto', padding: '12px 24px', textDecoration: 'none', display: 'inline-block' }}>View the Duma</Link>
@@ -231,44 +243,64 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
     );
   }
 
+  // ─── Shared checkbox style ───────────────────────────────────────────────────
+  const checkLabel = { display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '12px' };
+  const cardOption = {
+    border: '1.5px solid #e0e0e0',
+    borderRadius: '10px',
+    padding: '14px 16px',
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '12px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    transition: 'border-color 0.2s'
+  };
+
   return (
     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
       <h2>Partner with The Majorities</h2>
       <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Apply to become a partner in The Duma</p>
-      
+
       {userEmail && rankTitle && (
         <div style={{ marginBottom: '20px' }}>
           <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
         </div>
       )}
-      
+
       {errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
       {showGuestPrompt && <GuestSubmissionPrompt message="Log in or register to submit this partnership application to The Duma." />}
 
       <form style={styles.dumaCard} onSubmit={handleSubmit}>
-        
-        {/* SECTION 1: CATEGORY */}
+
+        {/* ── SECTION 1: PARTNERSHIP CATEGORY ───────────────────────────────── */}
         <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
           <h3 style={styles.formSectionTitle}>1. PARTNERSHIP CATEGORY</h3>
-          <select 
-            style={{ ...styles.input, appearance: 'auto', backgroundColor: '#fff' }} 
-            value={formData.partnerCategory} 
+          <select
+            style={{ ...styles.input, appearance: 'auto', backgroundColor: '#fff' }}
+            value={formData.partnerCategory}
             onChange={e => setFormData({...formData, partnerCategory: e.target.value})}
           >
             <option value="Creator / Influencer Partners">Creator / Influencer Partners</option>
             <option value="Community / Venue Partners">Community / Venue Partners</option>
-            <option value="Brand & Retail Partners">Brand & Retail Partners</option>
+            <option value="Brand & Retail Partners">Brand &amp; Retail Partners</option>
             <option value="Marketplace Access">Marketplace Access</option>
           </select>
-          <p style={{ fontSize: '12px', color: '#666', marginTop: '8px', lineHeight: '1.4' }}>
-            {formData.partnerCategory === "Creator / Influencer Partners" && "Share honest routines and product experiences. Product shout outs and commercials."}
-            {formData.partnerCategory === "Community / Venue Partners" && "Local Dallas spots, run clubs, barbershops, salons, and event organizers who bring people together."}
-            {formData.partnerCategory === "Brand & Retail Partners" && "Independent beauty and grooming brands seeking native sponsored placements and verified brand visibility in The Duma."}
-            {formData.partnerCategory === "Marketplace Access" && "Gain verified access to sell directly on The Majorities marketplace."}
+
+          {/* Category description pills */}
+          <p style={{ fontSize: '12px', color: '#666', marginTop: '8px', lineHeight: '1.6' }}>
+            {formData.partnerCategory === "Creator / Influencer Partners" &&
+              "Share honest routines and product experiences through video content. Earn 8% commission on every referral sale you drive."}
+            {formData.partnerCategory === "Community / Venue Partners" &&
+              "Local Dallas spots — run clubs, barbershops, salons, and event organizers who bring people together."}
+            {formData.partnerCategory === "Brand & Retail Partners" &&
+              "Independent beauty and grooming brands seeking advertising, wholesale access, and verified sponsored visibility across The Duma and The Majorities Marketplace."}
+            {formData.partnerCategory === "Marketplace Access" &&
+              "Gain verified access to sell directly on The Majorities Marketplace."}
           </p>
         </div>
 
-        {/* SECTION 2 & 3: CONTACT & COMPANY INFO (Always Visible) */}
+        {/* ── SECTION 2: CONTACT INFORMATION (always visible) ───────────────── */}
         <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
           <h3 style={styles.formSectionTitle}>2. CONTACT INFORMATION</h3>
           <input required placeholder="Full Name *" style={styles.input} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
@@ -277,6 +309,7 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
           <input required placeholder="EIN (Employer Identification Number) *" style={styles.input} value={formData.ein} onChange={e => setFormData({...formData, ein: e.target.value})} />
         </div>
 
+        {/* ── SECTION 3: COMPANY / ENTITY INFO (always visible) ─────────────── */}
         <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
           <h3 style={styles.formSectionTitle}>3. COMPANY / ENTITY INFORMATION</h3>
           <input required placeholder="Company / Brand / Profile Name *" style={styles.input} value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
@@ -285,9 +318,7 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
           <input placeholder="Website or Social Media Link" style={styles.input} value={formData.websiteOrSocial} onChange={e => setFormData({...formData, websiteOrSocial: e.target.value})} />
         </div>
 
-        {/* SECTION 4: CATEGORY SPECIFIC DETAILS */}
-        
-        {/* 4A: Marketplace Access */}
+        {/* ── SECTION 4 — MARKETPLACE ACCESS ────────────────────────────────── */}
         {formData.partnerCategory === "Marketplace Access" && (
           <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
             <h3 style={styles.formSectionTitle}>4. PRODUCT DETAILS</h3>
@@ -297,71 +328,207 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
           </div>
         )}
 
-        {/* 4B: Creator / Influencer */}
+        {/* ── SECTION 4 — CREATOR / INFLUENCER ─────────────────────────────── */}
         {formData.partnerCategory === "Creator / Influencer Partners" && (
           <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-            <h3 style={styles.formSectionTitle}>4. CONTENT & PITCH DETAILS</h3>
-            <textarea required placeholder="Tell us about your routines, product experiences, and commercial pitch ideas *" style={{ ...styles.input, height: '120px' }} value={formData.contentPitch} onChange={e => setFormData({...formData, contentPitch: e.target.value})} />
+            <h3 style={styles.formSectionTitle}>4. CONTENT TYPE & PITCH</h3>
+            <p style={{ fontSize: '13px', color: '#666', marginBottom: '14px' }}>
+              Select the types of content you create for The Majorities (select all that apply):
+            </p>
+
+            {/* Content type cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+              {[
+                {
+                  id: 'Routine Videos',
+                  icon: '🎬',
+                  title: 'Routine Videos',
+                  desc: 'Step-by-step hair and grooming routines using The Majorities products — wash day, styling, maintenance.'
+                },
+                {
+                  id: 'Product Experience Videos',
+                  icon: '✨',
+                  title: 'Product Experience Videos',
+                  desc: 'Honest first impressions, reviews, before-and-afters, and unboxings that showcase real results.'
+                },
+                {
+                  id: 'Commercial Pitches',
+                  icon: '📣',
+                  title: 'Commercial Pitches',
+                  desc: 'Scripted or ad-style short-form content — reels, spots, and brand-forward promotional videos.'
+                }
+              ].map(({ id, icon, title, desc }) => {
+                const selected = formData.contentTypes.includes(id);
+                return (
+                  <label
+                    key={id}
+                    style={{
+                      ...cardOption,
+                      borderColor: selected ? '#1a1a1a' : '#e0e0e0',
+                      backgroundColor: selected ? '#f9f9f9' : '#fff'
+                    }}
+                    onClick={() => toggleContentType(id)}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={() => toggleContentType(id)}
+                      style={{ marginTop: '3px', flexShrink: 0 }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: '600', marginBottom: '3px' }}>{icon} {title}</div>
+                      <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.5' }}>{desc}</div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+
+            <textarea
+              required
+              placeholder="Pitch your idea — describe your content style, audience size, and what you'd create for The Majorities *"
+              style={{ ...styles.input, height: '120px' }}
+              value={formData.contentPitch}
+              onChange={e => setFormData({...formData, contentPitch: e.target.value})}
+            />
+
+            {/* Video upload directly in this section for creators */}
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '16px', marginBottom: '6px' }}>
+              📹 Upload a Sample Video (routine, experience, or pitch)
+            </label>
+            <p style={{ fontSize: '12px', color: '#888', marginBottom: '8px' }}>
+              Upload one video that best represents your content style. This is your audition reel.
+            </p>
+            <input type="file" accept="video/*" style={styles.input} onChange={handleVideoChange} />
+            {videoPreview && (
+              <video src={videoPreview} style={{ maxWidth: '220px', marginTop: '10px', borderRadius: '8px' }} controls />
+            )}
           </div>
         )}
 
-        {/* 4C: Community / Venue */}
+        {/* ── SECTION 4 — COMMUNITY / VENUE ────────────────────────────────── */}
         {formData.partnerCategory === "Community / Venue Partners" && (
           <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-            <h3 style={styles.formSectionTitle}>4. EVENT & VENUE DETAILS</h3>
-            <textarea required placeholder="Tell us about your local spot, run club, barbershop, salon, or upcoming event *" style={{ ...styles.input, height: '80px' }} value={formData.eventDetails} onChange={e => setFormData({...formData, eventDetails: e.target.value})} />
-            <textarea required placeholder="What role do you want The Majorities to play? *" style={{ ...styles.input, height: '80px' }} value={formData.majoritiesRole} onChange={e => setFormData({...formData, majoritiesRole: e.target.value})} />
+            <h3 style={styles.formSectionTitle}>4. EVENT DETAILS</h3>
+            <p style={{ fontSize: '13px', color: '#666', marginBottom: '12px' }}>
+              Local Dallas spots — run clubs, barbershops, salons, and event organizers who bring people together.
+            </p>
+            <textarea
+              required
+              placeholder="Tell us about your space or upcoming event — location, audience, and what you're organizing *"
+              style={{ ...styles.input, height: '90px' }}
+              value={formData.eventDetails}
+              onChange={e => setFormData({...formData, eventDetails: e.target.value})}
+            />
+            <textarea
+              required
+              placeholder="What role do you want The Majorities to play at your event or venue? *"
+              style={{ ...styles.input, height: '80px' }}
+              value={formData.majoritiesRole}
+              onChange={e => setFormData({...formData, majoritiesRole: e.target.value})}
+            />
             <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '14px' }}>
-              <input type="checkbox" checked={formData.bulkOrderNeeded} onChange={e => setFormData({...formData, bulkOrderNeeded: e.target.checked})} />
+              <input
+                type="checkbox"
+                checked={formData.bulkOrderNeeded}
+                onChange={e => setFormData({...formData, bulkOrderNeeded: e.target.checked})}
+              />
               <span>We are interested in a one-time bulk order for our event</span>
             </label>
           </div>
         )}
 
-        {/* 4D: Brand & Retail */}
+        {/* ── SECTION 4 — BRAND & RETAIL ────────────────────────────────────── */}
         {formData.partnerCategory === "Brand & Retail Partners" && (
           <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
             <h3 style={styles.formSectionTitle}>4. BRAND OPPORTUNITIES</h3>
-            <p style={{ fontSize: '13px', color: '#666', marginBottom: '12px' }}>Select all that apply:</p>
+            <p style={{ fontSize: '13px', color: '#666', marginBottom: '14px' }}>Select all partnership opportunities you're interested in:</p>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={formData.advertisingInterest} onChange={e => setFormData({...formData, advertisingInterest: e.target.checked})} />
-                <span>Advertising Campaigns</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={formData.wholesaleInterest} onChange={e => setFormData({...formData, wholesaleInterest: e.target.checked})} />
-                <span>Wholesale Orders</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={formData.sponsoredDumaInterest} onChange={e => setFormData({...formData, sponsoredDumaInterest: e.target.checked})} />
-                <span>Sponsored Placements & Verified Visibility in The Duma</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={formData.sponsoredMarketplaceInterest} onChange={e => setFormData({...formData, sponsoredMarketplaceInterest: e.target.checked})} />
-                <span>Sponsored Placements on The Majorities Marketplace</span>
-              </label>
+              {[
+                {
+                  key: 'advertisingInterest',
+                  icon: '📢',
+                  title: 'Advertising Campaigns',
+                  desc: 'Run paid ads and co-branded campaigns across The Majorities channels and audience network.'
+                },
+                {
+                  key: 'wholesaleInterest',
+                  icon: '📦',
+                  title: 'Wholesale Orders',
+                  desc: 'Purchase The Majorities products in bulk at wholesale pricing for resale through your own channels.'
+                },
+                {
+                  key: 'sponsoredDumaInterest',
+                  icon: '🏛️',
+                  title: 'Sponsored Placements in The Duma',
+                  desc: 'Verified brand visibility and native sponsored content placements inside The Duma community.'
+                },
+                {
+                  key: 'sponsoredMarketplaceInterest',
+                  icon: '🛒',
+                  title: 'Sponsored Placements on The Marketplace',
+                  desc: 'Featured product slots and promoted listings on The Majorities Marketplace.'
+                }
+              ].map(({ key, icon, title, desc }) => {
+                const selected = formData[key];
+                return (
+                  <label
+                    key={key}
+                    style={{
+                      ...cardOption,
+                      borderColor: selected ? '#1a1a1a' : '#e0e0e0',
+                      backgroundColor: selected ? '#f9f9f9' : '#fff'
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={e => setFormData({...formData, [key]: e.target.checked})}
+                      style={{ marginTop: '3px', flexShrink: 0 }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: '600', marginBottom: '3px' }}>{icon} {title}</div>
+                      <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.5' }}>{desc}</div>
+                    </div>
+                  </label>
+                );
+              })}
             </div>
           </div>
         )}
 
-        {/* SECTION 5: MEDIA (Always Visible) */}
+        {/* ── SECTION 5: MEDIA ─────────────────────────────────────────────── */}
+        {/* For creators, video is already captured in Section 4. Show photo only. */}
         <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
           <h3 style={styles.formSectionTitle}>5. MEDIA</h3>
-          <p style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>
-            {formData.partnerCategory === "Creator / Influencer Partners" 
-              ? "Upload a video of your routine, product experience, or pitch." 
-              : "Upload photos or videos of your product, venue, or brand."}
-          </p>
-          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Photo Upload</label>
-          <input type="file" accept="image/*" style={styles.input} onChange={handlePhotoChange} />
-          {photoPreview && <img src={photoPreview} style={{ maxWidth: '150px', marginTop: '10px', borderRadius: '8px' }} alt="Preview" />}
-          
-          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>Video Upload</label>
-          <input type="file" accept="video/*" style={styles.input} onChange={handleVideoChange} />
-          {videoPreview && <video src={videoPreview} style={{ maxWidth: '150px', marginTop: '10px', borderRadius: '8px' }} controls />}
+
+          {formData.partnerCategory === "Creator / Influencer Partners" ? (
+            <>
+              <p style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>
+                Upload a profile photo or banner image to represent yourself.
+              </p>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Photo / Banner Upload</label>
+              <input type="file" accept="image/*" style={styles.input} onChange={handlePhotoChange} />
+              {photoPreview && <img src={photoPreview} style={{ maxWidth: '150px', marginTop: '10px', borderRadius: '8px' }} alt="Preview" />}
+            </>
+          ) : (
+            <>
+              <p style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>
+                Upload photos or videos of your product, venue, or brand.
+              </p>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Photo Upload</label>
+              <input type="file" accept="image/*" style={styles.input} onChange={handlePhotoChange} />
+              {photoPreview && <img src={photoPreview} style={{ maxWidth: '150px', marginTop: '10px', borderRadius: '8px' }} alt="Preview" />}
+
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>Video Upload</label>
+              <input type="file" accept="video/*" style={styles.input} onChange={handleVideoChange} />
+              {videoPreview && <video src={videoPreview} style={{ maxWidth: '150px', marginTop: '10px', borderRadius: '8px' }} controls />}
+            </>
+          )}
         </div>
 
-        {/* SECTION 6 & 7: LOGISTICS & REVENUE (Only for Marketplace Access) */}
+        {/* ── SECTIONS 6 & 7: LOGISTICS & REVENUE — Marketplace only ──────── */}
         {formData.partnerCategory === "Marketplace Access" && (
           <>
             <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
@@ -379,38 +546,49 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
               <input required placeholder="e.g., 5" style={styles.input} value={formData.standardUnitPrice} onChange={e => setFormData({...formData, standardUnitPrice: e.target.value})} />
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>Subscription Unit Price *</label>
               <input required placeholder="e.g., 4" style={styles.input} value={formData.promotionalUnitPrice} onChange={e => setFormData({...formData, promotionalUnitPrice: e.target.value})} />
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '14px' }}>
+              <label style={{ ...checkLabel, marginTop: '14px' }}>
                 <input type="checkbox" required checked={formData.customerRewardAgreed} onChange={e => setFormData({...formData, customerRewardAgreed: e.target.checked})} style={{ marginTop: '4px' }} />
                 <span>I agree to the Customer Reward program *</span>
               </label>
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '12px' }}>
+              <label style={checkLabel}>
                 <input type="checkbox" required checked={formData.commission25AgreedTo} onChange={e => setFormData({...formData, commission25AgreedTo: e.target.checked})} style={{ marginTop: '4px' }} />
                 <span>I agree to the 25% commission structure *</span>
               </label>
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '12px' }}>
+              <label style={checkLabel}>
                 <input type="checkbox" required checked={formData.shippingReturnsAgreed} onChange={e => setFormData({...formData, shippingReturnsAgreed: e.target.checked})} style={{ marginTop: '4px' }} />
-                <span>I agree to the Shipping & Returns Policy *</span>
+                <span>I agree to the Shipping &amp; Returns Policy *</span>
               </label>
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '12px' }}>
+              <label style={checkLabel}>
                 <input type="checkbox" required checked={formData.ownershipTitleAgreed} onChange={e => setFormData({...formData, ownershipTitleAgreed: e.target.checked})} style={{ marginTop: '4px' }} />
-                <span>I agree to the Ownership & Title Policy *</span>
+                <span>I agree to the Ownership &amp; Title Policy *</span>
               </label>
             </div>
           </>
         )}
 
-        {/* SECTION 6: CREATOR COMMISSION AGREEMENT (Only for Creator / Influencer) */}
+        {/* ── SECTION 6: CREATOR COMMISSION AGREEMENT ───────────────────────── */}
         {formData.partnerCategory === "Creator / Influencer Partners" && (
           <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
             <h3 style={styles.formSectionTitle}>6. COMMISSION AGREEMENT</h3>
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '14px' }}>
+            <div style={{
+              backgroundColor: '#f5f5f5',
+              borderRadius: '10px',
+              padding: '14px 16px',
+              marginBottom: '14px',
+              fontSize: '13px',
+              lineHeight: '1.6',
+              color: '#444'
+            }}>
+              <strong>8% Referral Commission</strong> — You earn 8% of every sale made through your unique referral link or code. Commissions are tracked and paid out on a monthly basis. No cap on earnings.
+            </div>
+            <label style={{ ...checkLabel, marginTop: '4px' }}>
               <input type="checkbox" required checked={formData.commission8Agreed} onChange={e => setFormData({...formData, commission8Agreed: e.target.checked})} style={{ marginTop: '4px' }} />
               <span>I agree to an 8% commission rate on all successful referrals *</span>
             </label>
           </div>
         )}
 
-        {/* FINAL SECTION: TIER SELECTION (Always Visible) */}
+        {/* ── PARTNER TIER ──────────────────────────────────────────────────── */}
         <div style={{ marginBottom: '20px' }}>
           <h3 style={styles.formSectionTitle}>PARTNER TIER</h3>
           <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>

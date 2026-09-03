@@ -300,6 +300,8 @@ const DumaItem = mongoose.model('DumaItem', new mongoose.Schema({
   mediaUrls:  { type: [String], default: [] },
   socialEngagement: { type: Number, default: 0 },
   featuredOnInstagram: { type: Boolean, default: false },
+  status: { type: String, enum: ['pending', 'approved'], default: 'pending' },
+  verifiedPartner: { type: Boolean, default: false },
   submittedBy: String,
   submitterRank: String,
   likedBy:    { type: [String], default: [] },
@@ -822,32 +824,39 @@ app.post('/api/duma/recommend', authMiddleware, async (req, res) => {
 // 5. Submit partner application to Duma
 app.post('/api/duma/partner', authMiddleware, async (req, res) => {
   try {
-    const { company, product, desc, tier } = req.body;
-    if (!company || !product || !desc) return res.status(400).json({ error: 'All fields required' });
-
-    const rankScore = req.user.rank_score || 1;
-    const rankTitle = req.user.rank_title || getRankTitle(rankScore);
-
-    if (tier === 'Premium' && !isPolitburoOrHigher(rankScore)) {
-      return res.status(403).json({
-        error: 'Premium Partner status requires Politburo rank or higher. Keep building your influence!'
-      });
+    const { name, socialHandle, city, partnerType, whyFit } = req.body;
+    if (!name || !socialHandle || !city || !['Creator', 'Community'].includes(partnerType) || !whyFit) {
+      return res.status(400).json({ error: 'Name, social handle, city, partner type, and fit statement are required' });
     }
 
     const item = await DumaItem.create({
       type: 'Partner',
-      company,
-      product,
-      desc,
+      name: name.trim(),
+      company: name.trim(),
+      product: partnerType,
+      desc: whyFit.trim(),
+      location: city.trim(),
       submittedBy: req.user.email,
-      submitterRank: rankTitle
+      submitterRank: getRankTitle(req.user.rank_score || 1),
+      status: 'pending'
     });
 
-    await updateRankScore(req.user._id, 100);
-    res.status(201).json({ message: "Your partner application has been submitted to The Majority's Duma", item });
+    res.status(201).json({ message: "Your partnership application is pending review", item });
   } catch (err) {
     res.status(500).json({ error: 'Failed to submit partner application' });
   }
+});
+
+app.patch('/api/duma/partner/:id/approve', engagementLimiter, authMiddleware, async (req, res) => {
+  if (req.user.email !== process.env.ADMIN_EMAIL) return res.status(403).json({ error: 'Admin access required' });
+  const item = await DumaItem.findOneAndUpdate(
+    { _id: req.params.id, type: 'Partner' },
+    { status: 'approved', verifiedPartner: true },
+    { new: true }
+  );
+  if (!item) return res.status(404).json({ error: 'Partner application not found' });
+  await User.findOneAndUpdate({ email: item.submittedBy }, { featuredOnInstagram: true });
+  res.json({ success: true, item });
 });
 
 // GET user rank info

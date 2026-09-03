@@ -100,6 +100,7 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
   const culturalItems = dumaItems.filter(item => item.section === "Cultural" || item.category === "Culture" || item.type === "Video" || item.type === "Culture");
   const recommendationItems = dumaItems.filter(item => item.type === "Product Recommendation" || item.type === "Recommendation");
   const partnerItems = dumaItems.filter(item => item.type === "Partner");
+  const marketplaceItems = dumaItems.filter(item => item.section === "Commerce" || item.type === "Marketplace Listing");
 
   return (
       <div style={{ padding: isMobile ? '25px 16px' : '40px 60px', maxWidth: '1100px', margin: '0 auto', flex: '1 1 auto', minWidth: 0 }}>
@@ -131,6 +132,7 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
         <button onClick={() => setActiveSection("Culture")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Culture" ? '#222' : '#f5f5f5', color: activeSection === "Culture" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', flexShrink: 0 }}>Culture ({culturalItems.length})</button>
         <button onClick={() => setActiveSection("Recommendations")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Recommendations" ? '#222' : '#f5f5f5', color: activeSection === "Recommendations" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', flexShrink: 0 }}>Recommendations ({recommendationItems.length})</button>
         <button onClick={() => setActiveSection("Partners")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Partners" ? '#222' : '#f5f5f5', color: activeSection === "Partners" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', flexShrink: 0 }}>Partners ({partnerItems.length})</button>
+        <button onClick={() => setActiveSection("Marketplace")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Marketplace" ? '#222' : '#f5f5f5', color: activeSection === "Marketplace" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', flexShrink: 0 }}>Marketplace ({marketplaceItems.length})</button>
         <Link to={authToken ? '/culture' : '/login'} style={{ padding: '8px 14px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', marginLeft: isMobile ? '0' : 'auto', flexShrink: 0, textDecoration: 'none', display: 'flex', alignItems: 'center' }}>{authToken ? '+ Share Your Perspective' : 'Log in to Share'}</Link>
       </div>
 
@@ -357,6 +359,12 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
                       <button onClick={() => handleDeletePost(item._id || item.id)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
                         Trash
                       </button>
+                    )}
+                    {activeSection === "Marketplace" && (
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}><h3>Marketplace</h3><Link to="/recommend" style={styles.authButton}>List a Product</Link></div>
+                        {marketplaceItems.length === 0 ? <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No listings yet. Be the first to offer a product or service.</div> : marketplaceItems.map(item => <div key={item._id || item.id} style={styles.dumaCard}><span style={styles.typeTag}>{item.category || 'Listing'}</span><h3>{item.name}</h3><p>{item.desc}</p><strong>${item.price}</strong>{item.checkoutUrl && <a href={item.checkoutUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: '12px', color: '#222' }}>Visit listing</a>}</div>)}
+                      </div>
                     )}
                   </div>
                 </div>

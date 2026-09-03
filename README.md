@@ -2,6 +2,10 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Social feed configuration
+
+Set `REACT_APP_SOCIAL_FEED_URL` to the HTTPS embed URL supplied by an approved Instagram hashtag widget (such as Elfsight or LightWidget) to render the live `#TheMajorities` feed on The Duma page. The feed is omitted when this variable is not configured.
+
 ## Available Scripts
 
 In the project directory, you can run:

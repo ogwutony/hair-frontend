@@ -18,6 +18,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
   
   const [backendRankScore, setBackendRankScore] = useState(rankScore || 1);
   const [backendRankTitle, setBackendRankTitle] = useState(rankTitle || "Comrade");
+  const [isFeaturedContributor, setIsFeaturedContributor] = useState(false);
   const [, setAvatarSaveStatus] = useState("idle");
 
   const [displayName, setDisplayName] = useState("");
@@ -57,6 +58,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
       const resolvedScore = data.rank_score || 1;
       setBackendRankScore(resolvedScore);
       setBackendRankTitle(getRankTitle(resolvedScore));
+      setIsFeaturedContributor(Boolean(data.featuredOnInstagram) || (data.socialEngagement || 0) >= 100);
       if (data.avatar) {
         setAvatarUrl(data.avatar);
         setHadExistingAvatar(true);
@@ -430,6 +432,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
           <div style={{ marginTop: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
               <RankBadge rankTitle={displayRankTitle} />
+              {isFeaturedContributor && <span style={{ background: '#f4d35e', color: '#222', borderRadius: '999px', padding: '4px 8px', fontSize: '10px', fontWeight: '800' }}>★ Featured on The Duma</span>}
               <span style={{ fontSize: '13px', color: '#666' }}>{displayRankScore.toLocaleString()} points</span>
             </div>
             <div>
@@ -603,6 +606,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
         <p style={{ color: '#888', fontSize: '12px', marginBottom: '20px' }}>
           Share your thoughts or photos/videos directly to the Duma (+100 points). Address a product prompt below to earn 150 points!
         </p>
+        <p style={{ color: '#2d6a4f', fontSize: '12px', fontWeight: '700', marginTop: '-12px', marginBottom: '20px' }}>Share your take here and on Instagram with #TheMajorities.</p>
 
         {postErrorMsg && <div style={{ color: 'red', fontSize: '13px', marginBottom: '10px' }}>{postErrorMsg}</div>}
 

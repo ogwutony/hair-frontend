@@ -242,6 +242,8 @@ const userSchema = new mongoose.Schema({
   rank_rewards_sent: { type: [String], default: [] }, // Track which ranks already rewarded
   avatarUrl:        { type: String, default: null },  // Profile picture URL (Cloudinary)
   following:        { type: [String], default: [] },
+  socialEngagement: { type: Number, default: 0 },
+  featuredOnInstagram: { type: Boolean, default: false },
   
   // Profile perspectives (4-box layout)
   perspective: {
@@ -296,6 +298,8 @@ const DumaItem = mongoose.model('DumaItem', new mongoose.Schema({
   category:   String,
   location:   String,
   mediaUrls:  { type: [String], default: [] },
+  socialEngagement: { type: Number, default: 0 },
+  featuredOnInstagram: { type: Boolean, default: false },
   submittedBy: String,
   submitterRank: String,
   likedBy:    { type: [String], default: [] },
@@ -708,10 +712,15 @@ app.get('/api/duma', async (req, res) => {
     
     // Enrich items with submitter social links and avatar
     const emails = [...new Set(items.map(item => item.submittedBy).filter(Boolean))];
-    const users = await User.find({ email: { $in: emails } }, 'email socialLinks avatarUrl');
+    const users = await User.find({ email: { $in: emails } }, 'email socialLinks avatarUrl socialEngagement featuredOnInstagram');
     const userMap = {};
     users.forEach(u => {
-      userMap[u.email] = { socialLinks: u.socialLinks, avatarUrl: u.avatarUrl };
+      userMap[u.email] = {
+        socialLinks: u.socialLinks,
+        avatarUrl: u.avatarUrl,
+        socialEngagement: u.socialEngagement || 0,
+        featuredOnInstagram: Boolean(u.featuredOnInstagram)
+      };
     });
     
     const enrichedItems = items.map(item => {
@@ -719,6 +728,8 @@ app.get('/api/duma', async (req, res) => {
       if (obj.submittedBy && userMap[obj.submittedBy]) {
         obj.submitterSocialLinks = userMap[obj.submittedBy].socialLinks || null;
         obj.submitterAvatar = userMap[obj.submittedBy].avatarUrl || null;
+        obj.socialEngagement = obj.socialEngagement || userMap[obj.submittedBy].socialEngagement;
+        obj.featuredOnInstagram = obj.featuredOnInstagram || userMap[obj.submittedBy].featuredOnInstagram;
       }
       return obj;
     });
@@ -752,6 +763,7 @@ app.post('/api/duma/:id/vote', engagementLimiter, authMiddleware, async (req, re
       const postOwner = await User.findOne({ email: item.submittedBy });
       if (postOwner && !postOwner._id.equals(req.user._id)) {
         await updateRankScore(postOwner._id, 20);
+        await User.findByIdAndUpdate(postOwner._id, { $inc: { socialEngagement: 20 } });
       }
     }
 
@@ -843,6 +855,8 @@ app.get('/api/rank', authMiddleware, async (req, res) => {
   const user = req.user;
   res.json({
     rank_score: user.rank_score || 1,
+    socialEngagement: user.socialEngagement || 0,
+    featuredOnInstagram: Boolean(user.featuredOnInstagram),
     rank_title: user.rank_title || getRankTitle(user.rank_score || 1),
     isPolitburoOrHigher: isPolitburoOrHigher(user.rank_score || 1)
   });
@@ -858,6 +872,8 @@ app.get('/api/profile', authMiddleware, async (req, res) => {
       email: user.email,
       rank_title: user.rank_title || getRankTitle(user.rank_score || 1),
       rank_score: user.rank_score || 1,
+      socialEngagement: user.socialEngagement || 0,
+      featuredOnInstagram: Boolean(user.featuredOnInstagram),
       avatar: user.avatarUrl || null,
       perspective: user.perspective || {
         box1: { content: "", mediaUrls: [], videoUrl: null },
@@ -891,6 +907,7 @@ app.post('/api/profile/follow', engagementLimiter, authMiddleware, async (req, r
 
     await updateRankScore(req.user._id, 20);
     await updateRankScore(followedUser._id, 40);
+    await User.findByIdAndUpdate(followedUser._id, { $inc: { socialEngagement: 40 } });
     res.status(201).json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to follow user' });

@@ -19,6 +19,20 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
   const [comments, setComments] = useState({});
   const [commentText, setCommentText] = useState({});
   const [activeSection, setActiveSection] = useState("Culture");
+  const socialFeedUrl = process.env.REACT_APP_SOCIAL_FEED_URL;
+
+  const isFeaturedContributor = (item) =>
+    item.featuredOnInstagram || item.socialEngagement >= 100 || (item.votes?.yes || 0) >= 10;
+
+  const sharePost = async (item, platform) => {
+    const shareText = `${item.prompt || 'A perspective from The Majorities'}\n${item.response || item.reason || item.desc || ''}\n#TheMajorities`;
+    try {
+      await navigator.clipboard.writeText(shareText);
+    } catch {
+      // Opening the platform still lets the customer share manually when clipboard access is unavailable.
+    }
+    window.open(platform === 'instagram' ? 'https://www.instagram.com/' : 'https://www.tiktok.com/', '_blank', 'noopener,noreferrer');
+  };
 
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/duma`).then(r => r.json()).then(data => {
@@ -94,6 +108,18 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
         <meta name="description" content="The Majorities Duma — explore culture, recommendations, and perspectives from our community." />
         <link rel="canonical" href="https://themajorities.com/duma" />
       </Helmet>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '18px', marginBottom: '16px', fontSize: '13px', fontWeight: '700' }}>
+        <a href="https://www.instagram.com/themajorities/" target="_blank" rel="noopener noreferrer" style={{ color: '#c13584', textDecoration: 'none' }}>◎ Instagram</a>
+        <a href="https://www.tiktok.com/@themajorities" target="_blank" rel="noopener noreferrer" style={{ color: '#222', textDecoration: 'none' }}>♪ TikTok</a>
+      </div>
+      <div style={{ textAlign: 'center', marginBottom: '22px' }}>
+        <a href="https://www.instagram.com/explore/tags/themajorities/" target="_blank" rel="noopener noreferrer" style={{ color: '#2d6a4f', fontSize: '18px', fontWeight: '800', textDecoration: 'none' }}>#TheMajorities</a>
+      </div>
+      {socialFeedUrl && (
+        <section style={{ marginBottom: '30px', border: '1px solid #eee', borderRadius: '12px', overflow: 'hidden' }} aria-label="Live #TheMajorities social feed">
+          <iframe title="Live #TheMajorities social feed" src={socialFeedUrl} style={{ display: 'block', width: '100%', minHeight: '420px', border: 0 }} loading="lazy" />
+        </section>
+      )}
       <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', marginBottom: '30px', gap: isMobile ? '15px' : '0' }}>
         <div>
           <h2 style={{ marginBottom: '6px' }}>The Majorities' Duma</h2>
@@ -124,6 +150,7 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                     <span style={styles.typeTag}>Perspective</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {isFeaturedContributor(item) && <span style={{ background: '#f4d35e', color: '#222', borderRadius: '999px', padding: '4px 8px', fontSize: '10px', fontWeight: '800' }}>★ Featured on The Duma</span>}
                       <RankBadge rankTitle={verifiedRank} />
                       {authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
                         <button onClick={() => handleDeletePost(itemId)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
@@ -152,6 +179,10 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
 
                   <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
                   <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6', marginBottom: '14px' }}>{item.response || item.reason || item.desc}</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
+                    <button type="button" onClick={() => sharePost(item, 'instagram')} style={{ border: '1px solid #c13584', background: '#fff', color: '#c13584', borderRadius: '6px', padding: '7px 10px', cursor: 'pointer', fontSize: '12px', fontWeight: '700' }}>Share to Instagram</button>
+                    <button type="button" onClick={() => sharePost(item, 'tiktok')} style={{ border: '1px solid #222', background: '#fff', color: '#222', borderRadius: '6px', padding: '7px 10px', cursor: 'pointer', fontSize: '12px', fontWeight: '700' }}>Share to TikTok</button>
+                  </div>
 
                   {/* MEDIA DISPLAY: renders uploaded images or videos inline */}
                   {(() => {

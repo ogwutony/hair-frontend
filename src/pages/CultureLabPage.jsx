@@ -186,7 +186,8 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
   return (
     <div style={{ padding: isMobile ? '25px 16px' : '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
       <h2>Share Your Perspective</h2>
-      <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Contribute to our Culture section. Submit your response to the Duma and earn points!</p>
+      <p style={{ color: '#666', fontSize: '14px', marginBottom: '6px' }}>Contribute to our Culture section. Submit your response to the Duma and earn points!</p>
+      <p style={{ color: '#2d6a4f', fontSize: '12px', fontWeight: '700', marginTop: 0, marginBottom: '20px' }}>Share your take here and on Instagram with #TheMajorities.</p>
       {userEmail && rankTitle && (
         <div style={{ marginBottom: '30px' }}>
           <CredentialHeader email={userEmail} displayName={displayName} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />

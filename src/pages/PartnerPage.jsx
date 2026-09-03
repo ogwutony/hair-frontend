@@ -320,4 +320,113 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
 
         {/* 4D: Brand & Retail */}
         {formData.partnerCategory === "Brand & Retail Partners" && (
-          <div style={{ borderBottom: '2px solid #eee', paddingBottom:
+          <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+            <h3 style={styles.formSectionTitle}>4. BRAND OPPORTUNITIES</h3>
+            <p style={{ fontSize: '13px', color: '#666', marginBottom: '12px' }}>Select all that apply:</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
+                <input type="checkbox" checked={formData.advertisingInterest} onChange={e => setFormData({...formData, advertisingInterest: e.target.checked})} />
+                <span>Advertising Campaigns</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
+                <input type="checkbox" checked={formData.wholesaleInterest} onChange={e => setFormData({...formData, wholesaleInterest: e.target.checked})} />
+                <span>Wholesale Orders</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
+                <input type="checkbox" checked={formData.sponsoredDumaInterest} onChange={e => setFormData({...formData, sponsoredDumaInterest: e.target.checked})} />
+                <span>Sponsored Placements & Verified Visibility in The Duma</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
+                <input type="checkbox" checked={formData.sponsoredMarketplaceInterest} onChange={e => setFormData({...formData, sponsoredMarketplaceInterest: e.target.checked})} />
+                <span>Sponsored Placements on The Majorities Marketplace</span>
+              </label>
+            </div>
+          </div>
+        )}
+
+        {/* SECTION 5: MEDIA (Always Visible) */}
+        <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>5. MEDIA</h3>
+          <p style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>
+            {formData.partnerCategory === "Creator / Influencer Partners" 
+              ? "Upload a video of your routine, product experience, or pitch." 
+              : "Upload photos or videos of your product, venue, or brand."}
+          </p>
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Photo Upload</label>
+          <input type="file" accept="image/*" style={styles.input} onChange={handlePhotoChange} />
+          {photoPreview && <img src={photoPreview} style={{ maxWidth: '150px', marginTop: '10px', borderRadius: '8px' }} alt="Preview" />}
+          
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>Video Upload</label>
+          <input type="file" accept="video/*" style={styles.input} onChange={handleVideoChange} />
+          {videoPreview && <video src={videoPreview} style={{ maxWidth: '150px', marginTop: '10px', borderRadius: '8px' }} controls />}
+        </div>
+
+        {/* SECTION 6 & 7: LOGISTICS & REVENUE (Only for Marketplace Access) */}
+        {formData.partnerCategory === "Marketplace Access" && (
+          <>
+            <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+              <h3 style={styles.formSectionTitle}>6. LOGISTICS</h3>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Fulfillment Quantity *</label>
+              <input required placeholder="Quantity" type="number" min="500" style={styles.input} value={formData.desiredOrderQuantity} onChange={e => setFormData({...formData, desiredOrderQuantity: e.target.value})} />
+              <p style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>Minimum 500 units</p>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>Pricing for 5-gallon units (optional)</label>
+              <input placeholder="Bulk 5-gallon pricing" style={styles.input} value={formData.pricing5Gallon} onChange={e => setFormData({...formData, pricing5Gallon: e.target.value})} />
+            </div>
+
+            <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+              <h3 style={styles.formSectionTitle}>7. REVENUE AGREEMENT</h3>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>One-time Unit Price *</label>
+              <input required placeholder="e.g., 5" style={styles.input} value={formData.standardUnitPrice} onChange={e => setFormData({...formData, standardUnitPrice: e.target.value})} />
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>Subscription Unit Price *</label>
+              <input required placeholder="e.g., 4" style={styles.input} value={formData.promotionalUnitPrice} onChange={e => setFormData({...formData, promotionalUnitPrice: e.target.value})} />
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '14px' }}>
+                <input type="checkbox" required checked={formData.customerRewardAgreed} onChange={e => setFormData({...formData, customerRewardAgreed: e.target.checked})} style={{ marginTop: '4px' }} />
+                <span>I agree to the Customer Reward program *</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '12px' }}>
+                <input type="checkbox" required checked={formData.commission25AgreedTo} onChange={e => setFormData({...formData, commission25AgreedTo: e.target.checked})} style={{ marginTop: '4px' }} />
+                <span>I agree to the 25% commission structure *</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '12px' }}>
+                <input type="checkbox" required checked={formData.shippingReturnsAgreed} onChange={e => setFormData({...formData, shippingReturnsAgreed: e.target.checked})} style={{ marginTop: '4px' }} />
+                <span>I agree to the Shipping & Returns Policy *</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '12px' }}>
+                <input type="checkbox" required checked={formData.ownershipTitleAgreed} onChange={e => setFormData({...formData, ownershipTitleAgreed: e.target.checked})} style={{ marginTop: '4px' }} />
+                <span>I agree to the Ownership & Title Policy *</span>
+              </label>
+            </div>
+          </>
+        )}
+
+        {/* SECTION 6: CREATOR COMMISSION AGREEMENT (Only for Creator / Influencer) */}
+        {formData.partnerCategory === "Creator / Influencer Partners" && (
+          <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+            <h3 style={styles.formSectionTitle}>6. COMMISSION AGREEMENT</h3>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '14px' }}>
+              <input type="checkbox" required checked={formData.commission8Agreed} onChange={e => setFormData({...formData, commission8Agreed: e.target.checked})} style={{ marginTop: '4px' }} />
+              <span>I agree to an 8% commission rate on all successful referrals *</span>
+            </label>
+          </div>
+        )}
+
+        {/* FINAL SECTION: TIER SELECTION (Always Visible) */}
+        <div style={{ marginBottom: '20px' }}>
+          <h3 style={styles.formSectionTitle}>PARTNER TIER</h3>
+          <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', cursor: 'pointer' }}>
+              <input type="radio" name="tier" value="National Associate" checked={formData.tier === "National Associate"} onChange={e => setFormData({...formData, tier: e.target.value})} />
+              National Associate
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', cursor: canApplyPremium ? 'pointer' : 'not-allowed', opacity: canApplyPremium ? 1 : 0.5 }}>
+              <input type="radio" name="tier" value="Premium Partner" checked={formData.tier === "Premium Partner"} disabled={!canApplyPremium} onChange={e => setFormData({...formData, tier: e.target.value})} />
+              Premium Partner {!canApplyPremium && <span style={{ fontSize: '11px', color: '#aaa' }}>(Politburo+ only)</span>}
+            </label>
+          </div>
+        </div>
+
+        <button type="submit" style={{ ...styles.authButton, marginTop: '20px' }}>Submit Partnership Application</button>
+      </form>
+    </div>
+  );
+};

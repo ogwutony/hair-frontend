@@ -1,7 +1,6 @@
 // src/pages/LandingPage.jsx
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useIsMobile } from '../utils/useIsMobile';
 import { Helmet } from 'react-helmet-async';
 import { trackEvent } from '../components/AdMonetization';
 import { productsData } from '../utils/constants';

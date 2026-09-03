@@ -157,7 +157,7 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
           submitterAvatarSlots: userAvatarSlots, votes: { yes: 0 }
         });
       }
-      const pointsEarned = activePrompt ? 120 : 100;
+      const pointsEarned = activePrompt ? 150 : 100;
       if (onAddPoints) onAddPoints(pointsEarned);
       if (userEmail && activePrompt?.id) markPromptCompleted(userEmail, activePrompt.id);
       setCultureSubmitStatus("saved");

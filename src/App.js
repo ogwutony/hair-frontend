@@ -105,7 +105,7 @@ export default function App() {
   const followUser = useCallback((personEmail) => {
     if (!following.includes(personEmail)) {
       setFollowing(prev => [...prev, personEmail]);
-      addPoints(1);
+      addPoints(20);
       if (authToken) {
         fetch(`${BACKEND_URL}/api/profile/follow`, {
           method: 'POST',

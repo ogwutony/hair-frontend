@@ -233,6 +233,7 @@ const userSchema = new mongoose.Schema({
   rank_title:       { type: String, default: 'bolshevik' },
   rank_rewards_sent: { type: [String], default: [] }, // Track which ranks already rewarded
   avatarUrl:        { type: String, default: null },  // Profile picture URL (Cloudinary)
+  following:        { type: [String], default: [] },
   
   // Profile perspectives (4-box layout)
   perspective: {
@@ -282,9 +283,19 @@ const DumaItem = mongoose.model('DumaItem', new mongoose.Schema({
   name:       String,
   reason:     String,
   desc:       String,
+  prompt:     String,
+  response:   String,
+  category:   String,
+  location:   String,
+  mediaUrls:  { type: [String], default: [] },
   submittedBy: String,
   submitterRank: String,
-  votes:      { yay: { type: Number, default: 0 }, nay: { type: Number, default: 0 } },
+  likedBy:    { type: [String], default: [] },
+  votes:      {
+    yes: { type: Number, default: 0 },
+    no: { type: Number, default: 0 },
+    abstain: { type: Number, default: 0 }
+  },
   createdAt:  { type: Date, default: Date.now }
 }));
 
@@ -383,7 +394,7 @@ const updateRankScore = async (userId, pointsToAdd) => {
   if (!user) return;
 
   const oldTitle = user.rank_title;
-  const newScore = Math.min((user.rank_score || 1) + pointsToAdd, 10000000);
+  const newScore = Math.min((user.rank_score || 1) + pointsToAdd, 75000000);
   const newTitle = getRankTitle(newScore);
 
   await User.findByIdAndUpdate(userId, {
@@ -710,23 +721,31 @@ app.get('/api/duma', async (req, res) => {
   }
 });
 
-// 2. Voting Logic - Accept both "voteType" and "vote" parameters
+// 2. Voting Logic
 app.post('/api/duma/:id/vote', authMiddleware, async (req, res) => {
   try {
-    const voteType = req.body.voteType || req.body.vote; // Support both parameter names
-    if (!['yay', 'nay'].includes(voteType)) {
-      return res.status(400).json({ error: 'Vote must be "yay" or "nay"' });
+    const voteType = req.body.voteType || req.body.vote;
+    if (!['yes', 'no', 'abstain'].includes(voteType)) {
+      return res.status(400).json({ error: 'Vote must be "yes", "no", or "abstain"' });
     }
 
-    const update = voteType === 'yay' ? 
-      { $inc: { 'votes.yay': 1 } } : 
-      { $inc: { 'votes.nay': 1 } };
-
-    const item = await DumaItem.findByIdAndUpdate(req.params.id, update, { new: true });
+    const query = { _id: req.params.id };
+    const update = { $inc: { [`votes.${voteType}`]: 1 } };
+    if (voteType === 'yes') {
+      query.likedBy = { $ne: req.user.email };
+      query.submittedBy = { $ne: req.user.email };
+      update.$addToSet = { likedBy: req.user.email };
+    }
+    const item = await DumaItem.findOneAndUpdate(query, update, { new: true });
     if (!item) return res.status(404).json({ error: 'Item not found' });
 
-    // Award points for voting
-    await updateRankScore(req.user._id, 2);
+    if (voteType === 'yes') {
+      await updateRankScore(req.user._id, 10);
+      const postOwner = await User.findOne({ email: item.submittedBy });
+      if (postOwner && !postOwner._id.equals(req.user._id)) {
+        await updateRankScore(postOwner._id, 20);
+      }
+    }
 
     res.json({ success: true, votes: item.votes });
   } catch (err) {
@@ -734,7 +753,30 @@ app.post('/api/duma/:id/vote', authMiddleware, async (req, res) => {
   }
 });
 
-// 3. Submit recommendation to Duma
+// 3. Submit a culture post to Duma
+app.post('/api/duma/culture', authMiddleware, async (req, res) => {
+  try {
+    const { prompt, response, category, location, mediaUrls } = req.body;
+    if (!response || !response.trim()) return res.status(400).json({ error: 'A response is required' });
+
+    const item = await DumaItem.create({
+      type: 'Culture',
+      prompt: prompt || 'General Post',
+      response: response.trim(),
+      category: category || 'Culture',
+      location: typeof location === 'string' ? location.trim() : '',
+      mediaUrls: Array.isArray(mediaUrls) ? mediaUrls.filter(url => typeof url === 'string') : [],
+      submittedBy: req.user.email,
+      submitterRank: getRankTitle(req.user.rank_score || 1)
+    });
+    await updateRankScore(req.user._id, prompt && prompt !== 'General Post' ? 150 : 100);
+    res.status(201).json({ success: true, item });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to submit culture post' });
+  }
+});
+
+// 4. Submit recommendation to Duma
 app.post('/api/duma/recommend', authMiddleware, async (req, res) => {
   try {
     const { name, company, reason } = req.body;
@@ -750,14 +792,14 @@ app.post('/api/duma/recommend', authMiddleware, async (req, res) => {
       submitterRank: rankTitle
     });
 
-    await updateRankScore(req.user._id, 5);
+    await updateRankScore(req.user._id, 100);
     res.status(201).json({ message: "Your recommendation has been sent to The Majority's Duma for voting", item });
   } catch (err) {
     res.status(500).json({ error: 'Failed to submit recommendation' });
   }
 });
 
-// 4. Submit partner application to Duma
+// 5. Submit partner application to Duma
 app.post('/api/duma/partner', authMiddleware, async (req, res) => {
   try {
     const { company, product, desc, tier } = req.body;
@@ -781,7 +823,7 @@ app.post('/api/duma/partner', authMiddleware, async (req, res) => {
       submitterRank: rankTitle
     });
 
-    await updateRankScore(req.user._id, 10);
+    await updateRankScore(req.user._id, 100);
     res.status(201).json({ message: "Your partner application has been submitted to The Majority's Duma", item });
   } catch (err) {
     res.status(500).json({ error: 'Failed to submit partner application' });
@@ -820,6 +862,30 @@ app.get('/api/profile', authMiddleware, async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/profile/follow', authMiddleware, async (req, res) => {
+  try {
+    const followedEmail = typeof req.body.followedEmail === 'string' ? req.body.followedEmail.trim().toLowerCase() : '';
+    if (!followedEmail || followedEmail === req.user.email.toLowerCase()) {
+      return res.status(400).json({ error: 'A different user must be selected' });
+    }
+    const followedUser = await User.findOne({ email: followedEmail });
+    if (!followedUser) return res.status(404).json({ error: 'User not found' });
+
+    const follower = await User.findOneAndUpdate(
+      { _id: req.user._id, following: { $ne: followedUser.email } },
+      { $addToSet: { following: followedUser.email } },
+      { new: true }
+    );
+    if (!follower) return res.status(409).json({ error: 'Already following this user' });
+
+    await updateRankScore(req.user._id, 20);
+    await updateRankScore(followedUser._id, 40);
+    res.status(201).json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to follow user' });
   }
 });
 

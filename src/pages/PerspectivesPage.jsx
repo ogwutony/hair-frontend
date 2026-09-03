@@ -128,7 +128,7 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
         <div style={{ marginBottom: '30px' }}>
           <h2 style={{ marginBottom: '6px' }}>My Perspectives</h2>
           <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
-            Follow people from The Duma to see their perspectives in your personalized feed. Earn +1 point for each person you follow!
+            Follow people from The Duma to see their perspectives in your personalized feed. Earn +20 points for each person you follow!
           </p>
         </div>
 

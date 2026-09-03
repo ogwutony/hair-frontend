@@ -41,8 +41,6 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
     setUserVotes(prev => ({ ...prev, [itemId]: voteType }));
     setShowScores(prev => ({ ...prev, [itemId]: true }));
     setShowComments(prev => ({ ...prev, [itemId]: true }));
-    if (onAddPoints) onAddPoints(1);
-
     try {
       const response = await fetch(`${BACKEND_URL}/api/duma/${itemId}/vote`, {
         method: 'POST',
@@ -52,6 +50,7 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
       if (response.ok) {
         const data = await response.json();
         setDumaItems(prev => prev.map(item => item.id === itemId || item._id === itemId ? { ...item, votes: data.votes || item.votes } : item));
+        if (voteType === 'yes' && onAddPoints) onAddPoints(10);
       }
     } catch (err) {}
   };

@@ -19,6 +19,20 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
   const [comments, setComments] = useState({});
   const [commentText, setCommentText] = useState({});
   const [activeSection, setActiveSection] = useState("Culture");
+  const socialFeedUrl = process.env.REACT_APP_SOCIAL_FEED_URL;
+
+  const isFeaturedContributor = (item) =>
+    item.featuredOnInstagram || item.socialEngagement >= 100 || (item.votes?.yes || 0) >= 10;
+
+  const sharePost = async (item, platform) => {
+    const shareText = `${item.prompt || 'A perspective from The Majorities'}\n${item.response || item.reason || item.desc || ''}\n#TheMajorities`;
+    try {
+      await navigator.clipboard.writeText(shareText);
+    } catch {
+      // Opening the platform still lets the customer share manually when clipboard access is unavailable.
+    }
+    window.open(platform === 'instagram' ? 'https://www.instagram.com/' : 'https://www.tiktok.com/', '_blank', 'noopener,noreferrer');
+  };
 
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/duma`).then(r => r.json()).then(data => {
@@ -41,8 +55,6 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
     setUserVotes(prev => ({ ...prev, [itemId]: voteType }));
     setShowScores(prev => ({ ...prev, [itemId]: true }));
     setShowComments(prev => ({ ...prev, [itemId]: true }));
-    if (onAddPoints) onAddPoints(1);
-
     try {
       const response = await fetch(`${BACKEND_URL}/api/duma/${itemId}/vote`, {
         method: 'POST',
@@ -52,6 +64,7 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
       if (response.ok) {
         const data = await response.json();
         setDumaItems(prev => prev.map(item => item.id === itemId || item._id === itemId ? { ...item, votes: data.votes || item.votes } : item));
+        if (voteType === 'yes' && onAddPoints) onAddPoints(10);
       }
     } catch (err) {}
   };
@@ -87,6 +100,7 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
   const culturalItems = dumaItems.filter(item => item.section === "Cultural" || item.category === "Culture" || item.type === "Video" || item.type === "Culture");
   const recommendationItems = dumaItems.filter(item => item.type === "Product Recommendation" || item.type === "Recommendation");
   const partnerItems = dumaItems.filter(item => item.type === "Partner");
+  const marketplaceItems = dumaItems.filter(item => item.section === "Commerce" || item.type === "Marketplace Listing");
 
   return (
       <div style={{ padding: isMobile ? '25px 16px' : '40px 60px', maxWidth: '1100px', margin: '0 auto', flex: '1 1 auto', minWidth: 0 }}>
@@ -95,6 +109,18 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
         <meta name="description" content="The Majorities Duma — explore culture, recommendations, and perspectives from our community." />
         <link rel="canonical" href="https://themajorities.com/duma" />
       </Helmet>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '18px', marginBottom: '16px', fontSize: '13px', fontWeight: '700' }}>
+        <a href="https://www.instagram.com/themajorities/" target="_blank" rel="noopener noreferrer" style={{ color: '#c13584', textDecoration: 'none' }}>◎ Instagram</a>
+        <a href="https://www.tiktok.com/@themajorities" target="_blank" rel="noopener noreferrer" style={{ color: '#222', textDecoration: 'none' }}>♪ TikTok</a>
+      </div>
+      <div style={{ textAlign: 'center', marginBottom: '22px' }}>
+        <a href="https://www.instagram.com/explore/tags/themajorities/" target="_blank" rel="noopener noreferrer" style={{ color: '#2d6a4f', fontSize: '18px', fontWeight: '800', textDecoration: 'none' }}>#TheMajorities</a>
+      </div>
+      {socialFeedUrl && (
+        <section style={{ marginBottom: '30px', border: '1px solid #eee', borderRadius: '12px', overflow: 'hidden' }} aria-label="Live #TheMajorities social feed">
+          <iframe title="Live #TheMajorities social feed" src={socialFeedUrl} style={{ display: 'block', width: '100%', minHeight: '420px', border: 0 }} loading="lazy" />
+        </section>
+      )}
       <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', marginBottom: '30px', gap: isMobile ? '15px' : '0' }}>
         <div>
           <h2 style={{ marginBottom: '6px' }}>The Majorities' Duma</h2>
@@ -106,6 +132,7 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
         <button onClick={() => setActiveSection("Culture")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Culture" ? '#222' : '#f5f5f5', color: activeSection === "Culture" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', flexShrink: 0 }}>Culture ({culturalItems.length})</button>
         <button onClick={() => setActiveSection("Recommendations")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Recommendations" ? '#222' : '#f5f5f5', color: activeSection === "Recommendations" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', flexShrink: 0 }}>Recommendations ({recommendationItems.length})</button>
         <button onClick={() => setActiveSection("Partners")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Partners" ? '#222' : '#f5f5f5', color: activeSection === "Partners" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', flexShrink: 0 }}>Partners ({partnerItems.length})</button>
+        <button onClick={() => setActiveSection("Marketplace")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Marketplace" ? '#222' : '#f5f5f5', color: activeSection === "Marketplace" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', flexShrink: 0 }}>Marketplace ({marketplaceItems.length})</button>
         <Link to={authToken ? '/culture' : '/login'} style={{ padding: '8px 14px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', marginLeft: isMobile ? '0' : 'auto', flexShrink: 0, textDecoration: 'none', display: 'flex', alignItems: 'center' }}>{authToken ? '+ Share Your Perspective' : 'Log in to Share'}</Link>
       </div>
 
@@ -125,6 +152,7 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                     <span style={styles.typeTag}>Perspective</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {isFeaturedContributor(item) && <span style={{ background: '#f4d35e', color: '#222', borderRadius: '999px', padding: '4px 8px', fontSize: '10px', fontWeight: '800' }}>★ Featured on The Duma</span>}
                       <RankBadge rankTitle={verifiedRank} />
                       {authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
                         <button onClick={() => handleDeletePost(itemId)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
@@ -153,6 +181,10 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
 
                   <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
                   <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6', marginBottom: '14px' }}>{item.response || item.reason || item.desc}</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
+                    <button type="button" onClick={() => sharePost(item, 'instagram')} style={{ border: '1px solid #c13584', background: '#fff', color: '#c13584', borderRadius: '6px', padding: '7px 10px', cursor: 'pointer', fontSize: '12px', fontWeight: '700' }}>Share to Instagram</button>
+                    <button type="button" onClick={() => sharePost(item, 'tiktok')} style={{ border: '1px solid #222', background: '#fff', color: '#222', borderRadius: '6px', padding: '7px 10px', cursor: 'pointer', fontSize: '12px', fontWeight: '700' }}>Share to TikTok</button>
+                  </div>
 
                   {/* MEDIA DISPLAY: renders uploaded images or videos inline */}
                   {(() => {
@@ -327,6 +359,12 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
                       <button onClick={() => handleDeletePost(item._id || item.id)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
                         Trash
                       </button>
+                    )}
+                    {activeSection === "Marketplace" && (
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}><h3>Marketplace</h3><Link to="/recommend" style={styles.authButton}>List a Product</Link></div>
+                        {marketplaceItems.length === 0 ? <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No listings yet. Be the first to offer a product or service.</div> : marketplaceItems.map(item => <div key={item._id || item.id} style={styles.dumaCard}><span style={styles.typeTag}>{item.category || 'Listing'}</span><h3>{item.name}</h3><p>{item.desc}</p><strong>${item.price}</strong>{item.checkoutUrl && <a href={item.checkoutUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: '12px', color: '#222' }}>Visit listing</a>}</div>)}
+                      </div>
                     )}
                   </div>
                 </div>

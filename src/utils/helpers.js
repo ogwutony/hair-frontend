@@ -12,7 +12,7 @@ export const getRankTitle = (score) => {
   return "Comrade";
 };
 
-export const LOWER_HIERARCHY_TITLES = RANK_TIERS.slice(RANK_TIERS.findIndex(t => t.title === "Perun")).map(t => t.title);
+export const LOWER_HIERARCHY_TITLES = RANK_TIERS.slice(RANK_TIERS.findIndex(t => t.title === "Ibiza")).map(t => t.title);
 
 export const getFormattedRankTitle = (rankTitle, completedPromptsCount = 0) => {
   if (LOWER_HIERARCHY_TITLES.includes(rankTitle) && completedPromptsCount >= 15) {
@@ -77,7 +77,7 @@ export const getRankProgress = (currentScore, currentRankTitle) => {
 
 export const getRankColor = (rankTitle) => {
   const goldTier = [
-    "Servant of the People", "Servant of the Majorities", "General Secretary of The Majorities",
+    "Servant of the People", "Servant of the Majorities", "Generalissimo ", "General Secretary of The Majorities",
     "Premier of The Majorities", "Chairman of the Standing Committee of the Majorities Duma",
     "Chairman of the National Committee of the Majorities Political Consultative",
     "Director of the General Office of the Majorities",
@@ -88,7 +88,7 @@ export const getRankColor = (rankTitle) => {
     "Order of Friendship of Peoples", "Order of the Badge of Honor",
     "the Salvation of the Drowning"
   ];
-  const silverTier = ["Perun", "Veles", "Svarog", "Mokosh", "Dazhbog", "Stribog", "Rod", "Yarilo"];
+  const silverTier = ["Ibiza", "Berlin", "Bangkok", "Vegas", "Janeiro", "York", "Melbourne", "Paulo"];
   if (goldTier.includes(rankTitle)) return '#FFD700';
   if (silverTier.includes(rankTitle)) return '#C0C0C0';
   return '#888';

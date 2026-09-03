@@ -18,6 +18,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
   
   const [backendRankScore, setBackendRankScore] = useState(rankScore || 1);
   const [backendRankTitle, setBackendRankTitle] = useState(rankTitle || "Comrade");
+  const [isFeaturedContributor, setIsFeaturedContributor] = useState(false);
   const [, setAvatarSaveStatus] = useState("idle");
 
   const [displayName, setDisplayName] = useState("");
@@ -57,6 +58,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
       const resolvedScore = data.rank_score || 1;
       setBackendRankScore(resolvedScore);
       setBackendRankTitle(getRankTitle(resolvedScore));
+      setIsFeaturedContributor(Boolean(data.featuredOnInstagram) || (data.socialEngagement || 0) >= 100);
       if (data.avatar) {
         setAvatarUrl(data.avatar);
         setHadExistingAvatar(true);
@@ -142,51 +144,17 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
   const [postErrorMsg, setCultureErrorMsg] = useState("");
 
   const perspectivePrompts = [
-    { id: 1, text: "What's the best restaurant or local hidden gem you've eaten at recently? What should we order?" },
-    { id: 2, text: "Share your top bar or cocktail lounge recommendation. What's the go-to drink there?" },
-    { id: 3, text: "What is your absolute favorite brunch spot, and what makes it a must-visit?" },
-    { id: 4, text: "What's the coolest coffee shop or late-night dessert place in your area?" },
-    { id: 5, text: "If you could recommend one vacation destination for a quick weekend getaway, where are we going?" },
-    { id: 6, text: "Drop your ultimate dream vacation spot or a past trip that blew your expectations away!" },
-    { id: 7, text: "What's a fun local spot or unique activity in your city that tourists usually miss out on?" },
-    { id: 8, text: "Share a photo or clip from your favorite travel memory or outdoor adventure." },
-    { id: 9, text: "Show us your current OOTD (Outfit of the Day) or favorite wardrobe piece right now!" },
-    { id: 10, text: "What is your favorite brand or boutique to shop at for quality clothes or accessories?" },
-    { id: 11, text: "Drop your best budget fashion or shopping hack. How do you build killer looks for less?" },
-    { id: 12, text: "What TV show or series are you currently binge-watching that everyone needs to check out?" },
-    { id: 13, text: "What is a movie you can watch over and over again without ever getting tired of it?" },
-    { id: 14, text: "Recommend an underrated movie or show that doesn't get enough hype!" },
-    { id: 15, text: "Post Anything! Share whatever is on your mind today—a random thought, life update, or funny hot take." },
-    { id: 16, text: "Team toner or straight to moisturizer?" },
-    { id: 17, text: "How many days do you really go between shampooing?" },
-    { id: 18, text: "Facial scrubs: love them or leave them?" },
-    { id: 19, text: "What’s your emergency fix for a surprise pimple?" },
-    { id: 20, text: "How do you instantly hide morning eye bags?" },
-    { id: 21, text: "What’s the secret to preventing neck bumps after a fresh haircut?" },
-    { id: 22, text: "What is your favorite unconventional use for baby oil?" },
-    { id: 23, text: "Hair oil: split-end lifesaver or grease trap?" },
-    { id: 24, text: "What is your holy grail daily moisturizing lotion?" },
-    { id: 25, text: "What’s the worst DIY skincare trend you’ve ever tried?" },
-    { id: 26, text: "Desert island: Shampoo, conditioner, or hair oil?" },
-    { id: 27, text: "Splurge or save: Which product is always worth the money?" },
-    { id: 28, text: "Drop your best hack for treating razor bumps!" },
-    { id: 29, text: "What was the very first skincare product you ever bought?" },
-    { id: 30, text: "What is your #1 tip for clearing up stubborn breakouts?" },
-    { id: 31, text: "Best place to work remotely in your city?" },
-    { id: 32, text: "Where is the best place in your town to run?" },
-    { id: 33, text: "What's a fun run club in your city?" },
-    { id: 34, text: "Best spot to meet new people near you?" },
-    { id: 35, text: "Post about the most fun mini-golf courses in your city." },
-    { id: 36, text: "Best place to relax near the water?" },
-    { id: 37, text: "Coolest pools to check out this summer?" },
-    { id: 38, text: "Best hiking trails to explore?" },
-    { id: 39, text: "Where is the best spot to set up a picnic?" },
-    { id: 40, text: "What's your favorite outdoor activity in town?" },
-    { id: 41, text: "Best outdoor patios to grab a drink?" },
-    { id: 42, text: "Top lake, river, or beach spot near you?" },
-    { id: 43, text: "Best quiet park to relax with a book?" },
-    { id: 44, text: "What local outdoor group should everyone join?" },
-    { id: 45, text: "Post about your ultimate outdoor day in your city." }
+    { id: 1, text: "Share a photo or video of your results after using The Majorities products. What changed for your hair or skin?" },
+    { id: 2, text: "Show us your before-and-after results with The Majorities. Which products were part of your routine?" },
+    { id: 3, text: "Walk us through your wash-day routine using The Majorities shampoo, conditioner, or hair oil." },
+    { id: 4, text: "What is your favorite way to layer The Majorities skincare products in your daily routine?" },
+    { id: 5, text: "Which Majorities product has become your essential, and how do you use it?" },
+    { id: 6, text: "Share your routine for dry, damaged, or frizz-prone hair using The Majorities products." },
+    { id: 7, text: "Post a photo of your current Majorities set and tell us why you chose each product." },
+    { id: 8, text: "What tips would you give someone trying The Majorities products for the first time?" },
+    { id: 9, text: "How often do you use The Majorities shampoo, conditioner, hair oil, scrub, toner, or lotion?" },
+    { id: 10, text: "Share the results you notice when you stay consistent with your Majorities routine." },
+    { id: 11, text: "Post Anything! Share whatever is on your mind today—a random thought, life update, or funny hot take." }
   ];
 
   const syncAvatarSlotsToBackend = (slotsArray) => {
@@ -435,7 +403,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
         });
       }
 
-      const pointsEarned = activePrompt ? 120 : 100;
+      const pointsEarned = activePrompt ? 150 : 100;
       if (onAddPoints) onAddPoints(pointsEarned);
       if (userEmail && activePrompt?.id) markPromptCompleted(userEmail, activePrompt.id);
 
@@ -464,6 +432,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
           <div style={{ marginTop: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
               <RankBadge rankTitle={displayRankTitle} />
+              {isFeaturedContributor && <span style={{ background: '#f4d35e', color: '#222', borderRadius: '999px', padding: '4px 8px', fontSize: '10px', fontWeight: '800' }}>★ Featured on The Duma</span>}
               <span style={{ fontSize: '13px', color: '#666' }}>{displayRankScore.toLocaleString()} points</span>
             </div>
             <div>
@@ -635,8 +604,9 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
       <section style={{ marginBottom: '50px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '4px', fontWeight: '600' }}>Post About Anything</h2>
         <p style={{ color: '#888', fontSize: '12px', marginBottom: '20px' }}>
-          Share your thoughts or photos/videos directly to the Duma (+100 points). Optionally select a prompt below to earn bonus points (+120 points)!
+          Share your thoughts or photos/videos directly to the Duma (+100 points). Address a product prompt below to earn 150 points!
         </p>
+        <p style={{ color: '#2d6a4f', fontSize: '12px', fontWeight: '700', marginTop: '-12px', marginBottom: '20px' }}>Share your take here and on Instagram with #TheMajorities.</p>
 
         {postErrorMsg && <div style={{ color: 'red', fontSize: '13px', marginBottom: '10px' }}>{postErrorMsg}</div>}
 
@@ -726,7 +696,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
             ANSWER PROMPTS FOR EXTRA POINTS
           </label>
           <p style={{ fontSize: '11px', color: '#888', margin: '0 0 10px 0' }}>
-            Click any prompt below to attach it to your post and earn 120 points! (Scroll to view all 45 prompts)
+            Select a product prompt to attach it to your post and earn 150 points.
           </p>
 
           <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '8px', marginBottom: '20px', backgroundColor: '#fafafa' }}>

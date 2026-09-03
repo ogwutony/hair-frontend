@@ -1,5 +1,6 @@
 // src/pages/LandingPage.jsx
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useIsMobile } from '../utils/useIsMobile';
 import { Helmet } from 'react-helmet-async';
 import { trackEvent } from '../components/AdMonetization';
@@ -84,8 +85,8 @@ style={{ width: '100%', height: '120px', objectFit: 'contain', borderRadius: '10
 
 <div style={styles.itemName}>{item.name}</div>
 <div style={{ fontSize: '11px', color: '#555', marginTop: '8px', lineHeight: '1.5' }}>
-<div>One-time {formatCurrency(pricing.oneTime)}</div>
-<div>Subscribe {formatCurrency(pricing.subscription)}</div>
+<div>One-time {formatCurrency(pricing.oneTime)} <span style={{ color: '#777' }}>· 1 box per month</span></div>
+<div>Subscribe {formatCurrency(pricing.subscription)} <span style={{ color: '#777' }}>· 1 box per month</span></div>
 </div>
 </div>
 );
@@ -95,12 +96,18 @@ style={{ width: '100%', height: '120px', objectFit: 'contain', borderRadius: '10
 );
 
 return (
-<div style={{ ...styles.layout, flexDirection: isMobile ? 'column' : 'row', padding: isMobile ? '20px 16px' : '20px 60px', overflowX: isMobile ? 'hidden' : 'visible', boxSizing: 'border-box' }}>
+<div>
 <Helmet>
 <title>Build Your Set | The Majorities</title>
 <meta name="description" content="Build your custom 6-product haircare and skincare set. Choose from premium shampoos, conditioners, oils, and scrubs." />
 <link rel="canonical" href="https://themajorities.com/" />
 </Helmet>
+<section style={{ background: '#f4f9f4', padding: isMobile ? '48px 20px' : '68px 60px', textAlign: 'center', borderBottom: '1px solid #dce9dc' }}>
+<p style={{ margin: '0 0 12px', fontSize: '12px', fontWeight: '700', letterSpacing: '1.5px', textTransform: 'uppercase', color: '#2d6a4f' }}>Haircare for every majority</p>
+<h1 style={{ maxWidth: '760px', margin: '0 auto 16px', fontSize: isMobile ? '32px' : '46px', lineHeight: 1.1 }}>Better care for every hair story.</h1>
+<p style={{ maxWidth: '700px', margin: '0 auto', fontSize: '16px', lineHeight: 1.7, color: '#444' }}>The Majorities makes effective, everyday haircare accessible to all. We champion inclusive self-care, thoughtful formulas, and more sustainable routines—so building a set that fits you feels simple and good.</p>
+</section>
+<div style={{ ...styles.layout, flexDirection: isMobile ? 'column' : 'row', padding: isMobile ? '20px 16px' : '20px 60px', overflowX: isMobile ? 'hidden' : 'visible', boxSizing: 'border-box' }}>
 <div style={{ ...styles.left, width: isMobile ? '100%' : '70%', paddingRight: isMobile ? 0 : '40px', minWidth: 0, overflowX: 'hidden' }}>
 {renderRow("Pick Shampoos", "shampoos")}
 {renderRow("Pick Conditioners", "conditioners")}
@@ -117,10 +124,10 @@ return (
 <h3>{focusedItem.name}</h3>
 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
 <span style={{ fontSize: '12px', fontWeight: '600', color: '#333' }}>
-One-time {formatCurrency(getProductCommerceConfig(focusedItem.name).pricing.oneTime)}
+One-time {formatCurrency(getProductCommerceConfig(focusedItem.name).pricing.oneTime)} · 1 box per month
 </span>
 <span style={{ fontSize: '12px', fontWeight: '600', color: '#2d6a4f' }}>
-Subscribe {formatCurrency(getProductCommerceConfig(focusedItem.name).pricing.subscription)}
+Subscribe {formatCurrency(getProductCommerceConfig(focusedItem.name).pricing.subscription)} · 1 box per month
 </span>
 </div>
 
@@ -173,10 +180,11 @@ return Object.entries(counts).map(([name, count]) => (
 {isSetComplete ? (
 <div style={{ borderTop: '2px solid #222', paddingTop: '15px' }}>
 <div style={{ fontSize: '12px', color: '#666', marginBottom: '12px', lineHeight: '1.6' }}>
-<div>One-time total: <strong>{formatCurrency(setTotals.oneTime)}</strong></div>
-<div>Subscription total: <strong>{formatCurrency(setTotals.subscription)} / month</strong></div>
+<div>One-time total: <strong>{formatCurrency(setTotals.oneTime)}</strong> · 1 box per month</div>
+<div>Subscription total: <strong>{formatCurrency(setTotals.subscription)} / month</strong> · 1 box per month</div>
 <div>You save <strong>{formatCurrency(subscriptionSavings)}</strong> on each monthly set.</div>
 </div>
+<p style={{ margin: '0 0 14px', fontSize: '12px', color: '#2d6a4f', fontWeight: '700' }}>Subscribe &amp; save — pause or cancel anytime.</p>
 <div style={{ backgroundColor: '#f4f9f4', border: '1px solid #c2e1c2', padding: '12px', borderRadius: '8px', marginBottom: '14px', textAlign: 'left' }}>
 <span style={{ fontSize: '13px', color: '#1e4620', fontWeight: '700', display: 'block' }}>
 Fast US Fulfillment via ShipBob
@@ -191,10 +199,37 @@ new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { m
 </div>
 <button style={styles.checkoutBtn} onClick={handleOneTimeCheckout}>1 time Checkout ({formatCurrency(setTotals.oneTime)})</button>
 <button style={{ ...styles.checkoutBtn, background: '#222', color: '#fff' }} onClick={handleSubscriptionCheckout}>Monthly Subscription Checkout ({formatCurrency(setTotals.subscription)} / month)</button>
+<div style={{ padding: '12px', marginTop: '4px', borderRadius: '8px', background: '#fff', border: '1px solid #dce9dc', fontSize: '11px', lineHeight: '1.5', color: '#444' }}>
+<strong style={{ display: 'block', color: '#222' }}>🔒 Secure checkout</strong>
+Your payment details are securely processed.
+</div>
+<div style={{ padding: '12px', marginTop: '10px', borderRadius: '8px', background: '#fff', border: '1px solid #eee', fontSize: '11px', lineHeight: '1.5', color: '#444' }}>
+<strong style={{ display: 'block', color: '#222' }}>30-day returns</strong>
+Return unused items in original packaging within 30 days of delivery. <Link to="/returns" style={{ color: '#222', fontWeight: '700' }}>Read the full policy</Link>
+</div>
+<div style={{ padding: '12px', marginTop: '10px', borderRadius: '8px', background: '#fff', border: '1px solid #eee', fontSize: '11px', lineHeight: '1.5', color: '#444' }}>
+<strong style={{ display: 'block', color: '#222' }}>★★★★★ Loved by our customers</strong>
+“My hair feels softer without adding extra steps.” — Jordan R.
+</div>
 </div>
 ) : <p style={{ fontSize: '12px', color: '#888' }}>Select 6 products to checkout</p>}
 </div>
 </aside>
+</div>
+<section style={{ padding: isMobile ? '48px 20px' : '60px', background: '#fafafa', textAlign: 'center' }}>
+<h2 style={{ margin: '0 0 28px', fontSize: '28px' }}>What customers are saying</h2>
+<div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '16px', maxWidth: '1000px', margin: '0 auto', textAlign: 'left' }}>
+{[
+  ['★★★★★', '“The set makes my routine feel considered, not complicated.”', '— Maya T.'],
+  ['★★★★★', '“I love being able to get the products I use every month for less.”', '— Jordan R.'],
+  ['★★★★★', '“Finally, everyday care that works with my hair and my budget.”', '— Alex P.']
+].map(([rating, quote, name]) => <article key={name} style={{ flex: 1, background: '#fff', border: '1px solid #eee', borderRadius: '12px', padding: '22px' }}>
+<div style={{ color: '#b8860b', marginBottom: '12px' }}>{rating}</div>
+<p style={{ margin: '0 0 14px', lineHeight: '1.6' }}>{quote}</p>
+<strong style={{ fontSize: '13px' }}>{name}</strong>
+</article>)}
+</div>
+</section>
 </div>
 );
 }

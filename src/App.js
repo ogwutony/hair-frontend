@@ -180,7 +180,6 @@ export default function App() {
         <footer style={{ marginTop: '60px', padding: '20px 60px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'center', gap: '30px', fontSize: '12px' }}>
           <Link to="/TermsofService" style={{ color: '#666', textDecoration: 'none' }}>Terms of Service</Link>
           <Link to="/Privacy" style={{ color: '#666', textDecoration: 'none' }}>Privacy Policy</Link>
-                        <Link to="/returns" style={{ color: '#666', textDecoration: 'none' }}>Return Policy</Link>
         </footer>
       </div>
     </Router>

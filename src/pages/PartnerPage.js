@@ -405,32 +405,36 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
           <input required placeholder="Country of Origin *" style={styles.input} value={formData.countryOfOrigin} onChange={e => setFormData({ ...formData, countryOfOrigin: e.target.value })} />
           <input required placeholder="Operating Country *" style={styles.input} value={formData.operatingCountry} onChange={e => setFormData({ ...formData, operatingCountry: e.target.value })} />
           <input placeholder="Website or Social Media Link" style={styles.input} value={formData.websiteOrSocial} onChange={e => setFormData({ ...formData, websiteOrSocial: e.target.value })} />
-          <p style={{ fontSize: '12px', color: '#888', marginTop: '8px', marginBottom: '8px' }}>
-            Or link your online storefront:
-          </p>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            {[
-              { name: 'Shopify',      url: 'https://www.shopify.com',      color: '#5C8B3E' },
-              { name: 'Wix',          url: 'https://www.wix.com',          color: '#FAAD4F' },
-              { name: 'Squarespace',  url: 'https://www.squarespace.com',  color: '#222222' },
-            ].map(({ name, url, color }) => (
-              <a
-                key={name}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '5px',
-                  padding: '7px 14px', borderRadius: '20px',
-                  border: `1.5px solid ${color}`, color: color,
-                  fontSize: '13px', fontWeight: '600',
-                  textDecoration: 'none', backgroundColor: '#fff',
-                }}
-              >
-                ↗ {name}
-              </a>
-            ))}
-          </div>
+          {(formData.partnerCategory === "Brand & Retail Partners" || formData.partnerCategory === "Marketplace Access") && (
+            <>
+              <p style={{ fontSize: '12px', color: '#888', marginTop: '8px', marginBottom: '8px' }}>
+                Or link your online storefront:
+              </p>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                {[
+                  { name: 'Shopify',      url: 'https://www.shopify.com',      color: '#5C8B3E' },
+                  { name: 'Wix',          url: 'https://www.wix.com',          color: '#FAAD4F' },
+                  { name: 'Squarespace',  url: 'https://www.squarespace.com',  color: '#222222' },
+                ].map(({ name, url, color }) => (
+                  <a
+                    key={name}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '5px',
+                      padding: '7px 14px', borderRadius: '20px',
+                      border: `1.5px solid ${color}`, color: color,
+                      fontSize: '13px', fontWeight: '600',
+                      textDecoration: 'none', backgroundColor: '#fff',
+                    }}
+                  >
+                    ↗ {name}
+                  </a>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         {/* ── 4. MARKETPLACE: PRODUCT DETAILS ─────────────────────────────── */}

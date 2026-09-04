@@ -541,7 +541,6 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h3 style={{ margin: 0 }}>Marketplace</h3>
-            <Link to={authToken ? '/sell' : '/login'} style={{ ...styles.authButton, width: 'auto', padding: '10px 20px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>List a Product</Link>
           </div>
           {!authToken ? (
             <GuestSubmissionPrompt message="Log in or register to view listings and sell in the Marketplace." />

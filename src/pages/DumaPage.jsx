@@ -152,10 +152,6 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
         <meta name="description" content="The Majorities Duma — explore culture, recommendations, and perspectives from our community." />
         <link rel="canonical" href="https://themajorities.com/duma" />
       </Helmet>
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '18px', marginBottom: '16px', fontSize: '13px', fontWeight: '700' }}>
-        <a href="https://www.instagram.com/themajorities/" target="_blank" rel="noopener noreferrer" style={{ color: '#c13584', textDecoration: 'none' }}>◎ Instagram</a>
-        <a href="https://www.tiktok.com/@themajorities" target="_blank" rel="noopener noreferrer" style={{ color: '#222', textDecoration: 'none' }}>♪ TikTok</a>
-      </div>
       <div style={{ textAlign: 'center', marginBottom: '22px' }}>
         <a href="https://www.instagram.com/explore/tags/themajorities/" target="_blank" rel="noopener noreferrer" style={{ color: '#2d6a4f', fontSize: '18px', fontWeight: '800', textDecoration: 'none' }}>#TheMajorities</a>
       </div>

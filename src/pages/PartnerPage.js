@@ -69,45 +69,6 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
   const userScore = rankScore || 1;
   const canApplyPremium = userScore >= 900000; // Requires "Ibiza" rank (900,000+ pts)
 
-  // ── AUTH GATE — logged-in users only ────────────────────────────────────────
-  if (!authToken) {
-    return (
-      <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
-        <h2>Partner with The Majorities</h2>
-        <div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
-          <div style={{ fontSize: '36px', marginBottom: '16px' }}>🔒</div>
-          <h3 style={{ marginBottom: '12px' }}>Login Required</h3>
-          <p style={{ color: '#666', marginBottom: '24px' }}>
-            You must be logged in to submit a partnership application.
-          </p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link
-              to="/login"
-              style={{ ...styles.authButton, textDecoration: 'none', display: 'inline-block', padding: '12px 28px', width: 'auto' }}
-            >
-              Log In
-            </Link>
-            <Link
-              to="/signup"
-              style={{
-                ...styles.authButton,
-                textDecoration: 'none',
-                display: 'inline-block',
-                padding: '12px 28px',
-                width: 'auto',
-                backgroundColor: '#fff',
-                color: '#1a1a1a',
-                border: '1.5px solid #1a1a1a'
-              }}
-            >
-              Create Account
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const handlePhotosChange = (e) => {
     const files = Array.from(e.target.files).slice(0, 3);
@@ -166,6 +127,11 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
+
+    if (!authToken) {
+      setErrorMsg("You must be logged in to submit a partnership application.");
+      return;
+    }
 
     if (!formData.name || !formData.contactEmail || !formData.phoneNumber || !formData.ein) {
       setErrorMsg("Please fill in all contact information fields.");
@@ -409,9 +375,9 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
           </p>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             {[
-              { name: 'Shopify',      url: 'https://www.shopify.com',      color: '#5C8B3E' },
-              { name: 'Wix',          url: 'https://www.wix.com',          color: '#FAAD4F' },
-              { name: 'Squarespace',  url: 'https://www.squarespace.com',  color: '#222222' },
+              { name: 'Shopify',     url: 'https://www.shopify.com',     color: '#5C8B3E' },
+              { name: 'Wix',         url: 'https://www.wix.com',         color: '#FAAD4F' },
+              { name: 'Squarespace', url: 'https://www.squarespace.com', color: '#222222' },
             ].map(({ name, url, color }) => (
               <a
                 key={name}
@@ -792,9 +758,35 @@ export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, auth
           </div>
         </div>
 
-        <button type="submit" style={{ ...styles.authButton, marginTop: '20px' }}>
-          Submit Partnership Application
-        </button>
+        {/* ── SUBMISSION ─────────────────────────────────────────────────── */}
+        {!authToken ? (
+          <div style={{ marginTop: '30px', padding: '24px', border: '1.5px solid #e0e0e0', borderRadius: '12px', textAlign: 'center', backgroundColor: '#fafafa' }}>
+            <h4 style={{ marginBottom: '8px', fontSize: '16px' }}>Ready to Apply?</h4>
+            <p style={{ marginBottom: '20px', color: '#666', fontSize: '14px' }}>You must have a registered account to submit a partnership application.</p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Link
+                to="/login"
+                style={{ ...styles.authButton, textDecoration: 'none', display: 'inline-block', padding: '12px 28px', width: 'auto' }}
+              >
+                Log In
+              </Link>
+              <Link
+                to="/signup"
+                style={{
+                  ...styles.authButton,
+                  textDecoration: 'none', display: 'inline-block', padding: '12px 28px', width: 'auto',
+                  backgroundColor: '#fff', color: '#1a1a1a', border: '1.5px solid #1a1a1a'
+                }}
+              >
+                Create Account
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <button type="submit" style={{ ...styles.authButton, marginTop: '20px' }}>
+            Submit Partnership Application
+          </button>
+        )}
       </form>
     </div>
   );

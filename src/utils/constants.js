@@ -60,7 +60,7 @@ export const RANK_TIERS = [
  { title: "Order of the Red Banner of Labor", min: 2500000 },
  { title: "Order of Friendship of Peoples", min: 2000000 },
  { title: "Order of the Badge of Honor", min: 1500000 },
- { title: "the Salvation of the Drowning", min: 1000000 },
+ { title: "The Salvation of the Drowning", min: 1000000 },
  { title: "Ibiza", min: 900000 },
  { title: "Berlin", min: 800000 },
  { title: "Bangkok", min: 700000 },

@@ -144,6 +144,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
   const [postErrorMsg, setCultureErrorMsg] = useState("");
 
   const perspectivePrompts = [
+    // Brand-Specific Beauty (The Majorities)
     { id: 1, text: "Share a photo or video of your results after using The Majorities products. What changed for your hair or skin?" },
     { id: 2, text: "Show us your before-and-after results with The Majorities. Which products were part of your routine?" },
     { id: 3, text: "Walk us through your wash-day routine using The Majorities shampoo, conditioner, or hair oil." },
@@ -154,7 +155,28 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
     { id: 8, text: "What tips would you give someone trying The Majorities products for the first time?" },
     { id: 9, text: "How often do you use The Majorities shampoo, conditioner, hair oil, scrub, toner, or lotion?" },
     { id: 10, text: "Share the results you notice when you stay consistent with your Majorities routine." },
-    { id: 11, text: "Post Anything! Share whatever is on your mind today—a random thought, life update, or funny hot take." }
+    
+    // General Beauty & Personal Care
+    { id: 11, text: "Team toner or straight to moisturizer?" },
+    { id: 12, text: "How many days do you really go between shampooing?" },
+    { id: 13, text: "Facial scrubs: love them or leave them?" },
+    { id: 14, text: "What’s your emergency fix for a surprise pimple?" },
+    { id: 15, text: "How do you instantly hide morning eye bags?" },
+    { id: 16, text: "What’s the secret to preventing neck bumps after a fresh haircut?" },
+    { id: 17, text: "What is your favorite unconventional use for baby oil?" },
+    { id: 18, text: "Hair oil: split-end lifesaver or grease trap?" },
+    { id: 19, text: "What is your holy grail daily moisturizing lotion?" },
+    { id: 20, text: "What’s the worst DIY skincare trend you’ve ever tried?" },
+    { id: 21, text: "Desert island: Shampoo, conditioner, or hair oil?" },
+    { id: 22, text: "Drop your best hack for treating razor bumps!" },
+    { id: 23, text: "What was the very first skincare product you ever bought?" },
+    { id: 24, text: "What is your #1 tip for clearing up stubborn breakouts?" },
+
+    // Fashion, Shopping & Personal Presentation
+    { id: 25, text: "Splurge or save: Which product is always worth the money?" },
+    { id: 26, text: "Show us your current OOTD (Outfit of the Day) or favorite wardrobe piece right now!" },
+    { id: 27, text: "What is your favorite brand or boutique to shop at for quality clothes or accessories?" },
+    { id: 28, text: "Drop your best budget fashion or shopping hack. How do you build killer looks for less?" }
   ];
 
   const syncAvatarSlotsToBackend = (slotsArray) => {

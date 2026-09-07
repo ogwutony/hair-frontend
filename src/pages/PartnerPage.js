@@ -382,6 +382,7 @@ Or link your online storefront:
 { name: 'Shopify', url: 'https://www.shopify.com', color: '#5C8B3E' },
 { name: 'Wix', url: 'https://www.wix.com', color: '#FAAD4F' },
 { name: 'Squarespace', url: 'https://www.squarespace.com', color: '#222222' },
+{ name: 'Amazon', url: 'https://sell.amazon.com', color: '#FF9900' },
 ].map(({ name, url, color }) => (
 <a
 key={name}

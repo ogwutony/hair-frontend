@@ -10,7 +10,7 @@ import { useIsMobile } from './utils/useIsMobile';
 
 // Shared components
 import { ScrollToTop } from './components/ScrollToTop';
-import { RankBadge } from './components/RankBahdge';
+import { RankBadge } from './components/RankBadge';
 
 // Pages
 import { LandingPage } from './pages/LandingPage';

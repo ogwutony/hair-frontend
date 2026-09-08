@@ -3,297 +3,344 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 
-export function AboutPage() {
-const MOBILE_BREAKPOINT = 768;
-const [isMobile, setIsMobile] = useState(() => window.innerWidth <= MOBILE_BREAKPOINT);
+const FONT = '-apple-system, "SF Pro Display", "Helvetica Neue", Inter, sans-serif';
 
-useEffect(() => {
-let debounceTimer;
-const handleResize = () => {
-clearTimeout(debounceTimer);
-debounceTimer = setTimeout(() => setIsMobile(window.innerWidth <= MOBILE_BREAKPOINT), 150);
-};
-window.addEventListener('resize', handleResize);
-return () => { clearTimeout(debounceTimer); window.removeEventListener('resize', handleResize); };
-}, []);
-
-const values = [
-{
-icon: '🌿',
-title: 'Sustainability First',
-desc: 'Every formula is developed with the environment in mind — from responsibly sourced ingredients to packaging that minimizes waste. We believe good hair days shouldn\'t cost the planet.'
-},
-{
-icon: '🤝',
-title: 'Radically Inclusive',
-desc: 'We make haircare that works for every texture, every type, every person. No asterisks, no exceptions. The Majorities means all of us.'
-},
-{
-icon: '🐰',
-title: 'Cruelty-Free, Always',
-desc: 'Our products are never tested on animals. Full stop. We hold every ingredient and every supplier to that same standard.'
-},
-{
-icon: '💰',
-title: 'Accessible Pricing',
-desc: 'Premium haircare shouldn\'t be a luxury. Our subscription model keeps costs honest so your routine stays consistent — month after month.'
-},
-];
+const commitments = [
+  { title: 'Sustainability', desc: 'Responsibly sourced, minimal waste.' },
+  { title: 'Inclusive', desc: 'For every texture and type.' },
+  { title: 'Cruelty-Free', desc: 'Never tested on animals.' },
+  { title: 'Accessible', desc: 'Honest subscription pricing.' },
+  ];
 
 const testimonials = [
-['★★★★★', '"The set makes my routine feel considered, not complicated."', '— Maya T.'],
-['★★★★★', '"I love being able to get the products I use every month for less."', '— Jordan R.'],
-['★★★★★', '"Finally, everyday care that works with my hair and my budget."', '— Alex P.'],
-];
+  { quote: 'The set makes my routine feel considered, not complicated.', name: 'Maya T.' },
+  { quote: 'I love getting the products I use every month for less.', name: 'Jordan R.' },
+  { quote: 'Finally, everyday care that works with my hair and my budget.', name: 'Alex P.' },
+  ];
 
-return (
-<div>
-<Helmet>
-<title>About Us | The Majorities</title>
-<meta name="description" content="Learn about The Majorities — our mission, values, and commitment to inclusive, sustainable, cruelty-free haircare for everyone." />
-<link rel="canonical" href="https://themajorities.com/about" />
-</Helmet>
+export function AboutPage() {
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
 
-{/* Hero */}
-<section style={{
-background: '#f4f9f4',
-padding: isMobile ? '60px 24px' : '80px 60px',
-textAlign: 'center',
-borderBottom: '1px solid #dce9dc'
-}}>
-<p style={{
-margin: '0 0 14px',
-fontSize: '12px',
-fontWeight: '700',
-letterSpacing: '1.8px',
-textTransform: 'uppercase',
-color: '#2d6a4f'
-}}>
-Haircare for every majority
-</p>
-<h1 style={{
-maxWidth: '760px',
-margin: '0 auto 20px',
-fontSize: isMobile ? '34px' : '50px',
-lineHeight: 1.1,
-fontWeight: '800',
-color: '#1a1a1a'
-}}>
-Better care for every hair story.
-</h1>
-<p style={{
-maxWidth: '680px',
-margin: '0 auto 32px',
-fontSize: '17px',
-lineHeight: 1.75,
-color: '#444'
-}}>
-The Majorities makes effective, everyday haircare accessible to all. We champion inclusive self-care, thoughtful formulas, and more sustainable routines — so building a set that fits you feels simple and good.
-</p>
-<Link
-to="/"
-style={{
-display: 'inline-block',
-padding: '14px 32px',
-background: '#222',
-color: '#fff',
-borderRadius: '8px',
-textDecoration: 'none',
-fontSize: '14px',
-fontWeight: '700',
-letterSpacing: '0.5px'
-}}
->
-Build Your Set →
-</Link>
-</section>
+  useEffect(() => {
+        let t;
+        const onResize = () => { clearTimeout(t); t = setTimeout(() => setIsMobile(window.innerWidth <= 768), 150); };
+        window.addEventListener('resize', onResize);
+        return () => { clearTimeout(t); window.removeEventListener('resize', onResize); };
+  }, []);
 
-{/* Mission */}
-<section style={{
-padding: isMobile ? '52px 24px' : '72px 60px',
-maxWidth: '900px',
-margin: '0 auto',
-textAlign: 'center'
-}}>
-<p style={{
-margin: '0 0 12px',
-fontSize: '12px',
-fontWeight: '700',
-letterSpacing: '1.5px',
-textTransform: 'uppercase',
-color: '#2d6a4f'
-}}>
-Our Mission
-</p>
-<h2 style={{
-fontSize: isMobile ? '26px' : '36px',
-fontWeight: '800',
-color: '#1a1a1a',
-margin: '0 0 20px',
-lineHeight: 1.2
-}}>
-Care that doesn't ask you to compromise.
-</h2>
-<p style={{
-fontSize: '16px',
-lineHeight: 1.8,
-color: '#555',
-margin: 0
-}}>
-Too many haircare brands treat inclusivity as a marketing angle — a product line with "for coily hair" in small print, or a price point that makes building a real routine feel out of reach. The Majorities started from a different place: the belief that everyone deserves a set that actually works for them, without having to hunt across five brands or stretch a budget. We build our line around that commitment, and we hold it to account formula by formula.
-</p>
-</section>
+  const s = {
+        page: { fontFamily: FONT, background: '#ffffff', color: '#000000' },
 
-{/* Values */}
-<section style={{
-background: '#fafafa',
-borderTop: '1px solid #eee',
-borderBottom: '1px solid #eee',
-padding: isMobile ? '52px 24px' : '72px 60px'
-}}>
-<div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-<p style={{
-margin: '0 0 12px',
-fontSize: '12px',
-fontWeight: '700',
-letterSpacing: '1.5px',
-textTransform: 'uppercase',
-color: '#2d6a4f',
-textAlign: 'center'
-}}>
-What we stand for
-</p>
-<h2 style={{
-fontSize: isMobile ? '26px' : '34px',
-fontWeight: '800',
-color: '#1a1a1a',
-margin: '0 0 40px',
-textAlign: 'center',
-lineHeight: 1.2
-}}>
-Our commitments, not just our claims.
-</h2>
-<div style={{
-display: 'grid',
-gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-gap: '24px'
-}}>
-{values.map(({ icon, title, desc }) => (
-<div key={title} style={{
-background: '#fff',
-border: '1px solid #e8e8e8',
-borderRadius: '14px',
-padding: '28px 30px'
-}}>
-<div style={{ fontSize: '28px', marginBottom: '12px' }}>{icon}</div>
-<h3 style={{ margin: '0 0 10px', fontSize: '18px', fontWeight: '700', color: '#1a1a1a' }}>{title}</h3>
-<p style={{ margin: 0, fontSize: '14px', lineHeight: 1.7, color: '#555' }}>{desc}</p>
-</div>
-))}
-</div>
-</div>
-</section>
+        // Hero
+        hero: {
+                minHeight: '100vh',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                padding: isMobile ? '80px 28px' : '120px 60px',
+                background: '#ffffff',
+        },
+        heroEyebrow: {
+                fontSize: '13px',
+                fontWeight: '600',
+                letterSpacing: '0.06em',
+                color: '#86868B',
+                marginBottom: '24px',
+                textTransform: 'uppercase',
+        },
+        heroH1: {
+                fontSize: isMobile ? '42px' : '76px',
+                fontWeight: '700',
+                lineHeight: 1.05,
+                letterSpacing: '-0.03em',
+                color: '#000000',
+                maxWidth: '820px',
+                margin: '0 auto 28px',
+        },
+        heroSub: {
+                fontSize: isMobile ? '17px' : '21px',
+                fontWeight: '400',
+                lineHeight: 1.55,
+                color: '#86868B',
+                maxWidth: '520px',
+                margin: '0 auto 48px',
+        },
+        heroCta: {
+                display: 'inline-block',
+                padding: '16px 36px',
+                background: '#000000',
+                color: '#ffffff',
+                borderRadius: '980px',
+                textDecoration: 'none',
+                fontSize: '15px',
+                fontWeight: '600',
+                letterSpacing: '0.01em',
+        },
 
-{/* Story */}
-<section style={{
-padding: isMobile ? '52px 24px' : '72px 60px',
-maxWidth: '860px',
-margin: '0 auto'
-}}>
-<p style={{
-margin: '0 0 12px',
-fontSize: '12px',
-fontWeight: '700',
-letterSpacing: '1.5px',
-textTransform: 'uppercase',
-color: '#2d6a4f'
-}}>
-The story
-</p>
-<h2 style={{
-fontSize: isMobile ? '26px' : '34px',
-fontWeight: '800',
-color: '#1a1a1a',
-margin: '0 0 24px',
-lineHeight: 1.2
-}}>
-Built for the people who weren't the target market.
-</h2>
-<p style={{ fontSize: '16px', lineHeight: 1.8, color: '#555', margin: '0 0 18px' }}>
-The name says it: The Majorities. Most people in this world have hair and skin that mainstream brands treat as an edge case. Dense, coily, fine, oily, sensitive — the routines that work for "everyone" rarely work for the everyone who actually exists.
-</p>
-<p style={{ fontSize: '16px', lineHeight: 1.8, color: '#555', margin: '0 0 18px' }}>
-We set out to build something different. A product line that starts with range, not as an afterthought but as the foundation. Formulas tested across textures. Pricing structured so a subscription actually saves money. A set builder that treats your six products as yours — because they are.
-</p>
-<p style={{ fontSize: '16px', lineHeight: 1.8, color: '#555', margin: 0 }}>
-This is still early. We're growing the line, deepening the formulas, and listening. If you've been underserved by haircare before — so have we. That's why we built this.
-</p>
-</section>
+        // Mission
+        mission: {
+                background: '#F5F5F7',
+                padding: isMobile ? '96px 28px' : '140px 60px',
+                textAlign: 'center',
+        },
+        missionInner: { maxWidth: '600px', margin: '0 auto' },
+        sectionLabel: {
+                fontSize: '13px',
+                fontWeight: '600',
+                letterSpacing: '0.06em',
+                color: '#86868B',
+                textTransform: 'uppercase',
+                marginBottom: '20px',
+        },
+        missionH2: {
+                fontSize: isMobile ? '32px' : '52px',
+                fontWeight: '700',
+                lineHeight: 1.08,
+                letterSpacing: '-0.025em',
+                color: '#000000',
+                margin: '0 0 28px',
+        },
+        missionP: {
+                fontSize: '17px',
+                lineHeight: 1.7,
+                color: '#86868B',
+                margin: 0,
+        },
 
-{/* Testimonials */}
-<section style={{
-background: '#f4f9f4',
-borderTop: '1px solid #dce9dc',
-padding: isMobile ? '52px 24px' : '72px 60px',
-textAlign: 'center'
-}}>
-<p style={{
-margin: '0 0 12px',
-fontSize: '12px',
-fontWeight: '700',
-letterSpacing: '1.5px',
-textTransform: 'uppercase',
-color: '#2d6a4f'
-}}>
-From our customers
-</p>
-<h2 style={{
-margin: '0 0 36px',
-fontSize: isMobile ? '26px' : '34px',
-fontWeight: '800',
-color: '#1a1a1a'
-}}>
-What customers are saying
-</h2>
-<div style={{
-display: 'flex',
-flexDirection: isMobile ? 'column' : 'row',
-gap: '20px',
-maxWidth: '1000px',
-margin: '0 auto 40px',
-textAlign: 'left'
-}}>
-{testimonials.map(([rating, quote, name]) => (
-<article key={name} style={{
-flex: 1,
-background: '#fff',
-border: '1px solid #dce9dc',
-borderRadius: '14px',
-padding: '26px'
-}}>
-<div style={{ color: '#b8860b', marginBottom: '12px', fontSize: '16px' }}>{rating}</div>
-<p style={{ margin: '0 0 16px', lineHeight: 1.7, fontSize: '15px', color: '#333' }}>{quote}</p>
-<strong style={{ fontSize: '13px', color: '#555' }}>{name}</strong>
-</article>
-))}
-</div>
-<Link
-to="/"
-style={{
-display: 'inline-block',
-padding: '14px 32px',
-background: '#2d6a4f',
-color: '#fff',
-borderRadius: '8px',
-textDecoration: 'none',
-fontSize: '14px',
-fontWeight: '700',
-letterSpacing: '0.5px'
-}}
->
-Build your custom set →
-</Link>
-</section>
-</div>
-);
-}
+        // Commitments
+        commitments: {
+                background: '#ffffff',
+                padding: isMobile ? '96px 28px' : '140px 60px',
+        },
+        commitmentsInner: { maxWidth: '1000px', margin: '0 auto' },
+        commitmentsH2: {
+                fontSize: isMobile ? '32px' : '52px',
+                fontWeight: '700',
+                lineHeight: 1.08,
+                letterSpacing: '-0.025em',
+                color: '#000000',
+                textAlign: 'center',
+                margin: '0 0 72px',
+        },
+        grid: {
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                gap: isMobile ? '2px' : '2px',
+        },
+        gridCell: {
+                borderTop: '1px solid #e0e0e5',
+                padding: isMobile ? '36px 0' : '48px 40px 48px 0',
+        },
+        gridTitle: {
+                fontSize: '19px',
+                fontWeight: '700',
+                color: '#000000',
+                margin: '0 0 10px',
+                letterSpacing: '-0.01em',
+        },
+        gridDesc: {
+                fontSize: '15px',
+                lineHeight: 1.6,
+                color: '#86868B',
+                margin: 0,
+        },
+
+        // Story
+        story: {
+                background: '#F5F5F7',
+                padding: isMobile ? '96px 28px' : '140px 60px',
+        },
+        storyInner: { maxWidth: '680px', margin: '0 auto' },
+        storyH2: {
+                fontSize: isMobile ? '32px' : '52px',
+                fontWeight: '700',
+                lineHeight: 1.08,
+                letterSpacing: '-0.025em',
+                color: '#000000',
+                margin: '0 0 32px',
+        },
+        storyP: {
+                fontSize: '17px',
+                lineHeight: 1.75,
+                color: '#86868B',
+                margin: '0 0 24px',
+        },
+
+        // Testimonials
+        testimonials: {
+                background: '#ffffff',
+                padding: isMobile ? '96px 28px' : '140px 60px',
+        },
+        testimonialsInner: { maxWidth: '1000px', margin: '0 auto' },
+        testimonialsH2: {
+                fontSize: isMobile ? '32px' : '52px',
+                fontWeight: '700',
+                lineHeight: 1.08,
+                letterSpacing: '-0.025em',
+                color: '#000000',
+                textAlign: 'center',
+                margin: '0 0 72px',
+        },
+        testimonialGrid: {
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr',
+                gap: '40px',
+        },
+        testimonialCard: {
+                borderTop: '1px solid #e0e0e5',
+                paddingTop: '32px',
+        },
+        quoteMark: {
+                fontSize: '56px',
+                lineHeight: 1,
+                color: '#e0e0e5',
+                fontFamily: 'Georgia, serif',
+                marginBottom: '16px',
+                display: 'block',
+        },
+        quoteText: {
+                fontSize: '16px',
+                lineHeight: 1.65,
+                color: '#000000',
+                margin: '0 0 20px',
+                fontStyle: 'italic',
+        },
+        quoteName: {
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#86868B',
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+        },
+
+        // Footer CTA
+        footerCta: {
+                background: '#F5F5F7',
+                padding: isMobile ? '96px 28px' : '140px 60px',
+                textAlign: 'center',
+        },
+        footerCtaH2: {
+                fontSize: isMobile ? '36px' : '64px',
+                fontWeight: '700',
+                lineHeight: 1.05,
+                letterSpacing: '-0.03em',
+                color: '#000000',
+                margin: '0 0 40px',
+        },
+        footerCtaBtn: {
+                display: 'inline-block',
+                padding: '16px 40px',
+                background: '#000000',
+                color: '#ffffff',
+                borderRadius: '980px',
+                textDecoration: 'none',
+                fontSize: '15px',
+                fontWeight: '600',
+                marginBottom: '48px',
+        },
+        footerLinks: {
+                display: 'flex',
+                gap: '28px',
+                justifyContent: 'center',
+                flexWrap: 'wrap',
+        },
+        footerLink: {
+                fontSize: '13px',
+                color: '#86868B',
+                textDecoration: 'none',
+        },
+  };
+
+  return (
+        <div style={s.page}>
+                <Helmet>
+                        <title>About | The Majorities</title>title>
+                        <meta name="description" content="The Majorities — effective, inclusive everyday haircare. Our mission, commitments, and story." />
+                        <link rel="canonical" href="https://themajorities.com/about" />
+                </Helmet>Helmet>
+        
+          {/* Hero */}
+              <section style={s.hero}>
+                      <p style={s.heroEyebrow}>The Majorities</p>p>
+                      <h1 style={s.heroH1}>Better care for every hair story.</h1>h1>
+                      <p style={s.heroSub}>Effective, inclusive everyday haircare.</p>p>
+                      <Link to="/" style={s.heroCta}>Build Your Set</Link>Link>
+              </section>section>
+        
+          {/* Mission */}
+              <section style={s.mission}>
+                      <div style={s.missionInner}>
+                                <p style={s.sectionLabel}>Mission</p>p>
+                                <h2 style={s.missionH2}>No compromise.</h2>h2>
+                                <p style={s.missionP}>
+                                            We believe everyone deserves a set that actually works for them,
+                                            without having to hunt across five brands or stretch a budget.
+                                            That belief is the foundation — formula by formula, texture by texture.
+                                </p>p>
+                      </div>div>
+              </section>section>
+        
+          {/* Commitments */}
+              <section style={s.commitments}>
+                      <div style={s.commitmentsInner}>
+                                <h2 style={s.commitmentsH2}>What we stand for.</h2>h2>
+                                <div style={s.grid}>
+                                  {commitments.map(({ title, desc }) => (
+                        <div key={title} style={s.gridCell}>
+                                        <h3 style={s.gridTitle}>{title}</h3>h3>
+                                        <p style={s.gridDesc}>{desc}</p>p>
+                        </div>div>
+                      ))}
+                                </div>div>
+                      </div>div>
+              </section>section>
+        
+          {/* Story */}
+              <section style={s.story}>
+                      <div style={s.storyInner}>
+                                <p style={s.sectionLabel}>Our Story</p>p>
+                                <h2 style={s.storyH2}>Built for you.</h2>h2>
+                                <p style={s.storyP}>
+                                            Most mainstream brands treat diverse hair as an edge case.
+                                            We start with range as the foundation, testing formulas across all
+                                            textures so your set is truly yours.
+                                </p>p>
+                                <p style={{ ...s.storyP, marginBottom: 0 }}>
+                                            The Majorities means everyone. That&apos;s not a tagline — it&apos;s the spec
+                                            every formula has to meet before it earns a place in your set.
+                                </p>p>
+                      </div>div>
+              </section>section>
+        
+          {/* Testimonials */}
+              <section style={s.testimonials}>
+                      <div style={s.testimonialsInner}>
+                                <h2 style={s.testimonialsH2}>What people are saying.</h2>h2>
+                                <div style={s.testimonialGrid}>
+                                  {testimonials.map(({ quote, name }) => (
+                        <div key={name} style={s.testimonialCard}>
+                                        <span style={s.quoteMark}>&ldquo;</span>span>
+                                        <p style={s.quoteText}>{quote}</p>p>
+                                        <span style={s.quoteName}>{name}</span>span>
+                        </div>div>
+                      ))}
+                                </div>div>
+                      </div>div>
+              </section>section>
+        
+          {/* Footer CTA */}
+              <section style={s.footerCta}>
+                      <h2 style={s.footerCtaH2}>Build your custom set.</h2>h2>
+                      <div>
+                                <Link to="/" style={s.footerCtaBtn}>Get Started</Link>Link>
+                      </div>div>
+                      <div style={s.footerLinks}>
+                                <Link to="/TermsofService" style={s.footerLink}>Terms of Service</Link>Link>
+                                <Link to="/privacy" style={s.footerLink}>Privacy Policy</Link>Link>
+                      </div>div>
+              </section>section>
+        </div>div>
+      );
+}</Helmet>

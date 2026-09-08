@@ -256,91 +256,91 @@ export function AboutPage() {
   return (
         <div style={s.page}>
                 <Helmet>
-                        <title>About | The Majorities</title>title>
+                        <title>About | The Majorities</title>
                         <meta name="description" content="The Majorities — effective, inclusive everyday haircare. Our mission, commitments, and story." />
                         <link rel="canonical" href="https://themajorities.com/about" />
-                </Helmet>Helmet>
+                </Helmet>
         
           {/* Hero */}
               <section style={s.hero}>
-                      <p style={s.heroEyebrow}>The Majorities</p>p>
-                      <h1 style={s.heroH1}>Better care for every hair story.</h1>h1>
-                      <p style={s.heroSub}>Effective, inclusive everyday haircare.</p>p>
-                      <Link to="/" style={s.heroCta}>Build Your Set</Link>Link>
-              </section>section>
+                      <p style={s.heroEyebrow}>The Majorities</p>
+                      <h1 style={s.heroH1}>Better care for every hair story.</h1>
+                      <p style={s.heroSub}>Effective, inclusive everyday haircare.</p>
+                      <Link to="/" style={s.heroCta}>Build Your Set</Link>
+              </section>
         
           {/* Mission */}
               <section style={s.mission}>
                       <div style={s.missionInner}>
-                                <p style={s.sectionLabel}>Mission</p>p>
-                                <h2 style={s.missionH2}>No compromise.</h2>h2>
+                                <p style={s.sectionLabel}>Mission</p>
+                                <h2 style={s.missionH2}>No compromise.</h2>
                                 <p style={s.missionP}>
                                             We believe everyone deserves a set that actually works for them,
                                             without having to hunt across five brands or stretch a budget.
                                             That belief is the foundation — formula by formula, texture by texture.
-                                </p>p>
-                      </div>div>
-              </section>section>
+                                </p>
+                      </div>
+              </section>
         
           {/* Commitments */}
               <section style={s.commitments}>
                       <div style={s.commitmentsInner}>
-                                <h2 style={s.commitmentsH2}>What we stand for.</h2>h2>
+                                <h2 style={s.commitmentsH2}>What we stand for.</h2>
                                 <div style={s.grid}>
                                   {commitments.map(({ title, desc }) => (
                         <div key={title} style={s.gridCell}>
-                                        <h3 style={s.gridTitle}>{title}</h3>h3>
-                                        <p style={s.gridDesc}>{desc}</p>p>
-                        </div>div>
+                                        <h3 style={s.gridTitle}>{title}</h3>
+                                        <p style={s.gridDesc}>{desc}</p>
+                        </div>
                       ))}
-                                </div>div>
-                      </div>div>
-              </section>section>
+                                </div>
+                      </div>
+              </section>
         
           {/* Story */}
               <section style={s.story}>
                       <div style={s.storyInner}>
-                                <p style={s.sectionLabel}>Our Story</p>p>
-                                <h2 style={s.storyH2}>Built for you.</h2>h2>
+                                <p style={s.sectionLabel}>Our Story</p>
+                                <h2 style={s.storyH2}>Built for you.</h2>
                                 <p style={s.storyP}>
                                             Most mainstream brands treat diverse hair as an edge case.
                                             We start with range as the foundation, testing formulas across all
                                             textures so your set is truly yours.
-                                </p>p>
+                                </p>
                                 <p style={{ ...s.storyP, marginBottom: 0 }}>
                                             The Majorities means everyone. That&apos;s not a tagline — it&apos;s the spec
                                             every formula has to meet before it earns a place in your set.
-                                </p>p>
-                      </div>div>
-              </section>section>
+                                </p>
+                      </div>
+              </section>
         
           {/* Testimonials */}
               <section style={s.testimonials}>
                       <div style={s.testimonialsInner}>
-                                <h2 style={s.testimonialsH2}>What people are saying.</h2>h2>
+                                <h2 style={s.testimonialsH2}>What people are saying.</h2>
                                 <div style={s.testimonialGrid}>
                                   {testimonials.map(({ quote, name }) => (
                         <div key={name} style={s.testimonialCard}>
-                                        <span style={s.quoteMark}>&ldquo;</span>span>
-                                        <p style={s.quoteText}>{quote}</p>p>
-                                        <span style={s.quoteName}>{name}</span>span>
-                        </div>div>
+                                        <span style={s.quoteMark}>&ldquo;</span>
+                                        <p style={s.quoteText}>{quote}</p>
+                                        <span style={s.quoteName}>{name}</span>
+                        </div>
                       ))}
-                                </div>div>
-                      </div>div>
-              </section>section>
+                                </div>
+                      </div>
+              </section>
         
           {/* Footer CTA */}
               <section style={s.footerCta}>
-                      <h2 style={s.footerCtaH2}>Build your custom set.</h2>h2>
+                      <h2 style={s.footerCtaH2}>Build your custom set.</h2>
                       <div>
-                                <Link to="/" style={s.footerCtaBtn}>Get Started</Link>Link>
-                      </div>div>
+                                <Link to="/" style={s.footerCtaBtn}>Get Started</Link>
+                      </div>
                       <div style={s.footerLinks}>
-                                <Link to="/TermsofService" style={s.footerLink}>Terms of Service</Link>Link>
-                                <Link to="/privacy" style={s.footerLink}>Privacy Policy</Link>Link>
-                      </div>div>
-              </section>section>
-        </div>div>
+                                <Link to="/TermsofService" style={s.footerLink}>Terms of Service</Link>
+                                <Link to="/privacy" style={s.footerLink}>Privacy Policy</Link>
+                      </div>
+              </section>
+        </div>
       );
-}</Helmet>
+}

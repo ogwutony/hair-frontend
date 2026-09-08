@@ -30,6 +30,7 @@ import { ModelFriendlyPage } from './pages/ModelFriendlyPage';
 import { TermsOfServicePage } from './pages/TermsOfServicePage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { ReturnPolicyPage } from './pages/ReturnPolicyPage';
+import { AboutPage } from './pages/AboutPage';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -131,6 +132,7 @@ export default function App() {
             <Link to="/recommend" style={styles.navLink}>Recommend</Link>
             <Link to="/partner" style={styles.navLink}>Partner</Link>
             <Link to="/duma" style={styles.navLink}>The Duma</Link>
+              <Link to="/about" style={styles.navLink}>About</Link>
             {isLoggedIn ? (
               <>
                 <Link to="/perspectives" style={styles.navLink}>Perspectives</Link>
@@ -176,6 +178,7 @@ export default function App() {
           <Route path="/TermsofService" element={<TermsOfServicePage />} />
                         <Route path="/returns" element={<ReturnPolicyPage />} />
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
+              <Route path="/about" element={<AboutPage />} />
         </Routes>
         <footer style={{ marginTop: '60px', padding: '20px 60px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'center', gap: '30px', fontSize: '12px' }}>
           <Link to="/TermsofService" style={{ color: '#666', textDecoration: 'none' }}>Terms of Service</Link>

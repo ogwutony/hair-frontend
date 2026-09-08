@@ -35,7 +35,7 @@ export function AboutPage() {
           Premium care.<br />Uncompromised.
         </h1>
         <p style={{ fontSize: '21px', color: '#86868b', fontWeight: '400', margin: '0 auto 52px', maxWidth: '560px', lineHeight: 1.55 }}>
-          Clean-beauty essentials engineered for the multicultural market.
+         Clean-beauty ingredients engineered for all people.
         </p>
         <Link
           to="/"

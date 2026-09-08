@@ -10,7 +10,7 @@ import { useIsMobile } from './utils/useIsMobile';
 
 // Shared components
 import { ScrollToTop } from './components/ScrollToTop';
-import { RankBadge } from './components/RankBadge';
+import { RankBadge } from './components/RankBahdge';
 
 // Pages
 import { LandingPage } from './pages/LandingPage';
@@ -129,14 +129,13 @@ export default function App() {
           <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}><div style={styles.logo}>The Majorities</div></Link>
           <nav style={{ ...styles.nav, flexWrap: 'wrap', justifyContent: 'center', gap: isMobile ? '12px' : '25px' }}>
             <Link to="/" style={styles.navLink}>Home</Link>
+                <Link to="/about" style={styles.navLink}>About</Link>
             <Link to="/recommend" style={styles.navLink}>Recommend</Link>
             <Link to="/partner" style={styles.navLink}>Partner</Link>
             <Link to="/duma" style={styles.navLink}>The Duma</Link>
-              <Link to="/about" style={styles.navLink}>About</Link>
-            {isLoggedIn ? (
+              sLoggedIn ? (
               <>
                 <Link to="/perspectives" style={styles.navLink}>Perspectives</Link>
-                {isLoggedIn && userEmail === "YOUR_EMAIL@domain.com" && (
                   <Link to="/admin/orders" style={{ ...styles.navLink, color: '#e74c3c', fontWeight: '700' }}>
                     ⚙️ Admin Control
                   </Link>

@@ -14,7 +14,7 @@ import { RankBadge } from './components/RankBadge';
 
 // Pages
 import { LandingPage } from './pages/LandingPage';
-import { LoginPage } from './pages/LoginPage';h
+import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';

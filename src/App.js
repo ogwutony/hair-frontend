@@ -136,11 +136,7 @@ export default function App() {
               {isLoggedIn ? (
               <>
                 <Link to="/perspectives" style={styles.navLink}>Perspectives</Link>
-                  <Link to="/admin/orders" style={{ ...styles.navLink, color: '#e74c3c', fontWeight: '700' }}>
-                    ⚙️ Admin Control
-                  </Link>
-                )}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: isMobile ? 'none' : '1px solid #eee', paddingLeft: isMobile ? '0' : '15px', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-start', marginTop: isMobile ? '5px' : '0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: isMobile ? 'none' : '1px solid #eee', paddingLeft: isMobile ? '0' : '15px', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-start', marginTop: isMobile ? '5px' : '0' }}>
                   <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
                   {rankTitle && <RankBadge rankTitle={rankTitle} />}
                   <span style={styles.auth} onClick={handleLogout}>Logout</span>
@@ -172,7 +168,7 @@ export default function App() {
           <Route path="/legislature" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} />} />
           <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={handleAvatarUpdate} tokens={tokens} addDumaItem={addDumaItem} />} />
           <Route path="/orders" element={<div style={{ padding: '60px', textAlign: 'center' }}><h2>Payment Received!</h2><p>Your custom hair set is being prepared. Check your Profile to see your formula.</p><Link to="/profile">Go to Profile</Link></div>} />
-          <Route path="/admin/orders" element={<AdminOrdersPage authToken={authToken} userEmail={userEmail} />} />
+          <Route path="/admin/orders" element={userEmail === 'ogwutony@gmail.com' ? <AdminOrdersPage authToken={authToken} userEmail={userEmail} /> : <Navigate to="/" />} />
           <Route path="/model" element={<ModelFriendlyPage />} />
           <Route path="/TermsofService" element={<TermsOfServicePage />} />
                         <Route path="/returns" element={<ReturnPolicyPage />} />

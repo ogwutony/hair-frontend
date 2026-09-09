@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import { CredentialHeader } from '../components/CredentialHeader';
 import { GuestSubmissionPrompt } from '../components/GuestSubmissionPrompt';
 import { RankBadge } from '../components/RankBadge';
-import { BACKEND_URL } from '../utils/constants';
+import { BACKEND_URL, PRODUCT_IMAGE_BY_NAME } from '../utils/constants';
 import { getRankTitle, normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
 
@@ -22,6 +22,7 @@ const [activeSection, setActiveSection] = useState("Culture");
 const [marketplaceListings, setMarketplaceListings] = useState([]);
 const [boostingId, setBoostingId] = useState(null);
 const socialFeedUrl = process.env.REACT_APP_SOCIAL_FEED_URL;
+const getRecommendationImage = (item) => item.imageUrl || PRODUCT_IMAGE_BY_NAME[item.name] || PRODUCT_IMAGE_BY_NAME[item.product] || null;
 
 const isFeaturedContributor = (item) =>
 item.featuredOnInstagram || item.socialEngagement >= 100 || (item.votes?.yes || 0) >= 10;
@@ -324,6 +325,17 @@ Trash
 </div>
 )}
 <h3 style={{ marginTop: '8px', marginBottom: '6px' }}>{item.name || item.product} by {item.company}</h3>
+{getRecommendationImage(item) && (
+<img
+src={getRecommendationImage(item)}
+alt={item.name || item.product}
+style={{ width: '100%', maxHeight: '280px', objectFit: 'contain', borderRadius: '12px', marginBottom: '12px', background: '#f8f8f8' }}
+onError={(e) => {
+e.currentTarget.onerror = null;
+e.currentTarget.src = '/logo192.png';
+}}
+/>
+)}
 <p style={{ color: '#666', fontSize: '14px', marginBottom: '14px' }}>{item.reason || item.desc}</p>
 
 {authToken && (

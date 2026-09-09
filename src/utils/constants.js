@@ -164,8 +164,8 @@ desc: (
 faceCreams: [
 {
 name: "The Majorities Lotion",
-imageUrl: "/Amazon FT.jpg",
-images: ["/Amazon FT.jpg", "/Amazon FT side.jpg", "/Amazon FT Back.jpg"],
+imageUrl: "/Lotion Front.jpg",
+images: ["/Lotion Front.jpg", "/Lotion side.jpg", "/Lotion Back (3).jpg"],
 desc: (
 <>
 <p>Wrap your skin in a comforting blanket of intense, barrier-repairing moisture. This ultra-nourishing daily body and hand lotion is formulated with a powerhouse blend of Ceramides, Hyaluronic Acid, and Vitamin E to instantly quench dehydrated skin.</p>
@@ -177,6 +177,15 @@ desc: (
 )
 }
 ]
+};
+
+export const PRODUCT_IMAGE_BY_NAME = {
+  "The Majorities Shampoo": "/Amazon S.jpg",
+  "The Majorities Conditioner": "/Amazon hc.jpg",
+  "The Majorities Hair Oil": "/amazon HO.jpg",
+  "The Majorities Facial Scrub": "/Amazon fs.jpg",
+  "The Majorities Face Toner": "/Amazon FT.jpg",
+  "The Majorities Lotion": "/Lotion Front.jpg"
 };
 
 export const SOCIAL_FIELDS = [

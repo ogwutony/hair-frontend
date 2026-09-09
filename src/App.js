@@ -32,6 +32,102 @@ import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { ReturnPolicyPage } from './pages/ReturnPolicyPage';
 import { AboutPage } from './pages/AboutPage';
 
+const INITIAL_DUMA_ITEMS = [
+  {
+    id: "seed-culture-1",
+    type: "Culture",
+    category: "Culture",
+    prompt: "What inspired The Majorities?",
+    response: "We started The Majorities to build hair and skin essentials that work across routines, textures, and climates without compromise.",
+    submittedBy: "team@themajorities.com",
+    submitterDisplayName: "The Majorities Team",
+    submitterRank: "Madrid"
+  },
+  {
+    id: "seed-culture-2",
+    type: "Culture",
+    category: "Culture",
+    prompt: "How do you source ingredients?",
+    response: "We prioritize performance-first formulas with ingredients selected for consistency, safety, and daily use across hair and skin types.",
+    submittedBy: "lab@themajorities.com",
+    submitterDisplayName: "The Majorities Lab",
+    submitterRank: "Tokyo"
+  },
+  {
+    id: "seed-rec-1",
+    type: "Recommendation",
+    category: "Recommendations",
+    name: "The Majorities Shampoo",
+    company: "The Majorities",
+    reason: "Deep-cleansing daily reset with anti-frizz support.",
+    imageUrl: "/Amazon S.jpg",
+    votes: { yes: 0, no: 0, abstain: 0 }
+  },
+  {
+    id: "seed-rec-2",
+    type: "Recommendation",
+    category: "Recommendations",
+    name: "The Majorities Conditioner",
+    company: "The Majorities",
+    reason: "Moisture-rich detangling support for dry or brittle strands.",
+    imageUrl: "/Amazon hc.jpg",
+    votes: { yes: 0, no: 0, abstain: 0 }
+  },
+  {
+    id: "seed-rec-3",
+    type: "Recommendation",
+    category: "Recommendations",
+    name: "The Majorities Hair Oil",
+    company: "The Majorities",
+    reason: "Lightweight shine and split-end smoothing without heavy buildup.",
+    imageUrl: "/amazon HO.jpg",
+    votes: { yes: 0, no: 0, abstain: 0 }
+  },
+  {
+    id: "seed-rec-4",
+    type: "Recommendation",
+    category: "Recommendations",
+    name: "The Majorities Facial Scrub",
+    company: "The Majorities",
+    reason: "Dual-action exfoliation for texture and clogged pores.",
+    imageUrl: "/Amazon fs.jpg",
+    votes: { yes: 0, no: 0, abstain: 0 }
+  },
+  {
+    id: "seed-rec-5",
+    type: "Recommendation",
+    category: "Recommendations",
+    name: "The Majorities Face Toner",
+    company: "The Majorities",
+    reason: "Clarifying hydration step that supports balanced skin.",
+    imageUrl: "/Amazon FT.jpg",
+    votes: { yes: 0, no: 0, abstain: 0 }
+  },
+  {
+    id: "seed-rec-6",
+    type: "Recommendation",
+    category: "Recommendations",
+    name: "The Majorities Lotion",
+    company: "The Majorities",
+    reason: "Barrier-supporting moisture for hands and body.",
+    imageUrl: "/Lotion Front.jpg",
+    votes: { yes: 0, no: 0, abstain: 0 }
+  },
+  {
+    id: "seed-partner-1",
+    type: "Partner",
+    category: "Partners",
+    company: "The Majorities",
+    product: "Community Pop-up Collaboration",
+    desc: "Open call for pop-up partners focused on beauty education and product testing.",
+    whyPartner: "We want to co-host neighborhood sessions that gather real routine feedback.",
+    audience: "Local beauty communities and creators",
+    units: "Event-based",
+    tier: "National Associate",
+    submittedBy: "partners@themajorities.com"
+  }
+];
+
 export default function App() {
   const [isLoggedIn, setisLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState("");
@@ -41,7 +137,7 @@ export default function App() {
   const [tokens, setTokens] = useState(0);
   const [savedSets, setSavedSets] = useState([]);
   const [userAvatar, setUserAvatar] = useState("");
-  const [dumaItems, setDumaItems] = useState([{ id: 1, type: "Partner", company: "EcoHair Labs", product: "Silk Serum", desc: "Organic serum for hair.", section: "Commerce", submitterRank: "Comrade" }]);
+  const [dumaItems, setDumaItems] = useState(INITIAL_DUMA_ITEMS);
   const [following, setFollowing] = useState([]);
   const isMobile = useIsMobile();
 

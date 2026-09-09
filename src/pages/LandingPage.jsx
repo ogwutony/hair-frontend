@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { trackEvent } from '../components/AdMonetization';
-import { productsData } from '../utils/constants';
+import { productsData, PRODUCT_IMAGE_BY_NAME } from '../utils/constants';
 import { calculateSetTotals, formatCurrency, getProductCommerceConfig, submitShopifyCheckout } from '../utils/helpers';
 import { styles } from '../utils/styles';
 
@@ -73,12 +73,17 @@ const renderRow = (label, category) => (
 {productsData[category].map(item => {
 const isSelected = selection.some(i => i.name === item.name);
 const { pricing } = getProductCommerceConfig(item.name);
+const resolvedImage = item.imageUrl || item.images?.[0] || PRODUCT_IMAGE_BY_NAME[item.name] || '/logo192.png';
 return (
 <div key={item.name} onClick={() => handleSelect(item)} style={{ ...styles.card, border: isSelected ? "2px solid #222" : "1px solid #eee" }}>
 
 <img
-src={item.imageUrl}
+src={resolvedImage}
 alt={item.name}
+onError={(e) => {
+e.currentTarget.onerror = null;
+e.currentTarget.src = PRODUCT_IMAGE_BY_NAME[item.name] || '/logo192.png';
+}}
 style={{ width: '100%', height: '120px', objectFit: 'contain', borderRadius: '10px', backgroundColor: '#f0f0f0', marginBottom: '8px' }}
 />
 

@@ -3,7 +3,7 @@
 
 export const styles = {
   pageWrapper: { fontFamily: 'Inter, sans-serif', color: '#222' },
-  header: { display: "flex", justifyContent: "space-between", padding: "15px 60px", borderBottom: "1px solid #eee", alignItems: 'center' },
+  header: { display: "flex", justifyContent: "space-between", padding: "15px 60px", paddingTop: "calc(15px + env(safe-area-inset-top, 0px))", borderBottom: "1px solid #eee", alignItems: 'center' },
   logo: { fontSize: "18px", fontWeight: "700" },
   nav: { display: "flex", gap: "25px", fontSize: "13px", alignItems: 'center' },
   navLink: { textDecoration: 'none', color: '#222', fontWeight: '500' },

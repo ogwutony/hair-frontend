@@ -1,6 +1,6 @@
 // src/pages/PerspectivesPage.jsx
 import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { CredentialHeader } from '../components/CredentialHeader';
 import { MediaModal } from '../components/MediaModal';
 import { RankBadge } from '../components/RankBadge';
@@ -81,10 +81,13 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
   };
 
   useEffect(() => {
-    const relevantItems = allItems.filter(item =>
-      selectedFollowing.includes(item.submittedBy) ||
-      (item.submittedBy && item.submittedBy.toLowerCase() === userEmail?.toLowerCase())
-    );
+    const perspectiveItems = allItems.filter(item => item.category === "Culture" || item.type === "Culture" || item.type === "Video");
+    const relevantItems = selectedFollowing.length === 0
+      ? perspectiveItems
+      : perspectiveItems.filter(item =>
+          selectedFollowing.includes(item.submittedBy) ||
+          (item.submittedBy && item.submittedBy.toLowerCase() === userEmail?.toLowerCase())
+        );
 
     const sorted = relevantItems.sort((a, b) => {
       const aTime = new Date(a.createdAt || a.updatedAt || a.timestamp || 0).getTime() || 0;
@@ -123,7 +126,7 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
   };
 
   return (
-    <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
+    <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto', position: 'relative' }}>
         <MediaModal media={activeMedia} onClose={() => setActiveMedia(null)} />
         <div style={{ marginBottom: '30px' }}>
           <h2 style={{ marginBottom: '6px' }}>My Perspectives</h2>
@@ -297,6 +300,31 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
             ))
           )}
         </div>
+        <Link
+          to="/culture"
+          style={{
+            position: 'fixed',
+            right: '20px',
+            bottom: '24px',
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            background: '#222',
+            color: '#fff',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '28px',
+            lineHeight: 1,
+            textDecoration: 'none',
+            boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
+            zIndex: 1000
+          }}
+          aria-label="Add perspective"
+          title="Add perspective"
+        >
+          +
+        </Link>
     </div>
   );
 };

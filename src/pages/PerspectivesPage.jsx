@@ -154,11 +154,12 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
           });
         }
 
-        const incomingMessages = Array.isArray(data.receivedMessages)
-          ? data.receivedMessages
-          : Array.isArray(data.messages)
-            ? data.messages
-            : [];
+        const incomingMessages = [
+          ...(Array.isArray(data.receivedMessages) ? data.receivedMessages : []),
+          ...(Array.isArray(data.sentMessages) ? data.sentMessages : []),
+          ...(Array.isArray(data.outgoingMessages) ? data.outgoingMessages : []),
+          ...(Array.isArray(data.messages) ? data.messages : [])
+        ];
 
         const profileMessages = {};
         incomingMessages.forEach(message => {
@@ -316,13 +317,13 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
 
     return (
       <div style={{ display: 'grid', gap: '8px' }}>
-        {people.map((person, index) => {
+        {people.map((person) => {
           const personEmail = getPersonEmail(person);
           if (!personEmail) return null;
           const isFollowing = selectedFollowing.includes(personEmail);
 
           return (
-            <div key={`${personEmail}-${index}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '10px 12px', border: '1px solid #eee', borderRadius: '8px' }}>
+            <div key={personEmail} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '10px 12px', border: '1px solid #eee', borderRadius: '8px' }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: '13px', fontWeight: '600', color: '#222', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {getPersonLabel(person, nameByUser)}

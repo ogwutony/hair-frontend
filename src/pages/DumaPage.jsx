@@ -1,5 +1,5 @@
 // src/pages/DumaPage.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useIsMobile } from '../utils/useIsMobile';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
@@ -23,6 +23,7 @@ const [marketplaceListings, setMarketplaceListings] = useState([]);
 const [boostingId, setBoostingId] = useState(null);
 const [socialFeedLoaded, setSocialFeedLoaded] = useState(false);
 const [socialFeedUnavailable, setSocialFeedUnavailable] = useState(false);
+const socialFeedFallbackLocked = useRef(false);
 const socialFeedUrl = process.env.REACT_APP_SOCIAL_FEED_URL;
 const getRecommendationImage = (item) => item.imageUrl || PRODUCT_IMAGE_BY_NAME[item.name] || PRODUCT_IMAGE_BY_NAME[item.product] || null;
 const getItemId = (itemOrId) => String(typeof itemOrId === 'object' ? itemOrId?._id || itemOrId?.id || '' : itemOrId || '');
@@ -63,9 +64,11 @@ if (Array.isArray(data)) setMarketplaceListings(data);
 
 useEffect(() => {
 if (!socialFeedUrl) return undefined;
+socialFeedFallbackLocked.current = false;
 setSocialFeedLoaded(false);
 setSocialFeedUnavailable(false);
 const fallbackTimer = window.setTimeout(() => {
+socialFeedFallbackLocked.current = true;
 setSocialFeedUnavailable(true);
 }, 5000);
 return () => window.clearTimeout(fallbackTimer);
@@ -213,6 +216,7 @@ The live social feed is unavailable right now.
 </div>
 ) : (
 <iframe title="Live #TheMajorities social feed" src={socialFeedUrl} style={{ display: socialFeedLoaded ? 'block' : 'none', width: '100%', minHeight: '420px', border: 0 }} loading="lazy" onLoad={() => {
+if (socialFeedFallbackLocked.current) return;
 setSocialFeedLoaded(true);
 setSocialFeedUnavailable(false);
 }} />

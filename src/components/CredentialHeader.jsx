@@ -55,7 +55,7 @@ export const CredentialHeader = ({ email, displayName, rankTitle, rankScore, ava
       {profileLink ? (
         <Link
           to={profileLink}
-          style={{ fontWeight: '600', fontSize: '14px', color: '#333', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '220px', textDecoration: 'none' }}
+          style={{ fontWeight: '600', fontSize: '14px', color: '#1f4f99', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '220px', textDecoration: 'underline', textUnderlineOffset: '2px' }}
         >
           {nameToDisplay}
         </Link>

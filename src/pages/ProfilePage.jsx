@@ -32,9 +32,9 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
   });
   
   const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", snapchat: "idle" });
-  const [followersList] = useState([]);
-  const [followingList] = useState([]);
-  const [directMessages] = useState([]);
+  const [followersList, setFollowersList] = useState([]);
+  const [followingList, setFollowingList] = useState([]);
+  const [directMessages, setDirectMessages] = useState([]);
   const [showFollowers, setShowFollowers] = useState(true);
   const [showFollowing, setShowFollowing] = useState(true);
   const [showDirectMessages, setShowDirectMessages] = useState(true);
@@ -83,6 +83,13 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
         setAvatarSlots(mappedSlots);
       }
       if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
+      if (Array.isArray(data.followers)) setFollowersList(data.followers);
+      if (Array.isArray(data.following)) setFollowingList(data.following);
+      if (Array.isArray(data.receivedMessages)) {
+        setDirectMessages(data.receivedMessages);
+      } else if (Array.isArray(data.messages)) {
+        setDirectMessages(data.messages);
+      }
     }).catch(err => console.error('Failed to load profile:', err));
   }, [authToken, onAvatarUpdate, userEmail]);
 
@@ -779,13 +786,15 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
             <button
               type="button"
               onClick={() => setShowFollowers(prev => !prev)}
+              aria-expanded={showFollowers}
+              aria-controls="profile-followers-panel"
               style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', fontWeight: '600', color: '#222' }}
             >
               <span>Followers ({followersList.length})</span>
               <span style={{ fontSize: '18px', lineHeight: 1 }}>{showFollowers ? '▾' : '▸'}</span>
             </button>
             {showFollowers && (
-              <p style={{ color: '#888', fontSize: '13px', margin: '12px 0 0 0' }}>No followers yet.</p>
+              <p id="profile-followers-panel" style={{ color: '#888', fontSize: '13px', margin: '12px 0 0 0' }}>No followers yet.</p>
             )}
           </div>
 
@@ -793,13 +802,15 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
             <button
               type="button"
               onClick={() => setShowFollowing(prev => !prev)}
+              aria-expanded={showFollowing}
+              aria-controls="profile-following-panel"
               style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', fontWeight: '600', color: '#222' }}
             >
               <span>Following ({followingList.length})</span>
               <span style={{ fontSize: '18px', lineHeight: 1 }}>{showFollowing ? '▾' : '▸'}</span>
             </button>
             {showFollowing && (
-              <p style={{ color: '#888', fontSize: '13px', margin: '12px 0 0 0' }}>You are not following anyone yet.</p>
+              <p id="profile-following-panel" style={{ color: '#888', fontSize: '13px', margin: '12px 0 0 0' }}>You are not following anyone yet.</p>
             )}
           </div>
 
@@ -807,13 +818,15 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
             <button
               type="button"
               onClick={() => setShowDirectMessages(prev => !prev)}
+              aria-expanded={showDirectMessages}
+              aria-controls="profile-direct-messages-panel"
               style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', fontWeight: '600', color: '#222' }}
             >
               <span>Direct Messages</span>
               <span style={{ fontSize: '18px', lineHeight: 1 }}>{showDirectMessages ? '▾' : '▸'}</span>
             </button>
             {showDirectMessages && (
-              <p style={{ color: '#888', fontSize: '13px', margin: '12px 0 0 0' }}>
+              <p id="profile-direct-messages-panel" style={{ color: '#888', fontSize: '13px', margin: '12px 0 0 0' }}>
                 {directMessages.length === 0 ? 'No received messages yet.' : `${directMessages.length} messages`}
               </p>
             )}

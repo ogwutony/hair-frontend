@@ -83,12 +83,14 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
         setAvatarSlots(mappedSlots);
       }
       if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
-      if (Array.isArray(data.followers)) setFollowersList(data.followers);
-      if (Array.isArray(data.following)) setFollowingList(data.following);
+      setFollowersList(Array.isArray(data.followers) ? data.followers : []);
+      setFollowingList(Array.isArray(data.following) ? data.following : []);
       if (Array.isArray(data.receivedMessages)) {
         setDirectMessages(data.receivedMessages);
       } else if (Array.isArray(data.messages)) {
         setDirectMessages(data.messages);
+      } else {
+        setDirectMessages([]);
       }
     }).catch(err => console.error('Failed to load profile:', err));
   }, [authToken, onAvatarUpdate, userEmail]);
@@ -857,7 +859,13 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
                   <ul style={{ margin: 0, paddingLeft: '18px', color: '#333', fontSize: '13px', display: 'grid', gap: '8px' }}>
                     {directMessages.map((message, index) => (
                       <li key={`${message?._id || message?.id || 'dm'}-${index}`} style={{ lineHeight: '1.45' }}>
-                        <strong>{message?.sender || message?.from || 'User'}:</strong> {message?.text || message?.body || message?.content || String(message)}
+                        {message && typeof message === 'object' ? (
+                          <>
+                            <strong>{message?.sender || message?.from || 'User'}:</strong> {message?.text || message?.body || message?.content || ''}
+                          </>
+                        ) : (
+                          String(message)
+                        )}
                       </li>
                     ))}
                   </ul>

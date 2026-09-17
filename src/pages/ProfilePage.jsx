@@ -1,5 +1,5 @@
 // src/pages/ProfilePage.jsx
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIsMobile } from '../utils/useIsMobile';
 import { Link, useNavigate } from 'react-router-dom';
 import { LocationAutocomplete } from '../components/LocationAutocomplete';
@@ -37,7 +37,10 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
   const [followersUsers, setFollowersUsers] = useState([]);
   const [openComposerFor, setOpenComposerFor] = useState(null);
   const [messageDrafts, setMessageDrafts] = useState({});
+  const [messageStatusByUser, setMessageStatusByUser] = useState({});
   const [receivedMessages, setReceivedMessages] = useState([]);
+  const [isFollowersOpen, setIsFollowersOpen] = useState(false);
+  const [isFollowingOpen, setIsFollowingOpen] = useState(false);
 
   const blobAvatarUrlRef = React.useRef(null);
 
@@ -121,29 +124,36 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
       .catch(() => {});
   }, [userEmail]);
 
-  useEffect(() => {
-    if (!userEmail) return;
-    const inboxKey = `directMessagesInbox_${userEmail.toLowerCase()}`;
-    const loadInbox = () => {
-      try {
-        const stored = JSON.parse(localStorage.getItem(inboxKey) || "[]");
-        if (!Array.isArray(stored)) {
-          setReceivedMessages([]);
-          return;
-        }
-        setReceivedMessages(
-          stored
-            .filter((message) => message && typeof message.text === "string" && message.text.trim())
-            .sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime())
-        );
-      } catch {
+  const loadReceivedMessages = useCallback(async () => {
+    if (!authToken || !userEmail) {
+      setReceivedMessages([]);
+      return;
+    }
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/profile/messages?recipient=${encodeURIComponent(userEmail.toLowerCase())}`, {
+        headers: { Authorization: 'Bearer ' + authToken }
+      });
+      if (!response.ok) {
         setReceivedMessages([]);
+        return;
       }
-    };
-    loadInbox();
-    window.addEventListener("focus", loadInbox);
-    return () => window.removeEventListener("focus", loadInbox);
-  }, [userEmail]);
+      const data = await response.json();
+      if (!Array.isArray(data)) {
+        setReceivedMessages([]);
+        return;
+      }
+      const receivedOnly = data
+        .filter((message) => message && String(message.to || '').toLowerCase() === userEmail.toLowerCase())
+        .sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
+      setReceivedMessages(receivedOnly);
+    } catch {
+      setReceivedMessages([]);
+    }
+  }, [authToken, userEmail]);
+
+  useEffect(() => {
+    loadReceivedMessages();
+  }, [loadReceivedMessages]);
 
   const handleSaveProfileField = async (field, val) => {
     if (!authToken) return;
@@ -503,36 +513,47 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
     }
   };
 
+  const communityUserByEmail = useMemo(() => {
+    const directory = {};
+    communityUsers.forEach((user) => {
+      if (user?.email) directory[user.email] = user;
+    });
+    return directory;
+  }, [communityUsers]);
+
   const getCommunityUser = (email) => {
     const normalized = String(email || "").toLowerCase();
-    return communityUsers.find((user) => user.email === normalized) || {
+    return communityUserByEmail[normalized] || {
       email: normalized,
       accountName: normalized.split("@")[0] || "User",
       thumbnail: null
     };
   };
 
-  const handleSendDirectMessage = (recipientEmail) => {
-    if (!userEmail || !recipientEmail) return;
+  const handleSendDirectMessage = async (recipientEmail) => {
+    if (!authToken || !userEmail || !recipientEmail) return;
     const messageText = messageDrafts[recipientEmail]?.trim();
     if (!messageText) return;
-    const outgoingMessage = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      from: userEmail,
-      to: recipientEmail,
-      text: messageText,
-      timestamp: new Date().toISOString()
-    };
     try {
-      const inboxKey = `directMessagesInbox_${recipientEmail.toLowerCase()}`;
-      const currentInbox = JSON.parse(localStorage.getItem(inboxKey) || "[]");
-      const safeInbox = Array.isArray(currentInbox) ? currentInbox : [];
-      localStorage.setItem(inboxKey, JSON.stringify([outgoingMessage, ...safeInbox].slice(0, 200)));
+      const response = await fetch(`${BACKEND_URL}/api/profile/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: 'Bearer ' + authToken },
+        body: JSON.stringify({ to: recipientEmail, text: messageText })
+      });
+      if (!response.ok) {
+        alert("Unable to send message right now.");
+        setMessageStatusByUser((prev) => ({ ...prev, [recipientEmail]: "error" }));
+        return;
+      }
     } catch {
+      alert("Unable to send message right now.");
+      setMessageStatusByUser((prev) => ({ ...prev, [recipientEmail]: "error" }));
       return;
     }
     setMessageDrafts((prev) => ({ ...prev, [recipientEmail]: "" }));
+    setMessageStatusByUser((prev) => ({ ...prev, [recipientEmail]: "sent" }));
     setOpenComposerFor(null);
+    loadReceivedMessages();
   };
 
   const displayRankScore = backendRankScore || 1;
@@ -541,11 +562,10 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
   const nextRankTitle = getNextRankTitle(displayRankTitle);
   const { currentMin, nextMin, progressPercent } = getRankProgress(displayRankScore, displayRankTitle);
   const percentToNextRank = Math.max(0, 100 - progressPercent);
-  const fallbackConnections = communityUsers.map(user => user.email);
   const normalizedUserEmail = userEmail?.toLowerCase();
-  const resolvedFollowingUsers = (followingUsers.length > 0 ? followingUsers : fallbackConnections)
+  const resolvedFollowingUsers = followingUsers
     .filter((email, idx, all) => email && email !== normalizedUserEmail && all.indexOf(email) === idx);
-  const resolvedFollowersUsers = (followersUsers.length > 0 ? followersUsers : fallbackConnections)
+  const resolvedFollowersUsers = followersUsers
     .filter((email, idx, all) => email && email !== normalizedUserEmail && all.indexOf(email) === idx);
 
   return (
@@ -585,9 +605,18 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
       </div>
 
       <section style={{ marginBottom: '30px', display: 'grid', gap: '14px' }}>
-        <details style={{ border: '1px solid #e0e0e0', borderRadius: '12px', padding: '12px 14px', backgroundColor: '#fff' }}>
-          <summary style={{ cursor: 'pointer', fontSize: '16px', fontWeight: '600' }}>Followers ({resolvedFollowersUsers.length})</summary>
-          <div style={{ display: 'grid', gap: '10px', marginTop: '12px' }}>
+        <div style={{ border: '1px solid #e0e0e0', borderRadius: '12px', padding: '12px 14px', backgroundColor: '#fff' }}>
+          <button
+            type="button"
+            onClick={() => setIsFollowersOpen(prev => !prev)}
+            aria-expanded={isFollowersOpen}
+            aria-controls="followers-list-panel"
+            style={{ cursor: 'pointer', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '16px', fontWeight: '600', background: 'transparent', border: 'none', padding: 0, textAlign: 'left' }}
+          >
+            <span>Followers ({resolvedFollowersUsers.length})</span>
+            <span aria-hidden="true">{isFollowersOpen ? "▾" : "▸"}</span>
+          </button>
+          {isFollowersOpen && <div id="followers-list-panel" role="region" aria-label="Followers list" style={{ display: 'grid', gap: '10px', marginTop: '12px' }}>
             {resolvedFollowersUsers.length === 0 ? (
               <p style={{ margin: 0, fontSize: '13px', color: '#777' }}>No followers yet.</p>
             ) : (
@@ -606,26 +635,43 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
                     </div>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                       <Link to={`/perspectives?person=${encodeURIComponent(email)}`} style={{ fontSize: '12px', color: '#222', fontWeight: '600' }}>View Perspective</Link>
-                      <button type="button" onClick={() => setOpenComposerFor(openComposerFor === email ? null : email)} style={{ border: '1px solid #ddd', background: '#fff', borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}>
+                      <button
+                        type="button"
+                        aria-expanded={openComposerFor === email}
+                        aria-controls={`follower-message-composer-${email}`}
+                        onClick={() => setOpenComposerFor(openComposerFor === email ? null : email)}
+                        style={{ border: '1px solid #ddd', background: '#fff', borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}
+                      >
                         Direct Message
                       </button>
                     </div>
                     {openComposerFor === email && (
-                      <div style={{ display: 'flex', gap: '8px' }}>
+                      <div id={`follower-message-composer-${email}`} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                         <input type="text" value={messageDrafts[email] || ""} onChange={(e) => setMessageDrafts(prev => ({ ...prev, [email]: e.target.value }))} placeholder={`Message ${user.accountName}`} style={{ flex: 1, padding: '8px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '12px' }} />
                         <button type="button" onClick={() => handleSendDirectMessage(email)} style={{ border: 'none', background: '#222', color: '#fff', borderRadius: '6px', padding: '8px 12px', fontSize: '12px', cursor: 'pointer' }}>Send</button>
+                        {messageStatusByUser[email] === "error" && <span style={{ fontSize: '11px', color: '#c0392b' }}>Failed to send.</span>}
                       </div>
                     )}
+                    {messageStatusByUser[email] === "sent" && <span style={{ fontSize: '11px', color: '#2d6a4f' }}>Message sent.</span>}
                   </div>
                 );
               })
             )}
-          </div>
-        </details>
+          </div>}
+        </div>
 
-        <details style={{ border: '1px solid #e0e0e0', borderRadius: '12px', padding: '12px 14px', backgroundColor: '#fff' }}>
-          <summary style={{ cursor: 'pointer', fontSize: '16px', fontWeight: '600' }}>Following ({resolvedFollowingUsers.length})</summary>
-          <div style={{ display: 'grid', gap: '10px', marginTop: '12px' }}>
+        <div style={{ border: '1px solid #e0e0e0', borderRadius: '12px', padding: '12px 14px', backgroundColor: '#fff' }}>
+          <button
+            type="button"
+            onClick={() => setIsFollowingOpen(prev => !prev)}
+            aria-expanded={isFollowingOpen}
+            aria-controls="following-list-panel"
+            style={{ cursor: 'pointer', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '16px', fontWeight: '600', background: 'transparent', border: 'none', padding: 0, textAlign: 'left' }}
+          >
+            <span>Following ({resolvedFollowingUsers.length})</span>
+            <span aria-hidden="true">{isFollowingOpen ? "▾" : "▸"}</span>
+          </button>
+          {isFollowingOpen && <div id="following-list-panel" role="region" aria-label="Following list" style={{ display: 'grid', gap: '10px', marginTop: '12px' }}>
             {resolvedFollowingUsers.length === 0 ? (
               <p style={{ margin: 0, fontSize: '13px', color: '#777' }}>You are not following anyone yet.</p>
             ) : (
@@ -644,22 +690,30 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
                     </div>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                       <Link to={`/perspectives?person=${encodeURIComponent(email)}`} style={{ fontSize: '12px', color: '#222', fontWeight: '600' }}>View Perspective</Link>
-                      <button type="button" onClick={() => setOpenComposerFor(openComposerFor === email ? null : email)} style={{ border: '1px solid #ddd', background: '#fff', borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}>
+                      <button
+                        type="button"
+                        aria-expanded={openComposerFor === email}
+                        aria-controls={`following-message-composer-${email}`}
+                        onClick={() => setOpenComposerFor(openComposerFor === email ? null : email)}
+                        style={{ border: '1px solid #ddd', background: '#fff', borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}
+                      >
                         Direct Message
                       </button>
                     </div>
                     {openComposerFor === email && (
-                      <div style={{ display: 'flex', gap: '8px' }}>
+                      <div id={`following-message-composer-${email}`} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                         <input type="text" value={messageDrafts[email] || ""} onChange={(e) => setMessageDrafts(prev => ({ ...prev, [email]: e.target.value }))} placeholder={`Message ${user.accountName}`} style={{ flex: 1, padding: '8px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '12px' }} />
                         <button type="button" onClick={() => handleSendDirectMessage(email)} style={{ border: 'none', background: '#222', color: '#fff', borderRadius: '6px', padding: '8px 12px', fontSize: '12px', cursor: 'pointer' }}>Send</button>
+                        {messageStatusByUser[email] === "error" && <span style={{ fontSize: '11px', color: '#c0392b' }}>Failed to send.</span>}
                       </div>
                     )}
+                    {messageStatusByUser[email] === "sent" && <span style={{ fontSize: '11px', color: '#2d6a4f' }}>Message sent.</span>}
                   </div>
                 );
               })
             )}
-          </div>
-        </details>
+          </div>}
+        </div>
 
         <div style={{ border: '1px solid #e0e0e0', borderRadius: '12px', padding: '14px', backgroundColor: '#fff' }}>
           <h2 style={{ fontSize: '16px', margin: '0 0 10px 0', fontWeight: '600' }}>Direct Messages</h2>
@@ -667,12 +721,14 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
             <p style={{ margin: 0, fontSize: '13px', color: '#777' }}>No received messages yet.</p>
           ) : (
             <div style={{ display: 'grid', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
-              {receivedMessages.map((message) => {
+              {receivedMessages.map((message, index) => {
                 const sender = getCommunityUser(message.from);
+                const timestampValue = new Date(message.timestamp || '').getTime();
+                const formattedTimestamp = Number.isNaN(timestampValue) ? 'Unknown time' : new Date(timestampValue).toLocaleString();
                 return (
-                  <div key={message.id} style={{ border: '1px solid #eee', borderRadius: '8px', padding: '10px' }}>
+                  <div key={message.id || `${message.from || 'sender'}-${message.to || 'recipient'}-${message.timestamp || 'time'}-${index}`} style={{ border: '1px solid #eee', borderRadius: '8px', padding: '10px' }}>
                     <div style={{ fontSize: '12px', color: '#555', marginBottom: '4px' }}>
-                      <strong>{sender.accountName}</strong> · {new Date(message.timestamp).toLocaleString()}
+                      <strong>{sender.accountName}</strong> · {formattedTimestamp}
                     </div>
                     <div style={{ fontSize: '13px', color: '#222' }}>{message.text}</div>
                   </div>

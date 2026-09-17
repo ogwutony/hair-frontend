@@ -1,5 +1,5 @@
 // src/pages/ProfilePage.jsx
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIsMobile } from '../utils/useIsMobile';
 import { Link, useNavigate } from 'react-router-dom';
 import { LocationAutocomplete } from '../components/LocationAutocomplete';
@@ -32,6 +32,15 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
   });
   
   const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", snapchat: "idle" });
+  const [communityUsers, setCommunityUsers] = useState([]);
+  const [followingUsers, setFollowingUsers] = useState([]);
+  const [followersUsers, setFollowersUsers] = useState([]);
+  const [openComposerFor, setOpenComposerFor] = useState(null);
+  const [messageDrafts, setMessageDrafts] = useState({});
+  const [messageStatusByUser, setMessageStatusByUser] = useState({});
+  const [receivedMessages, setReceivedMessages] = useState([]);
+  const [isFollowersOpen, setIsFollowersOpen] = useState(false);
+  const [isFollowingOpen, setIsFollowingOpen] = useState(false);
 
   const blobAvatarUrlRef = React.useRef(null);
 
@@ -66,6 +75,12 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
       }
       if (data.displayName) setDisplayName(data.displayName);
       if (data.location) setUserLocation(data.location);
+      if (Array.isArray(data.following)) {
+        setFollowingUsers(data.following.filter(Boolean).map(email => String(email).toLowerCase()));
+      }
+      if (Array.isArray(data.followers)) {
+        setFollowersUsers(data.followers.filter(Boolean).map(email => String(email).toLowerCase()));
+      }
       const localSlotsStr = (() => { try { return localStorage.getItem(`avatarSlots_${userEmail}`); } catch { return null; } })();
       const loadedSlotUrls = data.avatarSlots || (localSlotsStr ? JSON.parse(localSlotsStr) : null);
       if (loadedSlotUrls && Array.isArray(loadedSlotUrls)) {
@@ -79,6 +94,66 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
       if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
     }).catch(err => console.error('Failed to load profile:', err));
   }, [authToken, onAvatarUpdate, userEmail]);
+
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/api/duma`)
+      .then(r => r.json())
+      .then(data => {
+        if (!Array.isArray(data)) return;
+        const byEmail = new Map();
+        data.forEach((item) => {
+          const email = typeof item?.submittedBy === "string" ? item.submittedBy.trim().toLowerCase() : "";
+          if (!email || email === userEmail?.toLowerCase()) return;
+          if (!byEmail.has(email)) {
+            byEmail.set(email, {
+              email,
+              accountName: item.submitterDisplayName || email.split("@")[0],
+              thumbnail: item.submitterAvatar || null
+            });
+            return;
+          }
+          const prev = byEmail.get(email);
+          byEmail.set(email, {
+            email,
+            accountName: prev.accountName || item.submitterDisplayName || email.split("@")[0],
+            thumbnail: prev.thumbnail || item.submitterAvatar || null
+          });
+        });
+        setCommunityUsers(Array.from(byEmail.values()));
+      })
+      .catch(() => {});
+  }, [userEmail]);
+
+  const loadReceivedMessages = useCallback(async () => {
+    if (!authToken || !userEmail) {
+      setReceivedMessages([]);
+      return;
+    }
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/profile/messages?recipient=${encodeURIComponent(userEmail.toLowerCase())}`, {
+        headers: { Authorization: 'Bearer ' + authToken }
+      });
+      if (!response.ok) {
+        setReceivedMessages([]);
+        return;
+      }
+      const data = await response.json();
+      if (!Array.isArray(data)) {
+        setReceivedMessages([]);
+        return;
+      }
+      const receivedOnly = data
+        .filter((message) => message && String(message.to || '').toLowerCase() === userEmail.toLowerCase())
+        .sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
+      setReceivedMessages(receivedOnly);
+    } catch {
+      setReceivedMessages([]);
+    }
+  }, [authToken, userEmail]);
+
+  useEffect(() => {
+    loadReceivedMessages();
+  }, [loadReceivedMessages]);
 
   const handleSaveProfileField = async (field, val) => {
     if (!authToken) return;
@@ -438,14 +513,60 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
     }
   };
 
+  const communityUserByEmail = useMemo(() => {
+    const directory = {};
+    communityUsers.forEach((user) => {
+      if (user?.email) directory[user.email] = user;
+    });
+    return directory;
+  }, [communityUsers]);
+
+  const getCommunityUser = (email) => {
+    const normalized = String(email || "").toLowerCase();
+    return communityUserByEmail[normalized] || {
+      email: normalized,
+      accountName: normalized.split("@")[0] || "User",
+      thumbnail: null
+    };
+  };
+
+  const handleSendDirectMessage = async (recipientEmail) => {
+    if (!authToken || !userEmail || !recipientEmail) return;
+    const messageText = messageDrafts[recipientEmail]?.trim();
+    if (!messageText) return;
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/profile/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: 'Bearer ' + authToken },
+        body: JSON.stringify({ to: recipientEmail, text: messageText })
+      });
+      if (!response.ok) {
+        alert("Unable to send message right now.");
+        setMessageStatusByUser((prev) => ({ ...prev, [recipientEmail]: "error" }));
+        return;
+      }
+    } catch {
+      alert("Unable to send message right now.");
+      setMessageStatusByUser((prev) => ({ ...prev, [recipientEmail]: "error" }));
+      return;
+    }
+    setMessageDrafts((prev) => ({ ...prev, [recipientEmail]: "" }));
+    setMessageStatusByUser((prev) => ({ ...prev, [recipientEmail]: "sent" }));
+    setOpenComposerFor(null);
+    loadReceivedMessages();
+  };
+
   const displayRankScore = backendRankScore || 1;
   const displayRankTitle = backendRankTitle || 'Comrade';
   const pointsToNextRank = getPointsToNextRank(displayRankScore, displayRankTitle);
   const nextRankTitle = getNextRankTitle(displayRankTitle);
   const { currentMin, nextMin, progressPercent } = getRankProgress(displayRankScore, displayRankTitle);
-  const hasProfilePicture = Boolean(avatarUrl);
-  const hasLocation = Boolean(userLocation?.trim());
   const percentToNextRank = Math.max(0, 100 - progressPercent);
+  const normalizedUserEmail = userEmail?.toLowerCase();
+  const resolvedFollowingUsers = followingUsers
+    .filter((email, idx, all) => email && email !== normalizedUserEmail && all.indexOf(email) === idx);
+  const resolvedFollowersUsers = followersUsers
+    .filter((email, idx, all) => email && email !== normalizedUserEmail && all.indexOf(email) === idx);
 
   return (
     <div style={{ padding: isMobile ? '25px 16px' : '40px 60px', maxWidth: '900px', margin: '0 auto' }}>
@@ -483,17 +604,138 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
         )}
       </div>
 
-      <section style={{ marginBottom: '30px' }}>
-        <h2 style={{ fontSize: '18px', marginBottom: '12px', fontWeight: '600' }}>Complete Your Profile</h2>
-        <div style={{ display: 'grid', gap: '10px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#333' }}>
-            <input type="checkbox" checked={hasProfilePicture} readOnly />
-            Add a profile photo
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#333' }}>
-            <input type="checkbox" checked={hasLocation} readOnly />
-            Set your location
-          </label>
+      <section style={{ marginBottom: '30px', display: 'grid', gap: '14px' }}>
+        <div style={{ border: '1px solid #e0e0e0', borderRadius: '12px', padding: '12px 14px', backgroundColor: '#fff' }}>
+          <button
+            type="button"
+            onClick={() => setIsFollowersOpen(prev => !prev)}
+            aria-expanded={isFollowersOpen}
+            aria-controls="followers-list-panel"
+            style={{ cursor: 'pointer', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '16px', fontWeight: '600', background: 'transparent', border: 'none', padding: 0, textAlign: 'left' }}
+          >
+            <span>Followers ({resolvedFollowersUsers.length})</span>
+            <span aria-hidden="true">{isFollowersOpen ? "▾" : "▸"}</span>
+          </button>
+          {isFollowersOpen && <div id="followers-list-panel" role="region" aria-label="Followers list" style={{ display: 'grid', gap: '10px', marginTop: '12px' }}>
+            {resolvedFollowersUsers.length === 0 ? (
+              <p style={{ margin: 0, fontSize: '13px', color: '#777' }}>No followers yet.</p>
+            ) : (
+              resolvedFollowersUsers.map((email) => {
+                const user = getCommunityUser(email);
+                return (
+                  <div key={`follower-${email}`} style={{ border: '1px solid #eee', borderRadius: '10px', padding: '10px', display: 'grid', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ width: '38px', height: '38px', borderRadius: '50%', overflow: 'hidden', backgroundColor: '#efefef', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {user.thumbnail ? <img src={user.thumbnail} alt={user.accountName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '12px', fontWeight: '700' }}>{user.accountName[0]?.toUpperCase() || '?'}</span>}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#222' }}>{user.accountName}</div>
+                        <div style={{ fontSize: '12px', color: '#777', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <Link to={`/perspectives?person=${encodeURIComponent(email)}`} style={{ fontSize: '12px', color: '#222', fontWeight: '600' }}>View Perspective</Link>
+                      <button
+                        type="button"
+                        aria-expanded={openComposerFor === email}
+                        aria-controls={`follower-message-composer-${email}`}
+                        onClick={() => setOpenComposerFor(openComposerFor === email ? null : email)}
+                        style={{ border: '1px solid #ddd', background: '#fff', borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}
+                      >
+                        Direct Message
+                      </button>
+                    </div>
+                    {openComposerFor === email && (
+                      <div id={`follower-message-composer-${email}`} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <input type="text" value={messageDrafts[email] || ""} onChange={(e) => setMessageDrafts(prev => ({ ...prev, [email]: e.target.value }))} placeholder={`Message ${user.accountName}`} style={{ flex: 1, padding: '8px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '12px' }} />
+                        <button type="button" onClick={() => handleSendDirectMessage(email)} style={{ border: 'none', background: '#222', color: '#fff', borderRadius: '6px', padding: '8px 12px', fontSize: '12px', cursor: 'pointer' }}>Send</button>
+                        {messageStatusByUser[email] === "error" && <span style={{ fontSize: '11px', color: '#c0392b' }}>Failed to send.</span>}
+                      </div>
+                    )}
+                    {messageStatusByUser[email] === "sent" && <span style={{ fontSize: '11px', color: '#2d6a4f' }}>Message sent.</span>}
+                  </div>
+                );
+              })
+            )}
+          </div>}
+        </div>
+
+        <div style={{ border: '1px solid #e0e0e0', borderRadius: '12px', padding: '12px 14px', backgroundColor: '#fff' }}>
+          <button
+            type="button"
+            onClick={() => setIsFollowingOpen(prev => !prev)}
+            aria-expanded={isFollowingOpen}
+            aria-controls="following-list-panel"
+            style={{ cursor: 'pointer', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '16px', fontWeight: '600', background: 'transparent', border: 'none', padding: 0, textAlign: 'left' }}
+          >
+            <span>Following ({resolvedFollowingUsers.length})</span>
+            <span aria-hidden="true">{isFollowingOpen ? "▾" : "▸"}</span>
+          </button>
+          {isFollowingOpen && <div id="following-list-panel" role="region" aria-label="Following list" style={{ display: 'grid', gap: '10px', marginTop: '12px' }}>
+            {resolvedFollowingUsers.length === 0 ? (
+              <p style={{ margin: 0, fontSize: '13px', color: '#777' }}>You are not following anyone yet.</p>
+            ) : (
+              resolvedFollowingUsers.map((email) => {
+                const user = getCommunityUser(email);
+                return (
+                  <div key={`following-${email}`} style={{ border: '1px solid #eee', borderRadius: '10px', padding: '10px', display: 'grid', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ width: '38px', height: '38px', borderRadius: '50%', overflow: 'hidden', backgroundColor: '#efefef', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {user.thumbnail ? <img src={user.thumbnail} alt={user.accountName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '12px', fontWeight: '700' }}>{user.accountName[0]?.toUpperCase() || '?'}</span>}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#222' }}>{user.accountName}</div>
+                        <div style={{ fontSize: '12px', color: '#777', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <Link to={`/perspectives?person=${encodeURIComponent(email)}`} style={{ fontSize: '12px', color: '#222', fontWeight: '600' }}>View Perspective</Link>
+                      <button
+                        type="button"
+                        aria-expanded={openComposerFor === email}
+                        aria-controls={`following-message-composer-${email}`}
+                        onClick={() => setOpenComposerFor(openComposerFor === email ? null : email)}
+                        style={{ border: '1px solid #ddd', background: '#fff', borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}
+                      >
+                        Direct Message
+                      </button>
+                    </div>
+                    {openComposerFor === email && (
+                      <div id={`following-message-composer-${email}`} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <input type="text" value={messageDrafts[email] || ""} onChange={(e) => setMessageDrafts(prev => ({ ...prev, [email]: e.target.value }))} placeholder={`Message ${user.accountName}`} style={{ flex: 1, padding: '8px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '12px' }} />
+                        <button type="button" onClick={() => handleSendDirectMessage(email)} style={{ border: 'none', background: '#222', color: '#fff', borderRadius: '6px', padding: '8px 12px', fontSize: '12px', cursor: 'pointer' }}>Send</button>
+                        {messageStatusByUser[email] === "error" && <span style={{ fontSize: '11px', color: '#c0392b' }}>Failed to send.</span>}
+                      </div>
+                    )}
+                    {messageStatusByUser[email] === "sent" && <span style={{ fontSize: '11px', color: '#2d6a4f' }}>Message sent.</span>}
+                  </div>
+                );
+              })
+            )}
+          </div>}
+        </div>
+
+        <div style={{ border: '1px solid #e0e0e0', borderRadius: '12px', padding: '14px', backgroundColor: '#fff' }}>
+          <h2 style={{ fontSize: '16px', margin: '0 0 10px 0', fontWeight: '600' }}>Direct Messages</h2>
+          {receivedMessages.length === 0 ? (
+            <p style={{ margin: 0, fontSize: '13px', color: '#777' }}>No received messages yet.</p>
+          ) : (
+            <div style={{ display: 'grid', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
+              {receivedMessages.map((message, index) => {
+                const sender = getCommunityUser(message.from);
+                const timestampValue = new Date(message.timestamp || '').getTime();
+                const formattedTimestamp = Number.isNaN(timestampValue) ? 'Unknown time' : new Date(timestampValue).toLocaleString();
+                return (
+                  <div key={message.id || `${message.from || 'sender'}-${message.to || 'recipient'}-${message.timestamp || 'time'}-${index}`} style={{ border: '1px solid #eee', borderRadius: '8px', padding: '10px' }}>
+                    <div style={{ fontSize: '12px', color: '#555', marginBottom: '4px' }}>
+                      <strong>{sender.accountName}</strong> · {formattedTimestamp}
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#222' }}>{message.text}</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 

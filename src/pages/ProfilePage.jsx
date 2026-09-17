@@ -35,9 +35,9 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
   const [followersList, setFollowersList] = useState([]);
   const [followingList, setFollowingList] = useState([]);
   const [directMessages, setDirectMessages] = useState([]);
-  const [showFollowers, setShowFollowers] = useState(true);
-  const [showFollowing, setShowFollowing] = useState(true);
-  const [showDirectMessages, setShowDirectMessages] = useState(true);
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [showFollowing, setShowFollowing] = useState(false);
+  const [showDirectMessages, setShowDirectMessages] = useState(false);
 
   const blobAvatarUrlRef = React.useRef(null);
 

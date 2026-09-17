@@ -27,7 +27,12 @@ const writeStoredDirectMessages = (userEmail, messagesByUser) => {
   if (!storageKey) return;
 
   try {
-    window.localStorage.setItem(storageKey, JSON.stringify(messagesByUser));
+    const pendingMessagesOnly = Object.fromEntries(
+      Object.entries(messagesByUser)
+        .map(([personEmail, thread]) => [personEmail, (thread || []).filter(message => message?.pending)])
+        .filter(([, thread]) => thread.length > 0)
+    );
+    window.localStorage.setItem(storageKey, JSON.stringify(pendingMessagesOnly));
   } catch {}
 };
 
@@ -41,6 +46,12 @@ const getPersonLabel = (person, nameByUser = {}) => {
   if (typeof person === 'object' && person?.displayName) return person.displayName;
   if (email && nameByUser[email]) return nameByUser[email];
   return email ? email.split('@')[0] : 'User';
+};
+
+const getMessageTime = (message) => {
+  const rawValue = message?.sortKey || message?.timestamp || '';
+  const parsedValue = rawValue ? new Date(rawValue).getTime() : NaN;
+  return Number.isFinite(parsedValue) ? parsedValue : 0;
 };
 
 const mergeDirectMessages = (primaryMessages = {}, secondaryMessages = {}) => {
@@ -62,7 +73,7 @@ const mergeDirectMessages = (primaryMessages = {}, secondaryMessages = {}) => {
     });
 
     if (thread.length > 0) {
-      merged[personEmail] = thread;
+      merged[personEmail] = [...thread].sort((a, b) => getMessageTime(a) - getMessageTime(b));
     }
   });
 
@@ -162,7 +173,8 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
               sender: sender || counterpart,
               recipient: recipient || userEmail,
               text: message.text || message.body || message.content || '',
-              timestamp: message.timestamp || message.createdAt || message.updatedAt || ''
+              timestamp: message.timestamp || message.createdAt || message.updatedAt || '',
+              sortKey: message.createdAt || message.updatedAt || message.timestamp || ''
             }
           ];
         });
@@ -281,7 +293,9 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
       sender: userEmail,
       recipient: recipientEmail,
       text,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      sortKey: new Date().toISOString(),
+      pending: true
     };
 
     setDirectMessages(prev => {
@@ -367,6 +381,7 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
                   <div style={{ fontSize: '13px', fontWeight: '600', color: '#222' }}>{nameByUser[personEmail] || personEmail.split('@')[0]}</div>
                   <div style={{ fontSize: '12px', color: '#888' }}>{personEmail}</div>
                   <div style={{ fontSize: '12px', color: '#555', marginTop: '6px' }}>{latestMessage?.text || 'Start a new conversation'}</div>
+                  {latestMessage?.pending && <div style={{ fontSize: '10px', color: '#888', marginTop: '4px' }}>Pending sync</div>}
                 </button>
               );
             })}
@@ -389,6 +404,7 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
                     <div key={`${activeChatUser}-${index}`} style={{ alignSelf: isOwnMessage ? 'end' : 'start', background: isOwnMessage ? '#222' : '#fff', color: isOwnMessage ? '#fff' : '#222', borderRadius: '10px', padding: '10px 12px', maxWidth: '85%', border: isOwnMessage ? 'none' : '1px solid #eee' }}>
                       <div style={{ fontSize: '12px', lineHeight: '1.4' }}>{message.text}</div>
                       <div style={{ fontSize: '10px', opacity: 0.7, marginTop: '4px' }}>{message.timestamp}</div>
+                      {message.pending && <div style={{ fontSize: '10px', opacity: 0.7, marginTop: '2px' }}>Pending sync</div>}
                     </div>
                   );
                 })

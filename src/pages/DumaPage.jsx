@@ -125,7 +125,7 @@ votes: {
 };
 }));
 try {
-const response = await fetch(`${BACKEND_URL}/api/duma/${itemId}/vote`, {
+const response = await fetch(`${BACKEND_URL}/api/duma/${normalizedItemId}/vote`, {
 method: 'POST',
 headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken },
 body: JSON.stringify({ vote: voteType })

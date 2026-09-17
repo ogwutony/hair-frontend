@@ -458,8 +458,6 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
   const pointsToNextRank = getPointsToNextRank(displayRankScore, displayRankTitle);
   const nextRankTitle = getNextRankTitle(displayRankTitle);
   const { currentMin, nextMin, progressPercent } = getRankProgress(displayRankScore, displayRankTitle);
-  const hasProfilePicture = Boolean(avatarUrl);
-  const hasLocation = Boolean(userLocation?.trim());
   const percentToNextRank = Math.max(0, 100 - progressPercent);
 
   return (
@@ -497,20 +495,6 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
           </div>
         )}
       </div>
-
-      <section style={{ marginBottom: '30px' }}>
-        <h2 style={{ fontSize: '18px', marginBottom: '12px', fontWeight: '600' }}>Complete Your Profile</h2>
-        <div style={{ display: 'grid', gap: '10px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#333' }}>
-            <input type="checkbox" checked={hasProfilePicture} readOnly />
-            Add a profile photo
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#333' }}>
-            <input type="checkbox" checked={hasLocation} readOnly />
-            Set your location
-          </label>
-        </div>
-      </section>
 
       {/* 2. PROFILE PICTURES (UP TO 6) */}
       <section style={{ marginBottom: '40px' }}>

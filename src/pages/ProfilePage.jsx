@@ -6,10 +6,10 @@ import { LocationAutocomplete } from '../components/LocationAutocomplete';
 import { RankBadge } from '../components/RankBadge';
 import { SocialInputRow } from '../components/SocialInputRow';
 import { BACKEND_URL, SOCIAL_FIELDS } from '../utils/constants';
-import { getNextRankTitle, getPointsToNextRank, getRankProgress, getRankTitle, markPromptCompleted } from '../utils/helpers';
+import { getNextRankTitle, getPointsToNextRank, getRankProgress, getRankTitle, markPromptCompleted, normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
 
-export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar, tokens, addDumaItem }) => {
+export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar, tokens, addDumaItem, following = [], followers = [], onFollowUser, onUnfollowUser }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [avatarUrl, setAvatarUrl] = useState(userAvatar || null);
@@ -32,14 +32,22 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
   });
   
   const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", snapchat: "idle" });
-  const [followersList, setFollowersList] = useState([]);
-  const [followingList, setFollowingList] = useState([]);
-  const [directMessages, setDirectMessages] = useState([]);
+  
+  // Community & Follow State
+  const [followersList, setFollowersList] = useState(followers || []);
+  const [followingList, setFollowingList] = useState(following || []);
+  const [avatarByUser, setAvatarByUser] = useState({});
+  const [nameByUser, setNameByUser] = useState({});
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
   const [showDirectMessages, setShowDirectMessages] = useState(false);
 
-  const blobAvatarUrlRef = React.useRef(null);
+  // Direct Messaging state
+  const [activeChatUser, setActiveChatUser] = useState(null);
+  const [directMessages, setDirectMessages] = useState({});
+  const [newMessageText, setNewMessageText] = useState('');
+
+  const blobAvatarUrlRef = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -55,6 +63,33 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
     setBackendRankScore(resolvedScore);
     setBackendRankTitle(getRankTitle(resolvedScore));
   }, [rankScore, rankTitle]);
+
+  // Sync props to state when top-level state updates
+  useEffect(() => {
+    if (Array.isArray(followers)) setFollowersList(followers);
+    if (Array.isArray(following)) setFollowingList(following);
+  }, [followers, following]);
+
+  // Load Duma posts to map avatars, names, and community members
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/api/duma`)
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const nextAvatarMap = {};
+          const nextNameMap = {};
+          data.forEach(item => {
+            if (item?.submittedBy) {
+              if (item.submitterAvatar) nextAvatarMap[item.submittedBy] = item.submitterAvatar;
+              if (item.submitterDisplayName) nextNameMap[item.submittedBy] = item.submitterDisplayName;
+            }
+          });
+          setAvatarByUser(nextAvatarMap);
+          setNameByUser(nextNameMap);
+        }
+      })
+      .catch(err => console.error("Failed to fetch Duma data for profile:", err));
+  }, []);
 
   useEffect(() => {
     if (!authToken) return;
@@ -83,17 +118,35 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
         setAvatarSlots(mappedSlots);
       }
       if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
-      setFollowersList(Array.isArray(data.followers) ? data.followers : []);
-      setFollowingList(Array.isArray(data.following) ? data.following : []);
-      if (Array.isArray(data.receivedMessages)) {
-        setDirectMessages(data.receivedMessages);
-      } else if (Array.isArray(data.messages)) {
-        setDirectMessages(data.messages);
-      } else {
-        setDirectMessages([]);
-      }
+      if (Array.isArray(data.followers) && data.followers.length > 0) setFollowersList(data.followers);
+      if (Array.isArray(data.following) && data.following.length > 0) setFollowingList(data.following);
     }).catch(err => console.error('Failed to load profile:', err));
   }, [authToken, onAvatarUpdate, userEmail]);
+
+  const handleFollowingToggle = (person) => {
+    if (followingList.includes(person)) {
+      onUnfollowUser?.(person);
+      setFollowingList(prev => prev.filter(p => p !== person));
+    } else {
+      onFollowUser?.(person);
+      setFollowingList(prev => [...prev, person]);
+    }
+  };
+
+  const handleSendMessage = (recipientEmail) => {
+    if (!newMessageText.trim()) return;
+    const msg = {
+      sender: userEmail,
+      recipient: recipientEmail,
+      text: newMessageText,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    setDirectMessages(prev => ({
+      ...prev,
+      [recipientEmail]: [...(prev[recipientEmail] || []), msg]
+    }));
+    setNewMessageText('');
+  };
 
   const handleSaveProfileField = async (field, val) => {
     if (!authToken) return;
@@ -147,8 +200,8 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
     }
   };
 
-  const avatarBatchInputRef = React.useRef(null);
-  const dumaBatchInputRef = React.useRef(null);
+  const avatarBatchInputRef = useRef(null);
+  const dumaBatchInputRef = useRef(null);
 
   // --- Post About Anything States ---
   const [postDescription, setCultureResponse] = useState("");
@@ -159,7 +212,6 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
   const [postErrorMsg, setCultureErrorMsg] = useState("");
 
   const perspectivePrompts = [
-    // Brand-Specific Beauty (The Majorities)
     { id: 1, text: "Share a photo or video of your results after using The Majorities products. What changed for your hair or skin?" },
     { id: 2, text: "Show us your before-and-after results with The Majorities. Which products were part of your routine?" },
     { id: 3, text: "Walk us through your wash-day routine using The Majorities shampoo, conditioner, or hair oil." },
@@ -170,8 +222,6 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
     { id: 8, text: "What tips would you give someone trying The Majorities products for the first time?" },
     { id: 9, text: "How often do you use The Majorities shampoo, conditioner, hair oil, scrub, toner, or lotion?" },
     { id: 10, text: "Share the results you notice when you stay consistent with your Majorities routine." },
-    
-    // General Beauty & Personal Care
     { id: 11, text: "Team toner or straight to moisturizer?" },
     { id: 12, text: "How many days do you really go between shampooing?" },
     { id: 13, text: "Facial scrubs: love them or leave them?" },
@@ -186,8 +236,6 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
     { id: 22, text: "Drop your best hack for treating razor bumps!" },
     { id: 23, text: "What was the very first skincare product you ever bought?" },
     { id: 24, text: "What is your #1 tip for clearing up stubborn breakouts?" },
-
-    // Fashion, Shopping & Personal Presentation
     { id: 25, text: "Splurge or save: Which product is always worth the money?" },
     { id: 26, text: "Show us your current OOTD (Outfit of the Day) or favorite wardrobe piece right now!" },
     { id: 27, text: "What is your favorite brand or boutique to shop at for quality clothes or accessories?" },
@@ -261,7 +309,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
     const newlyFilled = [];
     for (const file of files) {
       if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-        alert('Please upload image or lideo files only (JPG, PNG, HEIC, WEBP, MP4, MOV).');
+        alert('Please upload image or video files only (JPG, PNG, HEIC, WEBP, MP4, MOV).');
         continue;
       }
       if (file.size > 100 * 1024 * 1024) {
@@ -453,6 +501,87 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
     }
   };
 
+  const renderUserCard = (person) => {
+    const personEmail = typeof person === 'string' ? person : (person?.email || person?.username || 'user');
+    const isFollowing = followingList.includes(personEmail);
+    const userDisplayName = nameByUser[personEmail] || (typeof person === 'object' && person?.displayName) || personEmail.split('@')[0];
+    const userAvatarUrl = avatarByUser[personEmail] || (typeof person === 'object' && person?.avatar);
+
+    return (
+      <div key={personEmail} style={{ border: isFollowing ? '2px solid #222' : '1px solid #ddd', borderRadius: '8px', padding: '10px', backgroundColor: isFollowing ? '#f9f9f9' : '#fff', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', backgroundColor: '#eee', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {userAvatarUrl ? (
+              /\.(mp4|mov|webm)$/i.test(userAvatarUrl) ? (
+                <video src={normalizeMediaVideoUrl(userAvatarUrl)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay loop muted playsInline />
+              ) : (
+                <img src={userAvatarUrl} alt={userDisplayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              )
+            ) : (
+              <span style={{ fontSize: '14px', fontWeight: '700', color: '#444' }}>{userEmail[0]?.toUpperCase() || '?'}</span>
+            )}
+          </div>
+
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <div style={{ fontSize: '14px', fontWeight: isFollowing ? '700' : '600', color: '#222', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+              {userDisplayName}
+            </div>
+            <div style={{ fontSize: '12px', color: '#888', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+              {personEmail}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              onClick={() => setActiveChatUser(activeChatUser === personEmail ? null : personEmail)}
+              style={{ border: '1px solid #222', background: activeChatUser === personEmail ? '#222' : '#fff', color: activeChatUser === personEmail ? '#fff' : '#222', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', padding: '6px 10px' }}
+            >
+              Message
+            </button>
+            <button
+              onClick={() => handleFollowingToggle(personEmail)}
+              style={{ border: '1px solid #ddd', background: isFollowing ? '#eee' : '#fff', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', padding: '6px 12px' }}
+            >
+              {isFollowing ? 'Unfollow' : 'Follow'}
+            </button>
+          </div>
+        </div>
+
+        {activeChatUser === personEmail && (
+          <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #ccc' }}>
+            <div style={{ maxHeight: '150px', overflowY: 'auto', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {(!directMessages[personEmail] || directMessages[personEmail].length === 0) ? (
+                <p style={{ fontSize: '11px', color: '#999', margin: 0 }}>No messages yet. Send a direct message!</p>
+              ) : (
+                directMessages[personEmail].map((msg, idx) => (
+                  <div key={idx} style={{ alignSelf: msg.sender === userEmail ? 'flex-end' : 'flex-start', backgroundColor: msg.sender === userEmail ? '#222' : '#eee', color: msg.sender === userEmail ? '#fff' : '#222', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', maxWidth: '80%' }}>
+                    <div>{msg.text}</div>
+                    <div style={{ fontSize: '9px', opacity: 0.7, textAlign: 'right', marginTop: '2px' }}>{msg.timestamp}</div>
+                  </div>
+                ))
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <input
+                type="text"
+                placeholder={`Message ${userDisplayName}...`}
+                value={newMessageText}
+                onChange={(e) => setNewMessageText(e.target.value)}
+                style={{ flex: 1, padding: '6px 10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px' }}
+              />
+              <button
+                onClick={() => handleSendMessage(personEmail)}
+                style={{ padding: '6px 12px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const displayRankScore = backendRankScore || 1;
   const displayRankTitle = backendRankTitle || 'Comrade';
   const pointsToNextRank = getPointsToNextRank(displayRankScore, displayRankTitle);
@@ -504,7 +633,6 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
         </p>
 
         <div style={{ border: '1px solid #e0e0e0', borderRadius: '16px', padding: '24px', backgroundColor: '#fff' }}>
-
           <div style={{ textAlign: 'center', marginBottom: '20px' }}>
             {avatarUrl ? (
               /\.(mp4|mov|webm)$/i.test(avatarUrl) ? (
@@ -548,7 +676,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  justifyContent: 'center',
+                  justify: 'center',
                   overflow: 'hidden'
                 }}
               >
@@ -591,11 +719,10 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
               </div>
             ))}
           </div>
-
         </div>
       </section>
 
-      {/* NEW: PROFILE DETAILS */}
+      {/* 3. PROFILE DETAILS */}
       <section style={{ marginBottom: '40px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '16px', fontWeight: '600' }}>Profile Details</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px' }}>
@@ -620,7 +747,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
         </div>
       </section>
 
-      {/* 3. SOCIALS */}
+      {/* 4. SOCIALS */}
       <section style={{ marginBottom: '40px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '16px', fontWeight: '600' }}>Socials</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px' }}>
@@ -634,12 +761,12 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
               saveStatus={socialSaveStatus[social.key]}
               onChangeGlobal={handleSocialChange}
               onSave={handleSaveSocialLink}
-             />
+            />
           ))}
         </div>
       </section>
 
-      {/* 4. POST ABOUT ANYTHING */}
+      {/* 5. POST ABOUT ANYTHING */}
       <section style={{ marginBottom: '50px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '4px', fontWeight: '600' }}>Post About Anything</h2>
         <p style={{ color: '#888', fontSize: '12px', marginBottom: '20px' }}>
@@ -650,7 +777,6 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
         {postErrorMsg && <div style={{ color: 'red', fontSize: '13px', marginBottom: '10px' }}>{postErrorMsg}</div>}
 
         <form onSubmit={handleCultureSubmit} style={{ ...styles.dumaCard, border: '1px solid #e0e0e0', padding: '24px', borderRadius: '16px' }}>
-
           <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '8px' }}>Attach Photos or Videos (Up to 6)</label>
           <p style={{ fontSize: '11px', color: '#888', marginBottom: '10px' }}>Batch-upload multiple files at once, or an use individual terminal slot below.</p>
 
@@ -684,7 +810,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  justifyContent: 'center',
+                  justify: 'center',
                   overflow: 'hidden'
                 }}
               >
@@ -747,7 +873,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
                   padding: '10px 12px',
                   borderRadius: '6px',
                   border: selectedPromptIndex === idx ? '2px solid #222' : '1px solid #e0e0e0',
-                  backgroundColor: selectedPromptIndex === idx ? '#fff' : '#fff',
+                  backgroundColor: '#fff',
                   cursor: 'pointer',
                   marginBottom: '6px',
                   fontSize: '12px',
@@ -765,102 +891,78 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
         </form>
       </section>
 
+      {/* 6. COMMUNITY SECTION */}
       <section style={{ marginBottom: '40px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '16px', fontWeight: '600' }}>Community</h2>
         <div style={{ display: 'grid', gap: '12px' }}>
+          
+          {/* Followers Accordion */}
           <div style={{ ...styles.dumaCard, marginBottom: 0 }}>
             <button
               type="button"
               onClick={() => setShowFollowers(prev => !prev)}
-              aria-expanded={showFollowers}
-              aria-controls="profile-followers-panel"
               style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', fontWeight: '600', color: '#222' }}
             >
               <span>Followers ({followersList.length})</span>
               <span style={{ fontSize: '18px', lineHeight: 1 }}>{showFollowers ? '▾' : '▸'}</span>
             </button>
             {showFollowers && (
-              <div id="profile-followers-panel" style={{ marginTop: '12px' }}>
+              <div style={{ marginTop: '12px', maxHeight: '400px', overflowY: 'auto' }}>
                 {followersList.length === 0 ? (
                   <p style={{ color: '#888', fontSize: '13px', margin: 0 }}>No followers yet.</p>
                 ) : (
-                  <ul style={{ margin: 0, paddingLeft: '18px', color: '#333', fontSize: '13px', display: 'grid', gap: '6px' }}>
-                    {followersList.map((follower, index) => (
-                      <li key={typeof follower === 'string' ? follower : `${follower?.email || follower?.username || 'follower'}-${index}`}>
-                        {typeof follower === 'string' ? follower : follower?.displayName || follower?.email || follower?.username || 'Follower'}
-                      </li>
-                    ))}
-                  </ul>
+                  followersList.map(person => renderUserCard(person))
                 )}
               </div>
             )}
           </div>
 
+          {/* Following Accordion */}
           <div style={{ ...styles.dumaCard, marginBottom: 0 }}>
             <button
               type="button"
               onClick={() => setShowFollowing(prev => !prev)}
-              aria-expanded={showFollowing}
-              aria-controls="profile-following-panel"
               style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', fontWeight: '600', color: '#222' }}
             >
               <span>Following ({followingList.length})</span>
               <span style={{ fontSize: '18px', lineHeight: 1 }}>{showFollowing ? '▾' : '▸'}</span>
             </button>
             {showFollowing && (
-              <div id="profile-following-panel" style={{ marginTop: '12px' }}>
+              <div style={{ marginTop: '12px', maxHeight: '400px', overflowY: 'auto' }}>
                 {followingList.length === 0 ? (
                   <p style={{ color: '#888', fontSize: '13px', margin: 0 }}>You are not following anyone yet.</p>
                 ) : (
-                  <ul style={{ margin: 0, paddingLeft: '18px', color: '#333', fontSize: '13px', display: 'grid', gap: '6px' }}>
-                    {followingList.map((person, index) => (
-                      <li key={typeof person === 'string' ? person : `${person?.email || person?.username || 'following'}-${index}`}>
-                        {typeof person === 'string' ? person : person?.displayName || person?.email || person?.username || 'Following'}
-                      </li>
-                    ))}
-                  </ul>
+                  followingList.map(person => renderUserCard(person))
                 )}
               </div>
             )}
           </div>
 
+          {/* Direct Messages Accordion */}
           <div style={{ ...styles.dumaCard, marginBottom: 0 }}>
             <button
               type="button"
               onClick={() => setShowDirectMessages(prev => !prev)}
-              aria-expanded={showDirectMessages}
-              aria-controls="profile-direct-messages-panel"
               style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', fontWeight: '600', color: '#222' }}
             >
-              <span>Direct Messages</span>
+              <span>Direct Messages ({Object.keys(directMessages).length})</span>
               <span style={{ fontSize: '18px', lineHeight: 1 }}>{showDirectMessages ? '▾' : '▸'}</span>
             </button>
             {showDirectMessages && (
-              <div id="profile-direct-messages-panel" style={{ marginTop: '12px' }}>
-                {directMessages.length === 0 ? (
-                  <p style={{ color: '#888', fontSize: '13px', margin: 0 }}>No received messages yet.</p>
+              <div style={{ marginTop: '12px', maxHeight: '400px', overflowY: 'auto' }}>
+                {Object.keys(directMessages).length === 0 ? (
+                  <p style={{ color: '#888', fontSize: '13px', margin: 0 }}>No direct conversations active.</p>
                 ) : (
-                  <ul style={{ margin: 0, paddingLeft: '18px', color: '#333', fontSize: '13px', display: 'grid', gap: '8px' }}>
-                    {directMessages.map((message, index) => (
-                      <li key={`${message?._id || message?.id || 'dm'}-${index}`} style={{ lineHeight: '1.45' }}>
-                        {message && typeof message === 'object' ? (
-                          <>
-                            <strong>{message?.sender || message?.from || 'User'}:</strong> {message?.text || message?.body || message?.content || ''}
-                          </>
-                        ) : (
-                          String(message)
-                        )}
-                      </li>
-                    ))}
-                  </ul>
+                  Object.keys(directMessages).map(person => renderUserCard(person))
                 )}
               </div>
             )}
           </div>
+
         </div>
       </section>
 
-      {/* 6. YOUR SAVED FORMULAS */}
+      {/* 7. YOUR SAVED FORMULAS */}
       <section>
         <h2 style={{ fontSize: '18px', marginBottom: '16px', fontWeight: '600' }}>Your Saved Formulas</h2>
         {savedSets.length === 0 ? (

@@ -794,7 +794,19 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
               <span style={{ fontSize: '18px', lineHeight: 1 }}>{showFollowers ? '▾' : '▸'}</span>
             </button>
             {showFollowers && (
-              <p id="profile-followers-panel" style={{ color: '#888', fontSize: '13px', margin: '12px 0 0 0' }}>No followers yet.</p>
+              <div id="profile-followers-panel" style={{ marginTop: '12px' }}>
+                {followersList.length === 0 ? (
+                  <p style={{ color: '#888', fontSize: '13px', margin: 0 }}>No followers yet.</p>
+                ) : (
+                  <ul style={{ margin: 0, paddingLeft: '18px', color: '#333', fontSize: '13px', display: 'grid', gap: '6px' }}>
+                    {followersList.map((follower, index) => (
+                      <li key={typeof follower === 'string' ? follower : `${follower?.email || follower?.username || 'follower'}-${index}`}>
+                        {typeof follower === 'string' ? follower : follower?.displayName || follower?.email || follower?.username || 'Follower'}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             )}
           </div>
 
@@ -810,7 +822,19 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
               <span style={{ fontSize: '18px', lineHeight: 1 }}>{showFollowing ? '▾' : '▸'}</span>
             </button>
             {showFollowing && (
-              <p id="profile-following-panel" style={{ color: '#888', fontSize: '13px', margin: '12px 0 0 0' }}>You are not following anyone yet.</p>
+              <div id="profile-following-panel" style={{ marginTop: '12px' }}>
+                {followingList.length === 0 ? (
+                  <p style={{ color: '#888', fontSize: '13px', margin: 0 }}>You are not following anyone yet.</p>
+                ) : (
+                  <ul style={{ margin: 0, paddingLeft: '18px', color: '#333', fontSize: '13px', display: 'grid', gap: '6px' }}>
+                    {followingList.map((person, index) => (
+                      <li key={typeof person === 'string' ? person : `${person?.email || person?.username || 'following'}-${index}`}>
+                        {typeof person === 'string' ? person : person?.displayName || person?.email || person?.username || 'Following'}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             )}
           </div>
 
@@ -826,9 +850,19 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
               <span style={{ fontSize: '18px', lineHeight: 1 }}>{showDirectMessages ? '▾' : '▸'}</span>
             </button>
             {showDirectMessages && (
-              <p id="profile-direct-messages-panel" style={{ color: '#888', fontSize: '13px', margin: '12px 0 0 0' }}>
-                {directMessages.length === 0 ? 'No received messages yet.' : `${directMessages.length} messages`}
-              </p>
+              <div id="profile-direct-messages-panel" style={{ marginTop: '12px' }}>
+                {directMessages.length === 0 ? (
+                  <p style={{ color: '#888', fontSize: '13px', margin: 0 }}>No received messages yet.</p>
+                ) : (
+                  <ul style={{ margin: 0, paddingLeft: '18px', color: '#333', fontSize: '13px', display: 'grid', gap: '8px' }}>
+                    {directMessages.map((message, index) => (
+                      <li key={`${message?._id || message?.id || 'dm'}-${index}`} style={{ lineHeight: '1.45' }}>
+                        <strong>{message?.sender || message?.from || 'User'}:</strong> {message?.text || message?.body || message?.content || String(message)}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             )}
           </div>
         </div>

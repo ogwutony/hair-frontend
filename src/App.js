@@ -30,6 +30,11 @@ import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { ReturnPolicyPage } from './pages/ReturnPolicyPage';
 import { AboutPage } from './pages/AboutPage';
 
+const getPersonEmail = (person) => {
+  if (typeof person === 'string') return person;
+  return person?.email || person?.username || '';
+};
+
 const INITIAL_DUMA_ITEMS = [
   {
     id: "seed-culture-1",
@@ -137,6 +142,7 @@ export default function App() {
   const [userAvatar, setUserAvatar] = useState("");
   const [dumaItems, setDumaItems] = useState(INITIAL_DUMA_ITEMS);
   const [following, setFollowing] = useState([]);
+  const [followers, setFollowers] = useState([]);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -156,6 +162,27 @@ export default function App() {
       }).catch(() => { if (email) { setisLoggedIn(true); setUserEmail(email); setAuthToken(token); const storedRank = localStorage.getItem("rankTitle") || sessionStorage.getItem("rankTitle"); const storedScore = parseInt(localStorage.getItem("rankScore") || sessionStorage.getItem("rankScore") || "1"); if (storedRank) setRankTitle(storedRank); setRankScore(storedScore); } });
     }
   }, []);
+
+  useEffect(() => {
+    if (!authToken) {
+      setFollowing([]);
+      setFollowers([]);
+      return;
+    }
+
+    fetch(`${BACKEND_URL}/api/profile`, {
+      headers: { Authorization: 'Bearer ' + authToken }
+    })
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to load profile context');
+        return response.json();
+      })
+      .then(data => {
+        if (Array.isArray(data.following)) setFollowing(data.following);
+        if (Array.isArray(data.followers)) setFollowers(data.followers);
+      })
+      .catch(err => console.error('Failed to load app profile context:', err));
+  }, [authToken]);
 
   const handleLoginSuccess = (email, token, rememberMe, rank, score) => {
     setisLoggedIn(true); setUserEmail(email); setAuthToken(token); const resolvedScore = score || 1; const resolvedRank = getRankTitle(resolvedScore); setRankTitle(resolvedRank); setRankScore(resolvedScore);
@@ -198,21 +225,25 @@ export default function App() {
   }, []);
 
   const followUser = useCallback((personEmail) => {
-    if (!following.includes(personEmail)) {
-      setFollowing(prev => [...prev, personEmail]);
-      addPoints(20);
-      if (authToken) {
-        fetch(`${BACKEND_URL}/api/profile/follow`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-          body: JSON.stringify({ followedEmail: personEmail })
-        }).catch(err => console.error("Error notifying follow:", err));
-      }
+    const normalizedEmail = getPersonEmail(personEmail);
+    if (!normalizedEmail || following.some(person => getPersonEmail(person).toLowerCase() === normalizedEmail.toLowerCase())) {
+      return;
+    }
+
+    setFollowing(prev => [...prev, normalizedEmail]);
+    addPoints(20);
+    if (authToken) {
+      fetch(`${BACKEND_URL}/api/profile/follow`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken },
+        body: JSON.stringify({ followedEmail: normalizedEmail })
+      }).catch(err => console.error("Error notifying follow:", err));
     }
   }, [following, addPoints, authToken]);
 
   const unfollowUser = (personEmail) => {
-    setFollowing(prev => prev.filter(p => p !== personEmail));
+    const normalizedEmail = getPersonEmail(personEmail).toLowerCase();
+    setFollowing(prev => prev.filter(person => getPersonEmail(person).toLowerCase() !== normalizedEmail));
   };
 
   return (
@@ -258,9 +289,9 @@ export default function App() {
           <Route path="/partner" element={<PartnerPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
           <Route path="/culture" element={isLoggedIn ? <CultureLabPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
           <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} />} />
-          <Route path="/perspectives" element={isLoggedIn ? <PerspectivesPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} following={following} onFollowUser={followUser} onUnfollowUser={unfollowUser} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
+          <Route path="/perspectives" element={isLoggedIn ? <PerspectivesPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} following={following} followers={followers} onFollowUser={followUser} onUnfollowUser={unfollowUser} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
           <Route path="/legislature" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} />} />
-          <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={handleAvatarUpdate} tokens={tokens} addDumaItem={addDumaItem} following={following} onFollowUser={followUser} onUnfollowUser={unfollowUser} />} />
+          <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={handleAvatarUpdate} tokens={tokens} addDumaItem={addDumaItem} following={following} followers={followers} onFollowUser={followUser} onUnfollowUser={unfollowUser} />} />
           <Route path="/orders" element={<div style={{ padding: '60px', textAlign: 'center' }}><h2>Payment Received!</h2><p>Your custom hair set is being prepared. Check your Profile to see your formula.</p><Link to="/profile">Go to Profile</Link></div>} />
           <Route path="/admin/orders" element={userEmail === 'ogwutony@gmail.com' ? <AdminOrdersPage authToken={authToken} userEmail={userEmail} /> : <Navigate to="/" />} />
           <Route path="/model" element={<ModelFriendlyPage />} />

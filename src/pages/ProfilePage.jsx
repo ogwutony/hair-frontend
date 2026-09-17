@@ -148,8 +148,8 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
         setAvatarSlots(mappedSlots);
       }
       if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
-      if (Array.isArray(data.followers) && data.followers.length > 0) setFollowersList(data.followers);
-      if (Array.isArray(data.following) && data.following.length > 0) setFollowingList(data.following);
+      if (Array.isArray(data.followers)) setFollowersList(data.followers);
+      if (Array.isArray(data.following)) setFollowingList(data.following);
 
       const incomingMessages = [
         ...(Array.isArray(data.receivedMessages) ? data.receivedMessages : []),
@@ -573,10 +573,10 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
     setShowDirectMessages(true);
   };
 
-  const handleSendMessage = (recipientEmail) => {
+  const handleSendMessage = async (recipientEmail) => {
     if (!newMessageText.trim()) return;
 
-    const message = {
+    const pendingMessage = {
       sender: userEmail,
       recipient: recipientEmail,
       text: newMessageText.trim(),
@@ -587,9 +587,40 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
 
     setDirectMessages(prev => ({
       ...prev,
-      [recipientEmail]: sortMessages([...(prev[recipientEmail] || []), message])
+      [recipientEmail]: sortMessages([...(prev[recipientEmail] || []), pendingMessage])
     }));
     setNewMessageText('');
+
+    if (!authToken) return;
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/profile/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + authToken
+        },
+        body: JSON.stringify({
+          recipientEmail,
+          text: pendingMessage.text
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to send message');
+
+      const data = await response.json();
+      const deliveredMessage = data?.message ? { ...data.message, pending: false } : { ...pendingMessage, pending: false };
+
+      setDirectMessages(prev => ({
+        ...prev,
+        [recipientEmail]: sortMessages([
+          ...(prev[recipientEmail] || []).filter(message => message.sortKey !== pendingMessage.sortKey),
+          deliveredMessage
+        ])
+      }));
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    }
   };
 
   const renderUserCard = (person, { showFollowAction = true } = {}) => {

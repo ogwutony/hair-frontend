@@ -231,6 +231,14 @@ const mongoDBModelsClient = {
 };
 
 // --- SCHEMAS ---
+const directMessageSchema = new mongoose.Schema({
+  sender: String,
+  recipient: String,
+  text: String,
+  timestamp: String,
+  sortKey: String
+}, { _id: true });
+
 const userSchema = new mongoose.Schema({
   email:            { type: String, required: true, unique: true },
   password:         { type: String },
@@ -242,6 +250,8 @@ const userSchema = new mongoose.Schema({
   rank_rewards_sent: { type: [String], default: [] }, // Track which ranks already rewarded
   avatarUrl:        { type: String, default: null },  // Profile picture URL (Cloudinary)
   following:        { type: [String], default: [] },
+  sentMessages:     { type: [directMessageSchema], default: [] },
+  receivedMessages: { type: [directMessageSchema], default: [] },
   socialEngagement: { type: Number, default: 0 },
   featuredOnInstagram: { type: Boolean, default: false },
   
@@ -892,6 +902,7 @@ app.get('/api/rank', authMiddleware, async (req, res) => {
 app.get('/api/profile', authMiddleware, async (req, res) => {
   try {
     const user = req.user;
+    const followers = await User.find({ following: user.email }, 'email').lean();
     res.json({
       email: user.email,
       rank_title: user.rank_title || getRankTitle(user.rank_score || 1),
@@ -899,6 +910,10 @@ app.get('/api/profile', authMiddleware, async (req, res) => {
       socialEngagement: user.socialEngagement || 0,
       featuredOnInstagram: Boolean(user.featuredOnInstagram),
       avatar: user.avatarUrl || null,
+      following: Array.isArray(user.following) ? user.following : [],
+      followers: followers.map(follower => follower.email).filter(Boolean),
+      sentMessages: Array.isArray(user.sentMessages) ? user.sentMessages : [],
+      receivedMessages: Array.isArray(user.receivedMessages) ? user.receivedMessages : [],
       perspective: user.perspective || {
         box1: { content: "", mediaUrls: [], videoUrl: null },
         box2: { content: "", mediaUrls: [], videoUrl: null },
@@ -910,6 +925,41 @@ app.get('/api/profile', authMiddleware, async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/profile/messages', engagementLimiter, authMiddleware, async (req, res) => {
+  try {
+    const recipientEmail = typeof req.body.recipientEmail === 'string' ? req.body.recipientEmail.trim().toLowerCase() : '';
+    const text = typeof req.body.text === 'string' ? req.body.text.trim() : '';
+
+    if (!recipientEmail || recipientEmail === req.user.email.toLowerCase()) {
+      return res.status(400).json({ error: 'A different user must be selected' });
+    }
+    if (!text) {
+      return res.status(400).json({ error: 'Message text is required' });
+    }
+
+    const recipientUser = await User.findOne({ email: recipientEmail });
+    if (!recipientUser) return res.status(404).json({ error: 'User not found' });
+
+    const timestamp = new Date();
+    const message = {
+      sender: req.user.email,
+      recipient: recipientUser.email,
+      text,
+      timestamp: timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      sortKey: timestamp.toISOString()
+    };
+
+    await Promise.all([
+      User.findByIdAndUpdate(req.user._id, { $push: { sentMessages: message } }),
+      User.findByIdAndUpdate(recipientUser._id, { $push: { receivedMessages: message } })
+    ]);
+
+    res.status(201).json({ success: true, message });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to send message' });
   }
 });
 

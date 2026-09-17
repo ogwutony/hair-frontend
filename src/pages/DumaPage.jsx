@@ -1,5 +1,5 @@
 // src/pages/DumaPage.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useIsMobile } from '../utils/useIsMobile';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
@@ -21,8 +21,12 @@ const [commentText, setCommentText] = useState({});
 const [activeSection, setActiveSection] = useState("Culture");
 const [marketplaceListings, setMarketplaceListings] = useState([]);
 const [boostingId, setBoostingId] = useState(null);
+const [socialFeedLoaded, setSocialFeedLoaded] = useState(false);
+const [socialFeedUnavailable, setSocialFeedUnavailable] = useState(false);
+const socialFeedFallbackLocked = useRef(false);
 const socialFeedUrl = process.env.REACT_APP_SOCIAL_FEED_URL;
 const getRecommendationImage = (item) => item.imageUrl || PRODUCT_IMAGE_BY_NAME[item.name] || PRODUCT_IMAGE_BY_NAME[item.product] || null;
+const getItemId = (itemOrId) => String(typeof itemOrId === 'object' ? itemOrId?._id || itemOrId?.id || '' : itemOrId || '');
 
 const isFeaturedContributor = (item) =>
 item.featuredOnInstagram || item.socialEngagement >= 100 || (item.votes?.yes || 0) >= 10;
@@ -57,6 +61,18 @@ fetch(`${BACKEND_URL}/api/marketplace`).then(r => r.json()).then(data => {
 if (Array.isArray(data)) setMarketplaceListings(data);
 }).catch(err => console.error('Failed to load marketplace listings:', err));
 }, []);
+
+useEffect(() => {
+if (!socialFeedUrl) return undefined;
+socialFeedFallbackLocked.current = false;
+setSocialFeedLoaded(false);
+setSocialFeedUnavailable(false);
+const fallbackTimer = window.setTimeout(() => {
+socialFeedFallbackLocked.current = true;
+setSocialFeedUnavailable(true);
+}, 5000);
+return () => window.clearTimeout(fallbackTimer);
+}, [socialFeedUrl]);
 
 const handleBoostListing = async (listingId) => {
 if (!authToken) return alert("Please log in to boost listings.");
@@ -93,24 +109,68 @@ setBoostingId(null);
 };
 
 const handleVote = async (itemId, voteType) => {
+const normalizedItemId = getItemId(itemId);
 if (!authToken) return alert("Please log in to vote.");
-if (userVotes[itemId]) return;
+if (userVotes[normalizedItemId]) return;
 
-setUserVotes(prev => ({ ...prev, [itemId]: voteType }));
-setShowScores(prev => ({ ...prev, [itemId]: true }));
-setShowComments(prev => ({ ...prev, [itemId]: true }));
+setUserVotes(prev => ({ ...prev, [normalizedItemId]: voteType }));
+setShowScores(prev => ({ ...prev, [normalizedItemId]: true }));
+setShowComments(prev => ({ ...prev, [normalizedItemId]: true }));
+setDumaItems(prev => prev.map(item => {
+if (getItemId(item) !== normalizedItemId) return item;
+const existingVotes = item.votes || { yes: 0, no: 0, abstain: 0 };
+return {
+...item,
+votes: {
+...existingVotes,
+[voteType]: (existingVotes[voteType] || 0) + 1
+}
+};
+}));
 try {
-const response = await fetch(`${BACKEND_URL}/api/duma/${itemId}/vote`, {
+const response = await fetch(`${BACKEND_URL}/api/duma/${normalizedItemId}/vote`, {
 method: 'POST',
-headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken },
 body: JSON.stringify({ vote: voteType })
 });
 if (response.ok) {
 const data = await response.json();
-setDumaItems(prev => prev.map(item => item.id === itemId || item._id === itemId ? { ...item, votes: data.votes || item.votes } : item));
-if (voteType === 'yes' && onAddPoints) onAddPoints(10);
+if (data.votes) {
+setDumaItems(prev => prev.map(item => getItemId(item) === normalizedItemId ? { ...item, votes: data.votes } : item));
 }
-} catch (err) {}
+if (voteType === 'yes' && onAddPoints) onAddPoints(10);
+return;
+}
+throw new Error('Vote request failed');
+} catch (err) {
+console.error("Voting failed:", err);
+setUserVotes(prev => {
+const next = { ...prev };
+delete next[normalizedItemId];
+return next;
+});
+setShowScores(prev => {
+const next = { ...prev };
+delete next[normalizedItemId];
+return next;
+});
+setShowComments(prev => {
+const next = { ...prev };
+delete next[normalizedItemId];
+return next;
+});
+setDumaItems(prev => prev.map(item => {
+if (getItemId(item) !== normalizedItemId) return item;
+const existingVotes = item.votes || { yes: 0, no: 0, abstain: 0 };
+return {
+...item,
+votes: {
+...existingVotes,
+[voteType]: Math.max((existingVotes[voteType] || 1) - 1, 0)
+}
+};
+}));
+}
 };
 
 const handleDeletePost = async (itemId) => {
@@ -155,7 +215,22 @@ return (
 </Helmet>
 {socialFeedUrl && (
 <section style={{ marginBottom: '30px', border: '1px solid #eee', borderRadius: '12px', overflow: 'hidden' }} aria-label="Live #TheMajorities social feed">
-<iframe title="Live #TheMajorities social feed" src={socialFeedUrl} style={{ display: 'block', width: '100%', minHeight: '420px', border: 0 }} loading="lazy" />
+{!socialFeedLoaded && !socialFeedUnavailable && (
+<div style={{ padding: '24px', textAlign: 'center', color: '#666', backgroundColor: '#fafafa' }}>
+Loading the live social feed...
+</div>
+)}
+{socialFeedUnavailable ? (
+<div style={{ padding: '24px', textAlign: 'center', color: '#666', backgroundColor: '#fafafa' }}>
+The live social feed is unavailable right now.
+</div>
+) : (
+<iframe title="Live #TheMajorities social feed" src={socialFeedUrl} style={{ display: socialFeedLoaded ? 'block' : 'none', width: '100%', minHeight: '420px', border: 0 }} loading="lazy" onLoad={() => {
+if (socialFeedFallbackLocked.current) return;
+setSocialFeedLoaded(true);
+setSocialFeedUnavailable(false);
+}} />
+)}
 </section>
 )}
 <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', marginBottom: '30px', gap: isMobile ? '15px' : '0' }}>
@@ -241,7 +316,10 @@ style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor
 controls playsInline preload="metadata"
 />
 ) : (
-<img src={url} alt={`Attachment ${idx + 1}`} style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover' }} />
+<img src={url} alt={`Attachment ${idx + 1}`} style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover' }} onError={(e) => {
+ e.currentTarget.onerror = null;
+ e.currentTarget.src = '/logo192.png';
+ }} />
 )}
 </div>
 ))}

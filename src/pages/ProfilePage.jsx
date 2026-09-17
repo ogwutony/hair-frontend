@@ -32,6 +32,12 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
   });
   
   const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", snapchat: "idle" });
+  const [followersList, setFollowersList] = useState([]);
+  const [followingList, setFollowingList] = useState([]);
+  const [directMessages, setDirectMessages] = useState([]);
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [showFollowing, setShowFollowing] = useState(false);
+  const [showDirectMessages, setShowDirectMessages] = useState(false);
 
   const blobAvatarUrlRef = React.useRef(null);
 
@@ -77,6 +83,15 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
         setAvatarSlots(mappedSlots);
       }
       if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
+      setFollowersList(Array.isArray(data.followers) ? data.followers : []);
+      setFollowingList(Array.isArray(data.following) ? data.following : []);
+      if (Array.isArray(data.receivedMessages)) {
+        setDirectMessages(data.receivedMessages);
+      } else if (Array.isArray(data.messages)) {
+        setDirectMessages(data.messages);
+      } else {
+        setDirectMessages([]);
+      }
     }).catch(err => console.error('Failed to load profile:', err));
   }, [authToken, onAvatarUpdate, userEmail]);
 
@@ -766,7 +781,102 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
         </form>
       </section>
 
-      {/* 5. YOUR SAVED FORMULAS */}
+      <section style={{ marginBottom: '40px' }}>
+        <h2 style={{ fontSize: '18px', marginBottom: '16px', fontWeight: '600' }}>Community</h2>
+        <div style={{ display: 'grid', gap: '12px' }}>
+          <div style={{ ...styles.dumaCard, marginBottom: 0 }}>
+            <button
+              type="button"
+              onClick={() => setShowFollowers(prev => !prev)}
+              aria-expanded={showFollowers}
+              aria-controls="profile-followers-panel"
+              style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', fontWeight: '600', color: '#222' }}
+            >
+              <span>Followers ({followersList.length})</span>
+              <span style={{ fontSize: '18px', lineHeight: 1 }}>{showFollowers ? '▾' : '▸'}</span>
+            </button>
+            {showFollowers && (
+              <div id="profile-followers-panel" style={{ marginTop: '12px' }}>
+                {followersList.length === 0 ? (
+                  <p style={{ color: '#888', fontSize: '13px', margin: 0 }}>No followers yet.</p>
+                ) : (
+                  <ul style={{ margin: 0, paddingLeft: '18px', color: '#333', fontSize: '13px', display: 'grid', gap: '6px' }}>
+                    {followersList.map((follower, index) => (
+                      <li key={typeof follower === 'string' ? follower : `${follower?.email || follower?.username || 'follower'}-${index}`}>
+                        {typeof follower === 'string' ? follower : follower?.displayName || follower?.email || follower?.username || 'Follower'}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={{ ...styles.dumaCard, marginBottom: 0 }}>
+            <button
+              type="button"
+              onClick={() => setShowFollowing(prev => !prev)}
+              aria-expanded={showFollowing}
+              aria-controls="profile-following-panel"
+              style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', fontWeight: '600', color: '#222' }}
+            >
+              <span>Following ({followingList.length})</span>
+              <span style={{ fontSize: '18px', lineHeight: 1 }}>{showFollowing ? '▾' : '▸'}</span>
+            </button>
+            {showFollowing && (
+              <div id="profile-following-panel" style={{ marginTop: '12px' }}>
+                {followingList.length === 0 ? (
+                  <p style={{ color: '#888', fontSize: '13px', margin: 0 }}>You are not following anyone yet.</p>
+                ) : (
+                  <ul style={{ margin: 0, paddingLeft: '18px', color: '#333', fontSize: '13px', display: 'grid', gap: '6px' }}>
+                    {followingList.map((person, index) => (
+                      <li key={typeof person === 'string' ? person : `${person?.email || person?.username || 'following'}-${index}`}>
+                        {typeof person === 'string' ? person : person?.displayName || person?.email || person?.username || 'Following'}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={{ ...styles.dumaCard, marginBottom: 0 }}>
+            <button
+              type="button"
+              onClick={() => setShowDirectMessages(prev => !prev)}
+              aria-expanded={showDirectMessages}
+              aria-controls="profile-direct-messages-panel"
+              style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', fontWeight: '600', color: '#222' }}
+            >
+              <span>Direct Messages</span>
+              <span style={{ fontSize: '18px', lineHeight: 1 }}>{showDirectMessages ? '▾' : '▸'}</span>
+            </button>
+            {showDirectMessages && (
+              <div id="profile-direct-messages-panel" style={{ marginTop: '12px' }}>
+                {directMessages.length === 0 ? (
+                  <p style={{ color: '#888', fontSize: '13px', margin: 0 }}>No received messages yet.</p>
+                ) : (
+                  <ul style={{ margin: 0, paddingLeft: '18px', color: '#333', fontSize: '13px', display: 'grid', gap: '8px' }}>
+                    {directMessages.map((message, index) => (
+                      <li key={`${message?._id || message?.id || 'dm'}-${index}`} style={{ lineHeight: '1.45' }}>
+                        {message && typeof message === 'object' ? (
+                          <>
+                            <strong>{message?.sender || message?.from || 'User'}:</strong> {message?.text || message?.body || message?.content || ''}
+                          </>
+                        ) : (
+                          String(message)
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* 6. YOUR SAVED FORMULAS */}
       <section>
         <h2 style={{ fontSize: '18px', marginBottom: '16px', fontWeight: '600' }}>Your Saved Formulas</h2>
         {savedSets.length === 0 ? (

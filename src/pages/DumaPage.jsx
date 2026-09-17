@@ -206,6 +206,7 @@ rankTitle={verifiedRank}
 rankScore={item.rankScore || null}
 avatarUrl={item.submitterAvatar || null}
 socialLinks={item.submitterSocialLinks || null}
+profileLink={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`}
 />
 )}
 
@@ -318,7 +319,7 @@ Trash
 )}
 </div>
 </div>
-{item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
+{item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} profileLink={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`} />}
 {item.location && (
 <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
 📍 {item.location}
@@ -409,7 +410,7 @@ Trash
 )}
 </div>
 </div>
-{item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} />}
+{item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} profileLink={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`} />}
 {item.location && (
 <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
 📍 {item.location}
@@ -567,7 +568,7 @@ return (
 <h3 style={{ marginTop: 0, marginBottom: '8px' }}>{item.title}</h3>
 <p style={{ color: '#666', fontSize: '13px', lineHeight: '1.5' }}>{item.description}</p>
 <strong>${Number(item.price).toFixed(2)}</strong>
-{item.submittedBy && <div style={{ marginTop: '12px' }}><CredentialHeader email={item.submittedBy} displayName={null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={null} socialLinks={null} /></div>}
+{item.submittedBy && <div style={{ marginTop: '12px' }}><CredentialHeader email={item.submittedBy} displayName={null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={null} socialLinks={null} profileLink={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`} /></div>}
 <div style={{ display: 'flex', gap: '10px', marginTop: '12px', flexWrap: 'wrap' }}>
 {item.externalLink && (
 <a href={item.externalLink} target="_blank" rel="noopener noreferrer" style={{ ...styles.authButton, width: 'auto', padding: '10px 20px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', background: '#fff', color: '#222', border: '1px solid #222' }}>

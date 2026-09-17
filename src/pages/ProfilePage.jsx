@@ -32,6 +32,12 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
   });
   
   const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", snapchat: "idle" });
+  const [communityUsers, setCommunityUsers] = useState([]);
+  const [followingUsers, setFollowingUsers] = useState([]);
+  const [followersUsers, setFollowersUsers] = useState([]);
+  const [openComposerFor, setOpenComposerFor] = useState(null);
+  const [messageDrafts, setMessageDrafts] = useState({});
+  const [receivedMessages, setReceivedMessages] = useState([]);
 
   const blobAvatarUrlRef = React.useRef(null);
 
@@ -66,6 +72,12 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
       }
       if (data.displayName) setDisplayName(data.displayName);
       if (data.location) setUserLocation(data.location);
+      if (Array.isArray(data.following)) {
+        setFollowingUsers(data.following.filter(Boolean).map(email => String(email).toLowerCase()));
+      }
+      if (Array.isArray(data.followers)) {
+        setFollowersUsers(data.followers.filter(Boolean).map(email => String(email).toLowerCase()));
+      }
       const localSlotsStr = (() => { try { return localStorage.getItem(`avatarSlots_${userEmail}`); } catch { return null; } })();
       const loadedSlotUrls = data.avatarSlots || (localSlotsStr ? JSON.parse(localSlotsStr) : null);
       if (loadedSlotUrls && Array.isArray(loadedSlotUrls)) {
@@ -79,6 +91,59 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
       if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
     }).catch(err => console.error('Failed to load profile:', err));
   }, [authToken, onAvatarUpdate, userEmail]);
+
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/api/duma`)
+      .then(r => r.json())
+      .then(data => {
+        if (!Array.isArray(data)) return;
+        const byEmail = new Map();
+        data.forEach((item) => {
+          const email = typeof item?.submittedBy === "string" ? item.submittedBy.trim().toLowerCase() : "";
+          if (!email || email === userEmail?.toLowerCase()) return;
+          if (!byEmail.has(email)) {
+            byEmail.set(email, {
+              email,
+              accountName: item.submitterDisplayName || email.split("@")[0],
+              thumbnail: item.submitterAvatar || null
+            });
+            return;
+          }
+          const prev = byEmail.get(email);
+          byEmail.set(email, {
+            email,
+            accountName: prev.accountName || item.submitterDisplayName || email.split("@")[0],
+            thumbnail: prev.thumbnail || item.submitterAvatar || null
+          });
+        });
+        setCommunityUsers(Array.from(byEmail.values()));
+      })
+      .catch(() => {});
+  }, [userEmail]);
+
+  useEffect(() => {
+    if (!userEmail) return;
+    const inboxKey = `directMessagesInbox_${userEmail.toLowerCase()}`;
+    const loadInbox = () => {
+      try {
+        const stored = JSON.parse(localStorage.getItem(inboxKey) || "[]");
+        if (!Array.isArray(stored)) {
+          setReceivedMessages([]);
+          return;
+        }
+        setReceivedMessages(
+          stored
+            .filter((message) => message && typeof message.text === "string" && message.text.trim())
+            .sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime())
+        );
+      } catch {
+        setReceivedMessages([]);
+      }
+    };
+    loadInbox();
+    window.addEventListener("focus", loadInbox);
+    return () => window.removeEventListener("focus", loadInbox);
+  }, [userEmail]);
 
   const handleSaveProfileField = async (field, val) => {
     if (!authToken) return;
@@ -438,14 +503,50 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
     }
   };
 
+  const getCommunityUser = (email) => {
+    const normalized = String(email || "").toLowerCase();
+    return communityUsers.find((user) => user.email === normalized) || {
+      email: normalized,
+      accountName: normalized.split("@")[0] || "User",
+      thumbnail: null
+    };
+  };
+
+  const handleSendDirectMessage = (recipientEmail) => {
+    if (!userEmail || !recipientEmail) return;
+    const messageText = messageDrafts[recipientEmail]?.trim();
+    if (!messageText) return;
+    const outgoingMessage = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      from: userEmail,
+      to: recipientEmail,
+      text: messageText,
+      timestamp: new Date().toISOString()
+    };
+    try {
+      const inboxKey = `directMessagesInbox_${recipientEmail.toLowerCase()}`;
+      const currentInbox = JSON.parse(localStorage.getItem(inboxKey) || "[]");
+      const safeInbox = Array.isArray(currentInbox) ? currentInbox : [];
+      localStorage.setItem(inboxKey, JSON.stringify([outgoingMessage, ...safeInbox].slice(0, 200)));
+    } catch {
+      return;
+    }
+    setMessageDrafts((prev) => ({ ...prev, [recipientEmail]: "" }));
+    setOpenComposerFor(null);
+  };
+
   const displayRankScore = backendRankScore || 1;
   const displayRankTitle = backendRankTitle || 'Comrade';
   const pointsToNextRank = getPointsToNextRank(displayRankScore, displayRankTitle);
   const nextRankTitle = getNextRankTitle(displayRankTitle);
   const { currentMin, nextMin, progressPercent } = getRankProgress(displayRankScore, displayRankTitle);
-  const hasProfilePicture = Boolean(avatarUrl);
-  const hasLocation = Boolean(userLocation?.trim());
   const percentToNextRank = Math.max(0, 100 - progressPercent);
+  const fallbackConnections = communityUsers.map(user => user.email);
+  const normalizedUserEmail = userEmail?.toLowerCase();
+  const resolvedFollowingUsers = (followingUsers.length > 0 ? followingUsers : fallbackConnections)
+    .filter((email, idx, all) => email && email !== normalizedUserEmail && all.indexOf(email) === idx);
+  const resolvedFollowersUsers = (followersUsers.length > 0 ? followersUsers : fallbackConnections)
+    .filter((email, idx, all) => email && email !== normalizedUserEmail && all.indexOf(email) === idx);
 
   return (
     <div style={{ padding: isMobile ? '25px 16px' : '40px 60px', maxWidth: '900px', margin: '0 auto' }}>
@@ -483,17 +584,102 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
         )}
       </div>
 
-      <section style={{ marginBottom: '30px' }}>
-        <h2 style={{ fontSize: '18px', marginBottom: '12px', fontWeight: '600' }}>Complete Your Profile</h2>
-        <div style={{ display: 'grid', gap: '10px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#333' }}>
-            <input type="checkbox" checked={hasProfilePicture} readOnly />
-            Add a profile photo
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#333' }}>
-            <input type="checkbox" checked={hasLocation} readOnly />
-            Set your location
-          </label>
+      <section style={{ marginBottom: '30px', display: 'grid', gap: '14px' }}>
+        <details style={{ border: '1px solid #e0e0e0', borderRadius: '12px', padding: '12px 14px', backgroundColor: '#fff' }}>
+          <summary style={{ cursor: 'pointer', fontSize: '16px', fontWeight: '600' }}>Followers ({resolvedFollowersUsers.length})</summary>
+          <div style={{ display: 'grid', gap: '10px', marginTop: '12px' }}>
+            {resolvedFollowersUsers.length === 0 ? (
+              <p style={{ margin: 0, fontSize: '13px', color: '#777' }}>No followers yet.</p>
+            ) : (
+              resolvedFollowersUsers.map((email) => {
+                const user = getCommunityUser(email);
+                return (
+                  <div key={`follower-${email}`} style={{ border: '1px solid #eee', borderRadius: '10px', padding: '10px', display: 'grid', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ width: '38px', height: '38px', borderRadius: '50%', overflow: 'hidden', backgroundColor: '#efefef', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {user.thumbnail ? <img src={user.thumbnail} alt={user.accountName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '12px', fontWeight: '700' }}>{user.accountName[0]?.toUpperCase() || '?'}</span>}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#222' }}>{user.accountName}</div>
+                        <div style={{ fontSize: '12px', color: '#777', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <Link to={`/perspectives?person=${encodeURIComponent(email)}`} style={{ fontSize: '12px', color: '#222', fontWeight: '600' }}>View Perspective</Link>
+                      <button type="button" onClick={() => setOpenComposerFor(openComposerFor === email ? null : email)} style={{ border: '1px solid #ddd', background: '#fff', borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}>
+                        Direct Message
+                      </button>
+                    </div>
+                    {openComposerFor === email && (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input type="text" value={messageDrafts[email] || ""} onChange={(e) => setMessageDrafts(prev => ({ ...prev, [email]: e.target.value }))} placeholder={`Message ${user.accountName}`} style={{ flex: 1, padding: '8px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '12px' }} />
+                        <button type="button" onClick={() => handleSendDirectMessage(email)} style={{ border: 'none', background: '#222', color: '#fff', borderRadius: '6px', padding: '8px 12px', fontSize: '12px', cursor: 'pointer' }}>Send</button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </details>
+
+        <details style={{ border: '1px solid #e0e0e0', borderRadius: '12px', padding: '12px 14px', backgroundColor: '#fff' }}>
+          <summary style={{ cursor: 'pointer', fontSize: '16px', fontWeight: '600' }}>Following ({resolvedFollowingUsers.length})</summary>
+          <div style={{ display: 'grid', gap: '10px', marginTop: '12px' }}>
+            {resolvedFollowingUsers.length === 0 ? (
+              <p style={{ margin: 0, fontSize: '13px', color: '#777' }}>You are not following anyone yet.</p>
+            ) : (
+              resolvedFollowingUsers.map((email) => {
+                const user = getCommunityUser(email);
+                return (
+                  <div key={`following-${email}`} style={{ border: '1px solid #eee', borderRadius: '10px', padding: '10px', display: 'grid', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ width: '38px', height: '38px', borderRadius: '50%', overflow: 'hidden', backgroundColor: '#efefef', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {user.thumbnail ? <img src={user.thumbnail} alt={user.accountName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '12px', fontWeight: '700' }}>{user.accountName[0]?.toUpperCase() || '?'}</span>}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#222' }}>{user.accountName}</div>
+                        <div style={{ fontSize: '12px', color: '#777', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <Link to={`/perspectives?person=${encodeURIComponent(email)}`} style={{ fontSize: '12px', color: '#222', fontWeight: '600' }}>View Perspective</Link>
+                      <button type="button" onClick={() => setOpenComposerFor(openComposerFor === email ? null : email)} style={{ border: '1px solid #ddd', background: '#fff', borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}>
+                        Direct Message
+                      </button>
+                    </div>
+                    {openComposerFor === email && (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input type="text" value={messageDrafts[email] || ""} onChange={(e) => setMessageDrafts(prev => ({ ...prev, [email]: e.target.value }))} placeholder={`Message ${user.accountName}`} style={{ flex: 1, padding: '8px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '12px' }} />
+                        <button type="button" onClick={() => handleSendDirectMessage(email)} style={{ border: 'none', background: '#222', color: '#fff', borderRadius: '6px', padding: '8px 12px', fontSize: '12px', cursor: 'pointer' }}>Send</button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </details>
+
+        <div style={{ border: '1px solid #e0e0e0', borderRadius: '12px', padding: '14px', backgroundColor: '#fff' }}>
+          <h2 style={{ fontSize: '16px', margin: '0 0 10px 0', fontWeight: '600' }}>Direct Messages</h2>
+          {receivedMessages.length === 0 ? (
+            <p style={{ margin: 0, fontSize: '13px', color: '#777' }}>No received messages yet.</p>
+          ) : (
+            <div style={{ display: 'grid', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
+              {receivedMessages.map((message) => {
+                const sender = getCommunityUser(message.from);
+                return (
+                  <div key={message.id} style={{ border: '1px solid #eee', borderRadius: '8px', padding: '10px' }}>
+                    <div style={{ fontSize: '12px', color: '#555', marginBottom: '4px' }}>
+                      <strong>{sender.accountName}</strong> · {new Date(message.timestamp).toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#222' }}>{message.text}</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 

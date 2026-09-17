@@ -20,10 +20,10 @@ const getPersonLabel = (person, nameByUser = {}) => {
   return email ? email.split('@')[0] : 'User';
 };
 
-export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, following = [], followers, onFollowUser, onUnfollowUser, userAvatar }) => {
+export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, following = [], onFollowUser, onUnfollowUser, userAvatar }) => {
   const location = useLocation();
   const [followingList, setFollowingList] = useState([]);
-  const [followersList, setFollowersList] = useState(Array.isArray(followers) ? followers : []);
+  const [followersList, setFollowersList] = useState([]);
   const [selectedFollowing, setSelectedFollowing] = useState([]);
   const [filteredItems, setFilteredItems] = useState([]);
   const [allItems, setAllItems] = useState(items);
@@ -76,7 +76,7 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
         return r.json();
       })
       .then(data => {
-        setFollowersList(Array.isArray(data.followers) ? data.followers : Array.isArray(followers) ? followers : []);
+        setFollowersList(Array.isArray(data.followers) ? data.followers : []);
 
         if (Array.isArray(data.following)) {
           const normalizedFollowing = data.following.map(getPersonEmail).filter(Boolean);

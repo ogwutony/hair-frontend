@@ -1,6 +1,6 @@
 // src/pages/PartnerPage.jsx
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { CredentialHeader } from '../components/CredentialHeader';
 import { BACKEND_URL } from '../utils/constants';
 import { styles } from '../utils/styles';
@@ -18,8 +18,6 @@ const MARKETPLACE_AGREEMENTS = [
 ];
 
 export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, userAvatar }) => {
-const navigate = useNavigate();
-
 const [formData, setFormData] = useState({
 partnerCategory: "Brand & Retail Partners",
 name: "",
@@ -475,7 +473,7 @@ onChange={e => handleProductPhotos(type, e)}
 <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
 {formData.productDetails[type].photoPreviews.map((src, i) => (
 <img
-key={i} src={src} alt={`${type} photo ${i + 1}`}
+key={i} src={src} alt={`${type} preview ${i + 1}`}
 style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }}
 />
 ))}

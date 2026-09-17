@@ -1,8 +1,6 @@
 // src/App.js — routing shell
 import React, { useState, useEffect, useCallback } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from "react-router-dom";
-import { trackEvent } from "./components/AdMonetization";
-import { Helmet } from 'react-helmet-async';
 import { BACKEND_URL, RANK_TIERS } from './utils/constants';
 import { getRankTitle } from './utils/helpers';
 import { styles } from './utils/styles';

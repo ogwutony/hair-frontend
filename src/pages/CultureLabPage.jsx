@@ -1,5 +1,5 @@
 // src/pages/CultureLabPage.jsx
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useIsMobile } from '../utils/useIsMobile';
 import { useNavigate } from 'react-router-dom';
 import { CredentialHeader } from '../components/CredentialHeader';

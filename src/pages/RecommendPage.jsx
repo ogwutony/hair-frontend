@@ -1,6 +1,6 @@
 // src/pages/RecommendPage.jsx
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { CredentialHeader } from '../components/CredentialHeader';
 import { GuestSubmissionPrompt } from '../components/GuestSubmissionPrompt';
 import { RankBadge } from '../components/RankBadge';
@@ -8,7 +8,6 @@ import { BACKEND_URL } from '../utils/constants';
 import { styles } from '../utils/styles';
 
 export const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, userAvatar }) => {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({ 
     name: "", 
     company: "", 

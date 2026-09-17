@@ -8,6 +8,29 @@ import { BACKEND_URL } from '../utils/constants';
 import { normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
 
+const getDirectMessagesStorageKey = (userEmail) => userEmail ? `perspectives_direct_messages_${userEmail.toLowerCase()}` : null;
+
+const readStoredDirectMessages = (userEmail) => {
+  const storageKey = getDirectMessagesStorageKey(userEmail);
+  if (!storageKey) return {};
+
+  try {
+    const storedValue = window.localStorage.getItem(storageKey);
+    return storedValue ? JSON.parse(storedValue) : {};
+  } catch {
+    return {};
+  }
+};
+
+const writeStoredDirectMessages = (userEmail, messagesByUser) => {
+  const storageKey = getDirectMessagesStorageKey(userEmail);
+  if (!storageKey) return;
+
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(messagesByUser));
+  } catch {}
+};
+
 const getPersonEmail = (person) => {
   if (typeof person === 'string') return person;
   return person?.email || person?.username || '';
@@ -18,6 +41,32 @@ const getPersonLabel = (person, nameByUser = {}) => {
   if (typeof person === 'object' && person?.displayName) return person.displayName;
   if (email && nameByUser[email]) return nameByUser[email];
   return email ? email.split('@')[0] : 'User';
+};
+
+const mergeDirectMessages = (primaryMessages = {}, secondaryMessages = {}) => {
+  const merged = {};
+
+  [...Object.keys(primaryMessages), ...Object.keys(secondaryMessages)].forEach(personEmail => {
+    const seen = new Set();
+    const thread = [...(primaryMessages[personEmail] || []), ...(secondaryMessages[personEmail] || [])].filter(message => {
+      const key = JSON.stringify([
+        message?.sender || '',
+        message?.recipient || '',
+        message?.text || '',
+        message?.timestamp || ''
+      ]);
+
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    if (thread.length > 0) {
+      merged[personEmail] = thread;
+    }
+  });
+
+  return merged;
 };
 
 export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, following = [], onFollowUser, onUnfollowUser, userAvatar }) => {
@@ -66,6 +115,10 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
   }, []);
 
   useEffect(() => {
+    setDirectMessages(readStoredDirectMessages(userEmail));
+  }, [userEmail]);
+
+  useEffect(() => {
     if (!authToken) return;
 
     fetch(`${BACKEND_URL}/api/profile`, {
@@ -96,24 +149,27 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
             ? data.messages
             : [];
 
+        const profileMessages = {};
+        incomingMessages.forEach(message => {
+          if (!message || typeof message !== 'object') return;
+          const sender = getPersonEmail(message.sender || message.from);
+          const recipient = getPersonEmail(message.recipient || message.to) || userEmail;
+          const counterpart = sender && sender.toLowerCase() === userEmail?.toLowerCase() ? recipient : sender;
+          if (!counterpart || counterpart.toLowerCase() === userEmail?.toLowerCase()) return;
+          profileMessages[counterpart] = [
+            ...(profileMessages[counterpart] || []),
+            {
+              sender: sender || counterpart,
+              recipient: recipient || userEmail,
+              text: message.text || message.body || message.content || '',
+              timestamp: message.timestamp || message.createdAt || message.updatedAt || ''
+            }
+          ];
+        });
+
         setDirectMessages(prev => {
-          const next = { ...prev };
-          incomingMessages.forEach(message => {
-            if (!message || typeof message !== 'object') return;
-            const sender = getPersonEmail(message.sender || message.from);
-            const recipient = getPersonEmail(message.recipient || message.to) || userEmail;
-            const counterpart = sender && sender.toLowerCase() === userEmail?.toLowerCase() ? recipient : sender;
-            if (!counterpart || counterpart.toLowerCase() === userEmail?.toLowerCase()) return;
-            next[counterpart] = [
-              ...(next[counterpart] || []),
-              {
-                sender: sender || counterpart,
-                recipient: recipient || userEmail,
-                text: message.text || message.body || message.content || '',
-                timestamp: message.timestamp || message.createdAt || message.updatedAt || ''
-              }
-            ];
-          });
+          const next = mergeDirectMessages(profileMessages, prev);
+          writeStoredDirectMessages(userEmail, next);
           return next;
         });
       })
@@ -228,10 +284,14 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    setDirectMessages(prev => ({
-      ...prev,
-      [recipientEmail]: [...(prev[recipientEmail] || []), nextMessage]
-    }));
+    setDirectMessages(prev => {
+      const next = {
+        ...prev,
+        [recipientEmail]: [...(prev[recipientEmail] || []), nextMessage]
+      };
+      writeStoredDirectMessages(userEmail, next);
+      return next;
+    });
     setNewMessageText(prev => ({ ...prev, [recipientEmail]: '' }));
   };
 

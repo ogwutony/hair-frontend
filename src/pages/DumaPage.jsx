@@ -21,6 +21,7 @@ const [commentText, setCommentText] = useState({});
 const [activeSection, setActiveSection] = useState("Culture");
 const [marketplaceListings, setMarketplaceListings] = useState([]);
 const [boostingId, setBoostingId] = useState(null);
+const [socialFeedLoaded, setSocialFeedLoaded] = useState(false);
 const [socialFeedUnavailable, setSocialFeedUnavailable] = useState(false);
 const socialFeedUrl = process.env.REACT_APP_SOCIAL_FEED_URL;
 const getRecommendationImage = (item) => item.imageUrl || PRODUCT_IMAGE_BY_NAME[item.name] || PRODUCT_IMAGE_BY_NAME[item.product] || null;
@@ -59,6 +60,16 @@ fetch(`${BACKEND_URL}/api/marketplace`).then(r => r.json()).then(data => {
 if (Array.isArray(data)) setMarketplaceListings(data);
 }).catch(err => console.error('Failed to load marketplace listings:', err));
 }, []);
+
+useEffect(() => {
+if (!socialFeedUrl) return undefined;
+setSocialFeedLoaded(false);
+setSocialFeedUnavailable(false);
+const fallbackTimer = window.setTimeout(() => {
+setSocialFeedUnavailable(true);
+}, 5000);
+return () => window.clearTimeout(fallbackTimer);
+}, [socialFeedUrl]);
 
 const handleBoostListing = async (listingId) => {
 if (!authToken) return alert("Please log in to boost listings.");
@@ -191,12 +202,20 @@ return (
 </Helmet>
 {socialFeedUrl && (
 <section style={{ marginBottom: '30px', border: '1px solid #eee', borderRadius: '12px', overflow: 'hidden' }} aria-label="Live #TheMajorities social feed">
+{!socialFeedLoaded && !socialFeedUnavailable && (
+<div style={{ padding: '24px', textAlign: 'center', color: '#666', backgroundColor: '#fafafa' }}>
+Loading the live social feed...
+</div>
+)}
 {socialFeedUnavailable ? (
 <div style={{ padding: '24px', textAlign: 'center', color: '#666', backgroundColor: '#fafafa' }}>
 The live social feed is unavailable right now.
 </div>
 ) : (
-<iframe title="Live #TheMajorities social feed" src={socialFeedUrl} style={{ display: 'block', width: '100%', minHeight: '420px', border: 0 }} loading="lazy" onError={() => setSocialFeedUnavailable(true)} />
+<iframe title="Live #TheMajorities social feed" src={socialFeedUrl} style={{ display: socialFeedLoaded ? 'block' : 'none', width: '100%', minHeight: '420px', border: 0 }} loading="lazy" onLoad={() => {
+setSocialFeedLoaded(true);
+setSocialFeedUnavailable(false);
+}} />
 )}
 </section>
 )}

@@ -32,6 +32,12 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
   });
   
   const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", snapchat: "idle" });
+  const [followersList] = useState([]);
+  const [followingList] = useState([]);
+  const [directMessages] = useState([]);
+  const [showFollowers, setShowFollowers] = useState(true);
+  const [showFollowing, setShowFollowing] = useState(true);
+  const [showDirectMessages, setShowDirectMessages] = useState(true);
 
   const blobAvatarUrlRef = React.useRef(null);
 
@@ -766,7 +772,56 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
         </form>
       </section>
 
-      {/* 5. YOUR SAVED FORMULAS */}
+      <section style={{ marginBottom: '40px' }}>
+        <h2 style={{ fontSize: '18px', marginBottom: '16px', fontWeight: '600' }}>Community</h2>
+        <div style={{ display: 'grid', gap: '12px' }}>
+          <div style={{ ...styles.dumaCard, marginBottom: 0 }}>
+            <button
+              type="button"
+              onClick={() => setShowFollowers(prev => !prev)}
+              style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', fontWeight: '600', color: '#222' }}
+            >
+              <span>Followers ({followersList.length})</span>
+              <span style={{ fontSize: '18px', lineHeight: 1 }}>{showFollowers ? '▾' : '▸'}</span>
+            </button>
+            {showFollowers && (
+              <p style={{ color: '#888', fontSize: '13px', margin: '12px 0 0 0' }}>No followers yet.</p>
+            )}
+          </div>
+
+          <div style={{ ...styles.dumaCard, marginBottom: 0 }}>
+            <button
+              type="button"
+              onClick={() => setShowFollowing(prev => !prev)}
+              style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', fontWeight: '600', color: '#222' }}
+            >
+              <span>Following ({followingList.length})</span>
+              <span style={{ fontSize: '18px', lineHeight: 1 }}>{showFollowing ? '▾' : '▸'}</span>
+            </button>
+            {showFollowing && (
+              <p style={{ color: '#888', fontSize: '13px', margin: '12px 0 0 0' }}>You are not following anyone yet.</p>
+            )}
+          </div>
+
+          <div style={{ ...styles.dumaCard, marginBottom: 0 }}>
+            <button
+              type="button"
+              onClick={() => setShowDirectMessages(prev => !prev)}
+              style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', fontWeight: '600', color: '#222' }}
+            >
+              <span>Direct Messages</span>
+              <span style={{ fontSize: '18px', lineHeight: 1 }}>{showDirectMessages ? '▾' : '▸'}</span>
+            </button>
+            {showDirectMessages && (
+              <p style={{ color: '#888', fontSize: '13px', margin: '12px 0 0 0' }}>
+                {directMessages.length === 0 ? 'No received messages yet.' : `${directMessages.length} messages`}
+              </p>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* 6. YOUR SAVED FORMULAS */}
       <section>
         <h2 style={{ fontSize: '18px', marginBottom: '16px', fontWeight: '600' }}>Your Saved Formulas</h2>
         {savedSets.length === 0 ? (

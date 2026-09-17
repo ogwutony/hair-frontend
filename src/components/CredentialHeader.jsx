@@ -1,5 +1,6 @@
 // src/components/CredentialHeader.jsx
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { getRankColor, getFormattedRankTitle, getCompletedPromptIds, safeSocialUrl, normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
 
@@ -9,7 +10,7 @@ const SnapchatIcon = () => (
   </svg>
 );
 
-export const CredentialHeader = ({ email, displayName, rankTitle, rankScore, avatarUrl, socialLinks = {} }) => {
+export const CredentialHeader = ({ email, displayName, rankTitle, rankScore, avatarUrl, socialLinks = {}, profileLink = null }) => {
   const nameToDisplay = displayName || email;
   const initial = (nameToDisplay || 'C')[0].toUpperCase();
   const color = getRankColor(rankTitle || 'Comrade');
@@ -51,9 +52,18 @@ export const CredentialHeader = ({ email, displayName, rankTitle, rankScore, ava
           initial
         )}
       </div>
-      <span style={{ fontWeight: '600', fontSize: '14px', color: '#333', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '220px' }}>
-        {nameToDisplay}
-      </span>
+      {profileLink ? (
+        <Link
+          to={profileLink}
+          style={{ fontWeight: '600', fontSize: '14px', color: '#333', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '220px', textDecoration: 'none' }}
+        >
+          {nameToDisplay}
+        </Link>
+      ) : (
+        <span style={{ fontWeight: '600', fontSize: '14px', color: '#333', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '220px' }}>
+          {nameToDisplay}
+        </span>
+      )}
       <span style={{
         fontSize: rankTitle && rankTitle.length > 20 ? '9px' : '11px',
         fontWeight: '700',

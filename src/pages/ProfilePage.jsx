@@ -40,7 +40,6 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
   const [nameByUser, setNameByUser] = useState({});
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
-  const [showDirectMessages, setShowDirectMessages] = useState(false);
 
   // Direct Messaging state
   const [activeChatUser, setActiveChatUser] = useState(null);
@@ -64,13 +63,11 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
     setBackendRankTitle(getRankTitle(resolvedScore));
   }, [rankScore, rankTitle]);
 
-  // Sync props to state when top-level state updates
   useEffect(() => {
     if (Array.isArray(followers)) setFollowersList(followers);
     if (Array.isArray(following)) setFollowingList(following);
   }, [followers, following]);
 
-  // Load Duma posts to map avatars, names, and community members
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/duma`)
       .then(r => r.json())
@@ -146,6 +143,16 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
       [recipientEmail]: [...(prev[recipientEmail] || []), msg]
     }));
     setNewMessageText('');
+  };
+
+  const getCleanDisplayName = (personIdentifier) => {
+    if (!personIdentifier) return 'User';
+    if (typeof personIdentifier === 'object') {
+      return personIdentifier.displayName || personIdentifier.name || (personIdentifier.email ? personIdentifier.email.split('@')[0] : 'User');
+    }
+    if (nameByUser[personIdentifier]) return nameByUser[personIdentifier];
+    if (personIdentifier.includes('@')) return personIdentifier.split('@')[0];
+    return personIdentifier;
   };
 
   const handleSaveProfileField = async (field, val) => {
@@ -504,43 +511,46 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
   const renderUserCard = (person) => {
     const personEmail = typeof person === 'string' ? person : (person?.email || person?.username || 'user');
     const isFollowing = followingList.includes(personEmail);
-    const userDisplayName = nameByUser[personEmail] || (typeof person === 'object' && person?.displayName) || personEmail.split('@')[0];
+    const resolvedDisplayName = getCleanDisplayName(person);
     const userAvatarUrl = avatarByUser[personEmail] || (typeof person === 'object' && person?.avatar);
 
     return (
-      <div key={personEmail} style={{ border: isFollowing ? '2px solid #222' : '1px solid #ddd', borderRadius: '8px', padding: '10px', backgroundColor: isFollowing ? '#f9f9f9' : '#fff', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', backgroundColor: '#eee', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {userAvatarUrl ? (
-              /\.(mp4|mov|webm)$/i.test(userAvatarUrl) ? (
-                <video src={normalizeMediaVideoUrl(userAvatarUrl)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay loop muted playsInline />
+      <div key={personEmail} style={{ border: isFollowing ? '2px solid #222' : '1px solid #ddd', borderRadius: '8px', padding: '10px 14px', backgroundColor: isFollowing ? '#f9f9f9' : '#fff', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', backgroundColor: '#eee', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {userAvatarUrl ? (
+                /\.(mp4|mov|webm)$/i.test(userAvatarUrl) ? (
+                  <video src={normalizeMediaVideoUrl(userAvatarUrl)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay loop muted playsInline />
+                ) : (
+                  <img src={userAvatarUrl} alt={resolvedDisplayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                )
               ) : (
-                <img src={userAvatarUrl} alt={userDisplayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              )
-            ) : (
-              <span style={{ fontSize: '14px', fontWeight: '700', color: '#444' }}>{userEmail[0]?.toUpperCase() || '?'}</span>
-            )}
-          </div>
-
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            <div style={{ fontSize: '14px', fontWeight: isFollowing ? '700' : '600', color: '#222', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-              {userDisplayName}
+                <span style={{ fontSize: '14px', fontWeight: '700', color: '#444' }}>{resolvedDisplayName[0]?.toUpperCase() || '?'}</span>
+              )}
             </div>
-            <div style={{ fontSize: '12px', color: '#888', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-              {personEmail}
+
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <div style={{ fontSize: '14px', fontWeight: '700', color: '#222', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                {resolvedDisplayName}
+              </div>
+              <div style={{ fontSize: '11px', color: '#888', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                {personEmail}
+              </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             <button
               onClick={() => setActiveChatUser(activeChatUser === personEmail ? null : personEmail)}
-              style={{ border: '1px solid #222', background: activeChatUser === personEmail ? '#222' : '#fff', color: activeChatUser === personEmail ? '#fff' : '#222', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', padding: '6px 10px' }}
+              style={{ border: '1px solid #222', background: activeChatUser === personEmail ? '#222' : '#fff', color: activeChatUser === personEmail ? '#fff' : '#222', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', padding: '6px 12px' }}
             >
               Message
             </button>
             <button
               onClick={() => handleFollowingToggle(personEmail)}
-              style={{ border: '1px solid #ddd', background: isFollowing ? '#eee' : '#fff', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', padding: '6px 12px' }}
+              style={{ border: '1px solid #ddd', background: isFollowing ? '#eee' : '#fff', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', padding: '6px 14px' }}
             >
               {isFollowing ? 'Unfollow' : 'Follow'}
             </button>
@@ -548,7 +558,7 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
         </div>
 
         {activeChatUser === personEmail && (
-          <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #ccc' }}>
+          <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #ccc' }}>
             <div style={{ maxHeight: '150px', overflowY: 'auto', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {(!directMessages[personEmail] || directMessages[personEmail].length === 0) ? (
                 <p style={{ fontSize: '11px', color: '#999', margin: 0 }}>No messages yet. Send a direct message!</p>
@@ -564,7 +574,7 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
             <div style={{ display: 'flex', gap: '6px' }}>
               <input
                 type="text"
-                placeholder={`Message ${userDisplayName}...`}
+                placeholder={`Message ${resolvedDisplayName}...`}
                 value={newMessageText}
                 onChange={(e) => setNewMessageText(e.target.value)}
                 style={{ flex: 1, padding: '6px 10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px' }}
@@ -933,27 +943,6 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
                   <p style={{ color: '#888', fontSize: '13px', margin: 0 }}>You are not following anyone yet.</p>
                 ) : (
                   followingList.map(person => renderUserCard(person))
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Direct Messages Accordion */}
-          <div style={{ ...styles.dumaCard, marginBottom: 0 }}>
-            <button
-              type="button"
-              onClick={() => setShowDirectMessages(prev => !prev)}
-              style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', fontWeight: '600', color: '#222' }}
-            >
-              <span>Direct Messages ({Object.keys(directMessages).length})</span>
-              <span style={{ fontSize: '18px', lineHeight: 1 }}>{showDirectMessages ? '▾' : '▸'}</span>
-            </button>
-            {showDirectMessages && (
-              <div style={{ marginTop: '12px', maxHeight: '400px', overflowY: 'auto' }}>
-                {Object.keys(directMessages).length === 0 ? (
-                  <p style={{ color: '#888', fontSize: '13px', margin: 0 }}>No direct conversations active.</p>
-                ) : (
-                  Object.keys(directMessages).map(person => renderUserCard(person))
                 )}
               </div>
             )}

@@ -54,18 +54,26 @@ const getMessageTime = (message) => {
   return Number.isFinite(parsedValue) ? parsedValue : 0;
 };
 
+const getMessageIdentity = (message) => {
+  const backendMessageId = message?.messageId || message?.id || message?._id || null;
+  if (backendMessageId) return `id:${backendMessageId}`;
+
+  return JSON.stringify([
+    message?.sender || '',
+    message?.recipient || '',
+    message?.text || '',
+    message?.timestamp || '',
+    message?.sortKey || ''
+  ]);
+};
+
 const mergeDirectMessages = (primaryMessages = {}, secondaryMessages = {}) => {
   const merged = {};
 
   [...Object.keys(primaryMessages), ...Object.keys(secondaryMessages)].forEach(personEmail => {
     const seen = new Set();
     const thread = [...(primaryMessages[personEmail] || []), ...(secondaryMessages[personEmail] || [])].filter(message => {
-      const key = JSON.stringify([
-        message?.sender || '',
-        message?.recipient || '',
-        message?.text || '',
-        message?.timestamp || ''
-      ]);
+      const key = getMessageIdentity(message);
 
       if (seen.has(key)) return false;
       seen.add(key);
@@ -159,7 +167,20 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
           ...(Array.isArray(data.sentMessages) ? data.sentMessages : []),
           ...(Array.isArray(data.outgoingMessages) ? data.outgoingMessages : []),
           ...(Array.isArray(data.messages) ? data.messages : [])
-        ];
+        ].filter((message, index, collection) => {
+          const identity = getMessageIdentity({
+            ...message,
+            text: message?.text || message?.body || message?.content || '',
+            timestamp: message?.timestamp || message?.createdAt || message?.updatedAt || '',
+            sortKey: message?.createdAt || message?.updatedAt || message?.timestamp || ''
+          });
+          return collection.findIndex(candidate => getMessageIdentity({
+            ...candidate,
+            text: candidate?.text || candidate?.body || candidate?.content || '',
+            timestamp: candidate?.timestamp || candidate?.createdAt || candidate?.updatedAt || '',
+            sortKey: candidate?.createdAt || candidate?.updatedAt || candidate?.timestamp || ''
+          }) === identity) === index;
+        });
 
         const profileMessages = {};
         incomingMessages.forEach(message => {
@@ -171,6 +192,7 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
           profileMessages[counterpart] = [
             ...(profileMessages[counterpart] || []),
             {
+              messageId: message.messageId || message.id || message._id || null,
               sender: sender || counterpart,
               recipient: recipient || userEmail,
               text: message.text || message.body || message.content || '',

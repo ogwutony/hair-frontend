@@ -149,6 +149,16 @@ const next = { ...prev };
 delete next[normalizedItemId];
 return next;
 });
+setShowScores(prev => {
+const next = { ...prev };
+delete next[normalizedItemId];
+return next;
+});
+setShowComments(prev => {
+const next = { ...prev };
+delete next[normalizedItemId];
+return next;
+});
 setDumaItems(prev => prev.map(item => {
 if (getItemId(item) !== normalizedItemId) return item;
 const existingVotes = item.votes || { yes: 0, no: 0, abstain: 0 };

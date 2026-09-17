@@ -74,7 +74,7 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
   const [directMessages, setDirectMessages] = useState({});
   const [newMessageText, setNewMessageText] = useState('');
 
-  const blobAvatarUrlRef = React.useRef(null);
+  const blobAvatarUrlRef = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -244,8 +244,8 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
     }
   };
 
-  const avatarBatchInputRef = React.useRef(null);
-  const dumaBatchInputRef = React.useRef(null);
+  const avatarBatchInputRef = useRef(null);
+  const dumaBatchInputRef = useRef(null);
 
   // --- Post About Anything States ---
   const [postDescription, setCultureResponse] = useState("");

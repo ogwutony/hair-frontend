@@ -6,10 +6,40 @@ import { LocationAutocomplete } from '../components/LocationAutocomplete';
 import { RankBadge } from '../components/RankBadge';
 import { SocialInputRow } from '../components/SocialInputRow';
 import { BACKEND_URL, SOCIAL_FIELDS } from '../utils/constants';
-import { getNextRankTitle, getPointsToNextRank, getRankProgress, getRankTitle, markPromptCompleted } from '../utils/helpers';
+import { getNextRankTitle, getPointsToNextRank, getRankProgress, getRankTitle, markPromptCompleted, normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
 
-export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar, tokens, addDumaItem }) => {
+const getPersonEmail = (person) => {
+  if (typeof person === 'string') return person;
+  return person?.email || person?.username || '';
+};
+
+const getPersonLabel = (person, nameByUser = {}) => {
+  const personEmail = getPersonEmail(person);
+  if (typeof person === 'object' && person?.displayName) return person.displayName;
+  if (personEmail && nameByUser[personEmail]) return nameByUser[personEmail];
+  return personEmail ? personEmail.split('@')[0] : 'User';
+};
+
+const getMessageIdentity = (message) => {
+  const backendMessageId = message?.messageId || message?.id || message?._id || null;
+  if (backendMessageId) return `id:${backendMessageId}`;
+
+  return JSON.stringify([
+    getPersonEmail(message?.sender || message?.from),
+    getPersonEmail(message?.recipient || message?.to),
+    message?.text || message?.body || message?.content || '',
+    message?.timestamp || message?.createdAt || message?.updatedAt || ''
+  ]);
+};
+
+const sortMessages = (messages = []) => [...messages].sort((a, b) => {
+  const aTime = new Date(a?.sortKey || a?.timestamp || 0).getTime() || 0;
+  const bTime = new Date(b?.sortKey || b?.timestamp || 0).getTime() || 0;
+  return aTime - bTime;
+});
+
+export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar, tokens, addDumaItem, following = [], followers = [], onFollowUser, onUnfollowUser }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [avatarUrl, setAvatarUrl] = useState(userAvatar || null);
@@ -32,12 +62,17 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
   });
   
   const [socialSaveStatus, setSocialSaveStatus] = useState({ instagram: "idle", tiktok: "idle", snapchat: "idle" });
-  const [followersList, setFollowersList] = useState([]);
-  const [followingList, setFollowingList] = useState([]);
-  const [directMessages, setDirectMessages] = useState([]);
+  const [followersList, setFollowersList] = useState(followers || []);
+  const [followingList, setFollowingList] = useState(following || []);
+  const [communityUsers, setCommunityUsers] = useState([]);
+  const [avatarByUser, setAvatarByUser] = useState({});
+  const [nameByUser, setNameByUser] = useState({});
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
   const [showDirectMessages, setShowDirectMessages] = useState(false);
+  const [activeChatUser, setActiveChatUser] = useState(null);
+  const [directMessages, setDirectMessages] = useState({});
+  const [newMessageText, setNewMessageText] = useState('');
 
   const blobAvatarUrlRef = React.useRef(null);
 
@@ -55,6 +90,36 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
     setBackendRankScore(resolvedScore);
     setBackendRankTitle(getRankTitle(resolvedScore));
   }, [rankScore, rankTitle]);
+
+  useEffect(() => {
+    if (Array.isArray(followers)) setFollowersList(followers);
+    if (Array.isArray(following)) setFollowingList(following);
+  }, [followers, following]);
+
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/api/duma`)
+      .then(r => r.json())
+      .then(data => {
+        if (!Array.isArray(data)) return;
+
+        const nextAvatarMap = {};
+        const nextNameMap = {};
+        const nextCommunityUsers = [];
+
+        data.forEach(item => {
+          const personEmail = getPersonEmail(item?.submittedBy);
+          if (!personEmail || personEmail.toLowerCase() === userEmail?.toLowerCase()) return;
+          nextCommunityUsers.push(personEmail);
+          if (item.submitterAvatar) nextAvatarMap[personEmail] = item.submitterAvatar;
+          if (item.submitterDisplayName) nextNameMap[personEmail] = item.submitterDisplayName;
+        });
+
+        setAvatarByUser(nextAvatarMap);
+        setNameByUser(nextNameMap);
+        setCommunityUsers([...new Set(nextCommunityUsers)]);
+      })
+      .catch(err => console.error('Failed to fetch Duma data for profile:', err));
+  }, [userEmail]);
 
   useEffect(() => {
     if (!authToken) return;
@@ -83,15 +148,47 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
         setAvatarSlots(mappedSlots);
       }
       if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
-      setFollowersList(Array.isArray(data.followers) ? data.followers : []);
-      setFollowingList(Array.isArray(data.following) ? data.following : []);
-      if (Array.isArray(data.receivedMessages)) {
-        setDirectMessages(data.receivedMessages);
-      } else if (Array.isArray(data.messages)) {
-        setDirectMessages(data.messages);
-      } else {
-        setDirectMessages([]);
-      }
+      if (Array.isArray(data.followers) && data.followers.length > 0) setFollowersList(data.followers);
+      if (Array.isArray(data.following) && data.following.length > 0) setFollowingList(data.following);
+
+      const incomingMessages = [
+        ...(Array.isArray(data.receivedMessages) ? data.receivedMessages : []),
+        ...(Array.isArray(data.sentMessages) ? data.sentMessages : []),
+        ...(Array.isArray(data.outgoingMessages) ? data.outgoingMessages : []),
+        ...(Array.isArray(data.messages) ? data.messages : [])
+      ];
+
+      const nextDirectMessages = {};
+      const seenMessages = new Set();
+
+      incomingMessages.forEach(message => {
+        if (!message || typeof message !== 'object') return;
+        const identity = getMessageIdentity(message);
+        if (seenMessages.has(identity)) return;
+        seenMessages.add(identity);
+
+        const sender = getPersonEmail(message.sender || message.from);
+        const recipient = getPersonEmail(message.recipient || message.to) || userEmail;
+        const counterpart = sender && sender.toLowerCase() === userEmail?.toLowerCase() ? recipient : sender;
+
+        if (!counterpart || counterpart.toLowerCase() === userEmail?.toLowerCase()) return;
+
+        nextDirectMessages[counterpart] = [
+          ...(nextDirectMessages[counterpart] || []),
+          {
+            messageId: message.messageId || message.id || message._id || null,
+            sender: sender || counterpart,
+            recipient: recipient || userEmail,
+            text: message.text || message.body || message.content || '',
+            timestamp: message.timestamp || message.createdAt || message.updatedAt || '',
+            sortKey: message.createdAt || message.updatedAt || message.timestamp || ''
+          }
+        ];
+      });
+
+      setDirectMessages(Object.fromEntries(
+        Object.entries(nextDirectMessages).map(([personEmail, thread]) => [personEmail, sortMessages(thread)])
+      ));
     }).catch(err => console.error('Failed to load profile:', err));
   }, [authToken, onAvatarUpdate, userEmail]);
 
@@ -453,6 +550,170 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
     }
   };
 
+  const isFollowingPerson = (personEmail) => followingList.some(person => getPersonEmail(person).toLowerCase() === personEmail.toLowerCase());
+
+  const handleFollowingToggle = (person) => {
+    const personEmail = getPersonEmail(person);
+    if (!personEmail) return;
+
+    if (isFollowingPerson(personEmail)) {
+      onUnfollowUser?.(personEmail);
+      setFollowingList(prev => prev.filter(entry => getPersonEmail(entry).toLowerCase() !== personEmail.toLowerCase()));
+      return;
+    }
+
+    onFollowUser?.(personEmail);
+    setFollowingList(prev => [...prev, typeof person === 'string' ? personEmail : person]);
+  };
+
+  const openChat = (person) => {
+    const personEmail = getPersonEmail(person);
+    if (!personEmail) return;
+    setActiveChatUser(personEmail);
+    setShowDirectMessages(true);
+  };
+
+  const handleSendMessage = (recipientEmail) => {
+    if (!newMessageText.trim()) return;
+
+    const message = {
+      sender: userEmail,
+      recipient: recipientEmail,
+      text: newMessageText.trim(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      sortKey: new Date().toISOString(),
+      pending: true
+    };
+
+    setDirectMessages(prev => ({
+      ...prev,
+      [recipientEmail]: sortMessages([...(prev[recipientEmail] || []), message])
+    }));
+    setNewMessageText('');
+  };
+
+  const renderUserCard = (person, { showFollowAction = true } = {}) => {
+    const personEmail = getPersonEmail(person);
+    if (!personEmail || personEmail.toLowerCase() === userEmail?.toLowerCase()) return null;
+
+    const userDisplayName = getPersonLabel(person, nameByUser);
+    const userAvatarUrl = avatarByUser[personEmail] || (typeof person === 'object' ? person?.avatar : '');
+    const isFollowing = isFollowingPerson(personEmail);
+    const isVideoAvatar = Boolean(userAvatarUrl) && (/\.(mp4|mov|webm)$/i.test(userAvatarUrl) || userAvatarUrl.includes('/video/upload/'));
+
+    return (
+      <div key={personEmail} style={{ border: isFollowing ? '2px solid #222' : '1px solid #eee', borderRadius: '12px', padding: '12px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+          <div style={{ width: '52px', height: '52px', borderRadius: '50%', overflow: 'hidden', background: '#f3f3f3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            {userAvatarUrl ? (
+              isVideoAvatar ? (
+                <video src={normalizeMediaVideoUrl(userAvatarUrl)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay muted loop playsInline />
+              ) : (
+                <img src={userAvatarUrl} alt={userDisplayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              )
+            ) : (
+              <span style={{ fontSize: '22px', color: '#999' }}>👤</span>
+            )}
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: '14px', fontWeight: '700', color: '#222', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {userDisplayName}
+            </div>
+            <div style={{ fontSize: '12px', color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {personEmail}
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+          {showFollowAction && (
+            <button
+              type="button"
+              onClick={() => handleFollowingToggle(person)}
+              style={{ border: '1px solid #ddd', background: isFollowing ? '#eee' : '#fff', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', padding: '9px 12px' }}
+            >
+              {isFollowing ? 'Unfollow' : 'Follow'}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => openChat(person)}
+            style={{ border: '1px solid #222', background: activeChatUser === personEmail ? '#222' : '#fff', color: activeChatUser === personEmail ? '#fff' : '#222', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', padding: '9px 12px' }}
+          >
+            {activeChatUser === personEmail ? 'Chatting' : 'Message'}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPeopleSection = (people, emptyMessage, options) => {
+    const dedupedPeople = [...new Map(
+      (people || [])
+        .map(person => [getPersonEmail(person).toLowerCase(), person])
+        .filter(([key]) => key && key !== userEmail?.toLowerCase())
+    ).values()];
+
+    if (dedupedPeople.length === 0) {
+      return <p style={{ color: '#888', fontSize: '13px', margin: 0 }}>{emptyMessage}</p>;
+    }
+
+    return <div style={{ display: 'grid', gap: '8px' }}>{dedupedPeople.map(person => renderUserCard(person, options))}</div>;
+  };
+
+  const renderDirectMessages = () => {
+    const people = [...new Map(
+      [...followingList, ...followersList, ...communityUsers, ...Object.keys(directMessages), ...(activeChatUser ? [activeChatUser] : [])]
+        .map(person => [getPersonEmail(person).toLowerCase(), person])
+        .filter(([key]) => key && key !== userEmail?.toLowerCase())
+    ).values()];
+
+    return (
+      <div style={{ display: 'grid', gap: '12px' }}>
+        {renderPeopleSection(people, 'No community members available yet.', { showFollowAction: true })}
+        {activeChatUser && (
+          <div style={{ border: '1px solid #eee', borderRadius: '12px', padding: '12px', background: '#fafafa' }}>
+            <div style={{ marginBottom: '10px' }}>
+              <div style={{ fontSize: '14px', fontWeight: '700', color: '#222' }}>{nameByUser[activeChatUser] || activeChatUser.split('@')[0]}</div>
+              <div style={{ fontSize: '12px', color: '#888' }}>{activeChatUser}</div>
+            </div>
+            <div style={{ maxHeight: '220px', overflowY: 'auto', display: 'grid', gap: '8px', marginBottom: '10px' }}>
+              {(directMessages[activeChatUser] || []).length === 0 ? (
+                <p style={{ color: '#888', fontSize: '13px', margin: 0 }}>No messages yet. Say hello.</p>
+              ) : (
+                (directMessages[activeChatUser] || []).map((message, index) => {
+                  const isOwnMessage = message.sender?.toLowerCase() === userEmail?.toLowerCase();
+                  return (
+                    <div key={`${activeChatUser}-${index}`} style={{ alignSelf: isOwnMessage ? 'end' : 'start', background: isOwnMessage ? '#222' : '#fff', color: isOwnMessage ? '#fff' : '#222', borderRadius: '10px', padding: '10px 12px', maxWidth: '85%', border: isOwnMessage ? 'none' : '1px solid #eee' }}>
+                      <div style={{ fontSize: '12px', lineHeight: '1.4' }}>{message.text}</div>
+                      <div style={{ fontSize: '10px', opacity: 0.7, marginTop: '4px' }}>{message.timestamp}</div>
+                      {message.pending && <div style={{ fontSize: '10px', opacity: 0.7, marginTop: '2px' }}>Pending sync</div>}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                value={newMessageText}
+                onChange={(e) => setNewMessageText(e.target.value)}
+                placeholder={`Message ${nameByUser[activeChatUser] || activeChatUser.split('@')[0]}...`}
+                style={{ flex: 1, padding: '10px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px' }}
+              />
+              <button
+                type="button"
+                onClick={() => handleSendMessage(activeChatUser)}
+                style={{ border: 'none', background: '#222', color: '#fff', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', padding: '10px 16px' }}
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const displayRankScore = backendRankScore || 1;
   const displayRankTitle = backendRankTitle || 'Comrade';
   const pointsToNextRank = getPointsToNextRank(displayRankScore, displayRankTitle);
@@ -781,17 +1042,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
             </button>
             {showFollowers && (
               <div id="profile-followers-panel" style={{ marginTop: '12px' }}>
-                {followersList.length === 0 ? (
-                  <p style={{ color: '#888', fontSize: '13px', margin: 0 }}>No followers yet.</p>
-                ) : (
-                  <ul style={{ margin: 0, paddingLeft: '18px', color: '#333', fontSize: '13px', display: 'grid', gap: '6px' }}>
-                    {followersList.map((follower, index) => (
-                      <li key={typeof follower === 'string' ? follower : `${follower?.email || follower?.username || 'follower'}-${index}`}>
-                        {typeof follower === 'string' ? follower : follower?.displayName || follower?.email || follower?.username || 'Follower'}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                {renderPeopleSection(followersList, 'No followers yet.', { showFollowAction: true })}
               </div>
             )}
           </div>
@@ -809,17 +1060,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
             </button>
             {showFollowing && (
               <div id="profile-following-panel" style={{ marginTop: '12px' }}>
-                {followingList.length === 0 ? (
-                  <p style={{ color: '#888', fontSize: '13px', margin: 0 }}>You are not following anyone yet.</p>
-                ) : (
-                  <ul style={{ margin: 0, paddingLeft: '18px', color: '#333', fontSize: '13px', display: 'grid', gap: '6px' }}>
-                    {followingList.map((person, index) => (
-                      <li key={typeof person === 'string' ? person : `${person?.email || person?.username || 'following'}-${index}`}>
-                        {typeof person === 'string' ? person : person?.displayName || person?.email || person?.username || 'Following'}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                {renderPeopleSection(followingList, 'You are not following anyone yet.', { showFollowAction: true })}
               </div>
             )}
           </div>
@@ -837,23 +1078,7 @@ export const ProfilePage = ({ userEmail, savedSets, rankTitle, rankScore, authTo
             </button>
             {showDirectMessages && (
               <div id="profile-direct-messages-panel" style={{ marginTop: '12px' }}>
-                {directMessages.length === 0 ? (
-                  <p style={{ color: '#888', fontSize: '13px', margin: 0 }}>No received messages yet.</p>
-                ) : (
-                  <ul style={{ margin: 0, paddingLeft: '18px', color: '#333', fontSize: '13px', display: 'grid', gap: '8px' }}>
-                    {directMessages.map((message, index) => (
-                      <li key={`${message?._id || message?.id || 'dm'}-${index}`} style={{ lineHeight: '1.45' }}>
-                        {message && typeof message === 'object' ? (
-                          <>
-                            <strong>{message?.sender || message?.from || 'User'}:</strong> {message?.text || message?.body || message?.content || ''}
-                          </>
-                        ) : (
-                          String(message)
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                {renderDirectMessages()}
               </div>
             )}
           </div>

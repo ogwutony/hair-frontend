@@ -31,6 +31,8 @@ import { TermsOfServicePage } from './pages/TermsOfServicePage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { ReturnPolicyPage } from './pages/ReturnPolicyPage';
 import { AboutPage } from './pages/AboutPage';
+import { TermsGate } from './components/TermsGate';
+import { clearModerationData } from './utils/moderation';
 
 const INITIAL_DUMA_ITEMS = [
   {
@@ -165,6 +167,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    clearModerationData();
     setisLoggedIn(false); setUserEmail(""); setAuthToken(""); setRankTitle("Comrade"); setRankScore(1); setUserAvatar("");
     localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); localStorage.removeItem("rankTitle"); localStorage.removeItem("rankScore"); localStorage.removeItem("userAvatar");
     sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); sessionStorage.removeItem("rankTitle"); sessionStorage.removeItem("rankScore"); sessionStorage.removeItem("userAvatar");
@@ -262,7 +265,7 @@ export default function App() {
           <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} />} />
           <Route path="/perspectives" element={isLoggedIn ? <PerspectivesPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} following={following} onFollowUser={followUser} onUnfollowUser={unfollowUser} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
           <Route path="/legislature" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} />} />
-          <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={handleAvatarUpdate} tokens={tokens} addDumaItem={addDumaItem} />} />
+          <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={handleAvatarUpdate} tokens={tokens} addDumaItem={addDumaItem} onAccountDeleted={handleLogout} />} />
           <Route path="/orders" element={<div style={{ padding: '60px', textAlign: 'center' }}><h2>Payment Received!</h2><p>Your custom hair set is being prepared. Check your Profile to see your formula.</p><Link to="/profile">Go to Profile</Link></div>} />
           <Route path="/admin/orders" element={userEmail === 'ogwutony@gmail.com' ? <AdminOrdersPage authToken={authToken} userEmail={userEmail} /> : <Navigate to="/" />} />
           <Route path="/model" element={<ModelFriendlyPage />} />
@@ -271,6 +274,8 @@ export default function App() {
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
               <Route path="/about" element={<AboutPage />} />
         </Routes>
+        {/* Community Guidelines must be accepted after login */}
+        {isLoggedIn && <TermsGate userEmail={userEmail} authToken={authToken} onDecline={handleLogout} />}
         <footer style={{ marginTop: '60px', padding: '20px 60px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'center', gap: '30px', fontSize: '12px' }}>
           <Link to="/TermsofService" style={{ color: '#666', textDecoration: 'none' }}>Terms of Service</Link>
           <Link to="/Privacy" style={{ color: '#666', textDecoration: 'none' }}>Privacy Policy</Link>

@@ -9,10 +9,13 @@ import { RankBadge } from '../components/RankBadge';
 import { BACKEND_URL, PRODUCT_IMAGE_BY_NAME } from '../utils/constants';
 import { getRankTitle, normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
+import { ContentActions } from '../components/ContentActions';
+import { useModeration } from '../utils/moderation';
 
 export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints, userAvatar }) => {
 const isMobile = useIsMobile();
 const [dumaItems, setDumaItems] = useState(items);
+const { isHiddenItem } = useModeration();
 const [userVotes, setUserVotes] = useState({});
 const [showScores, setShowScores] = useState({});
 const [showComments, setShowComments] = useState({});
@@ -201,10 +204,12 @@ setComments(prev => ({
 setCommentText(prev => ({ ...prev, [itemId]: '' }));
 };
 
-const culturalItems = dumaItems.filter(item => item.section === "Cultural" || item.category === "Culture" || item.type === "Video" || item.type === "Culture");
-const recommendationItems = dumaItems.filter(item => item.type === "Product Recommendation" || item.type === "Recommendation");
-const partnerItems = dumaItems.filter(item => item.type === "Partner");
-const marketplaceItems = marketplaceListings;
+// Hide posts you reported and posts from people you blocked
+const visibleItems = dumaItems.filter(item => !isHiddenItem(item));
+const culturalItems = visibleItems.filter(item => item.section === "Cultural" || item.category === "Culture" || item.type === "Video" || item.type === "Culture");
+const recommendationItems = visibleItems.filter(item => item.type === "Product Recommendation" || item.type === "Recommendation");
+const partnerItems = visibleItems.filter(item => item.type === "Partner");
+const marketplaceItems = marketplaceListings.filter(item => !isHiddenItem(item));
 
 return (
 <div style={{ padding: isMobile ? '25px 16px' : '40px 60px', maxWidth: '1100px', margin: '0 auto', flex: '1 1 auto', minWidth: 0 }}>
@@ -265,6 +270,7 @@ return (
 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
 {isFeaturedContributor(item) && <span style={{ background: '#f4d35e', color: '#222', borderRadius: '999px', padding: '4px 8px', fontSize: '10px', fontWeight: '800' }}>★ Featured on The Duma</span>}
 <RankBadge rankTitle={verifiedRank} />
+<ContentActions contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} />
 {authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
 <button onClick={() => handleDeletePost(itemId)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
 Trash
@@ -390,6 +396,7 @@ recommendationItems.map(item => (
 <span style={styles.typeTag}>{item.type}</span>
 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
 {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
+<ContentActions contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} />
 {authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
 <button onClick={() => handleDeletePost(item._id || item.id)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
 Trash
@@ -481,6 +488,7 @@ partnerItems.map(item => (
 <span style={styles.typeTag}>{item.type}</span>
 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
 {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
+<ContentActions contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} />
 {authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
 <button onClick={() => handleDeletePost(item._id || item.id)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
 Trash
@@ -653,6 +661,7 @@ return (
 Visit listing
 </a>
 )}
+{!isOwner && <ContentActions contentId={String(item._id || item.id || '')} contentType="marketplace" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} />}
 {isOwner && !isBoosted && (
 <button disabled={boostingId === (item._id || item.id)} onClick={() => handleBoostListing(item._id || item.id)} style={{ ...styles.authButton, width: 'auto', padding: '10px 20px', background: '#f1c40f', color: '#222', opacity: boostingId === (item._id || item.id) ? 0.6 : 1 }}>
 {boostingId === (item._id || item.id) ? 'Boosting...' : '⚡ Boost to the top for 24 Hours (Costs 500 Points)'}

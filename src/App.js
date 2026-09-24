@@ -31,6 +31,8 @@ import { TermsOfServicePage } from './pages/TermsOfServicePage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { ReturnPolicyPage } from './pages/ReturnPolicyPage';
 import { AboutPage } from './pages/AboutPage';
+import { MessagesPage } from './pages/MessagesPage';
+import { fetchInbox, countUnreadThreads } from './utils/messages';
 import { TermsGate } from './components/TermsGate';
 import { clearModerationData } from './utils/moderation';
 
@@ -131,9 +133,19 @@ const INITIAL_DUMA_ITEMS = [
 ];
 
 export default function App() {
-  const [isLoggedIn, setisLoggedIn] = useState(false);
-  const [userEmail, setUserEmail] = useState("");
-  const [authToken, setAuthToken] = useState("");
+  // Read the saved session up front so a page refresh doesn't bounce signed-in users to /login
+  const storedAuth = (() => {
+    try {
+      return {
+        token: localStorage.getItem("authToken") || sessionStorage.getItem("authToken") || "",
+        email: localStorage.getItem("userEmail") || sessionStorage.getItem("userEmail") || "",
+      };
+    } catch { return { token: "", email: "" }; }
+  })();
+  const [isLoggedIn, setisLoggedIn] = useState(!!storedAuth.token);
+  const [userEmail, setUserEmail] = useState(storedAuth.email);
+  const [authToken, setAuthToken] = useState(storedAuth.token);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const [rankTitle, setRankTitle] = useState("Comrade");
   const [rankScore, setRankScore] = useState(1);
   const [tokens, setTokens] = useState(0);
@@ -156,10 +168,19 @@ export default function App() {
     if (storedAvatar) setUserAvatar(storedAvatar);
     if (token) {
       fetch(`${BACKEND_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(data => {
-        if (data.email) { setisLoggedIn(true); setUserEmail(data.email); setAuthToken(token); const currentScore = data.rank_score || 1; setRankScore(currentScore); setRankTitle(getRankTitle(currentScore)); localStorage.removeItem("rankTitle"); localStorage.removeItem("rankScore"); sessionStorage.removeItem("rankTitle"); sessionStorage.removeItem("rankScore"); } else { localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); }
+        if (data.email) { setisLoggedIn(true); setUserEmail(data.email); setAuthToken(token); const currentScore = data.rank_score || 1; setRankScore(currentScore); setRankTitle(getRankTitle(currentScore)); localStorage.removeItem("rankTitle"); localStorage.removeItem("rankScore"); sessionStorage.removeItem("rankTitle"); sessionStorage.removeItem("rankScore"); } else { setisLoggedIn(false); setUserEmail(""); setAuthToken(""); localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); }
       }).catch(() => { if (email) { setisLoggedIn(true); setUserEmail(email); setAuthToken(token); const storedRank = localStorage.getItem("rankTitle") || sessionStorage.getItem("rankTitle"); const storedScore = parseInt(localStorage.getItem("rankScore") || sessionStorage.getItem("rankScore") || "1"); if (storedRank) setRankTitle(storedRank); setRankScore(storedScore); } });
     }
   }, []);
+
+  // Unread direct-message badge in the header
+  useEffect(() => {
+    if (!authToken) { setUnreadMessages(0); return undefined; }
+    const check = () => fetchInbox(authToken).then(list => setUnreadMessages(countUnreadThreads(list))).catch(() => {});
+    check();
+    const t = setInterval(check, 60000);
+    return () => clearInterval(t);
+  }, [authToken]);
 
   const handleLoginSuccess = (email, token, rememberMe, rank, score) => {
     setisLoggedIn(true); setUserEmail(email); setAuthToken(token); const resolvedScore = score || 1; const resolvedRank = getRankTitle(resolvedScore); setRankTitle(resolvedRank); setRankScore(resolvedScore);
@@ -235,6 +256,10 @@ export default function App() {
               {isLoggedIn ? (
               <>
                 <Link to="/perspectives" style={styles.navLink}>Perspectives</Link>
+                <Link to="/messages" style={{ ...styles.navLink, position: 'relative' }}>
+                  Messages
+                  {unreadMessages > 0 && <span aria-label={`${unreadMessages} unread`} style={{ marginLeft: '5px', background: '#0a84ff', color: '#fff', borderRadius: '999px', padding: '1px 6px', fontSize: '10px', fontWeight: 700 }}>{unreadMessages}</span>}
+                </Link>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: isMobile ? 'none' : '1px solid #eee', paddingLeft: isMobile ? '0' : '15px', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-start', marginTop: isMobile ? '5px' : '0' }}>
                   <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
                   {rankTitle && <RankBadge rankTitle={rankTitle} />}
@@ -268,6 +293,7 @@ export default function App() {
           <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={handleAvatarUpdate} tokens={tokens} addDumaItem={addDumaItem} onAccountDeleted={handleLogout} />} />
           <Route path="/orders" element={<div style={{ padding: '60px', textAlign: 'center' }}><h2>Payment Received!</h2><p>Your custom hair set is being prepared. Check your Profile to see your formula.</p><Link to="/profile">Go to Profile</Link></div>} />
           <Route path="/admin/orders" element={userEmail === 'ogwutony@gmail.com' ? <AdminOrdersPage authToken={authToken} userEmail={userEmail} /> : <Navigate to="/" />} />
+          <Route path="/messages" element={isLoggedIn ? <MessagesPage authToken={authToken} userEmail={userEmail} onUnreadChange={setUnreadMessages} /> : <Navigate to="/login" />} />
           <Route path="/model" element={<ModelFriendlyPage />} />
           <Route path="/TermsofService" element={<TermsOfServicePage />} />
                         <Route path="/returns" element={<ReturnPolicyPage />} />

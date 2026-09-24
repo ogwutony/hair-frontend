@@ -12,7 +12,7 @@ import { styles } from '../utils/styles';
 import { ContentActions } from '../components/ContentActions';
 import { useModeration } from '../utils/moderation';
 
-export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints, userAvatar }) => {
+export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints, userAvatar, following = [], onFollowUser }) => {
 const isMobile = useIsMobile();
 const [dumaItems, setDumaItems] = useState(items);
 const { isHiddenItem } = useModeration();
@@ -270,7 +270,6 @@ return (
 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
 {isFeaturedContributor(item) && <span style={{ background: '#f4d35e', color: '#222', borderRadius: '999px', padding: '4px 8px', fontSize: '10px', fontWeight: '800' }}>★ Featured on The Duma</span>}
 <RankBadge rankTitle={verifiedRank} />
-<ContentActions contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} />
 {authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
 <button onClick={() => handleDeletePost(itemId)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
 Trash
@@ -278,6 +277,7 @@ Trash
 )}
 </div>
 </div>
+<ContentActions variant="bar" style={{ marginBottom: '12px' }} contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} isFollowing={!!item.submittedBy && following.includes(item.submittedBy)} onFollow={onFollowUser} />
 
 {item.submittedBy && (
 <CredentialHeader
@@ -396,7 +396,6 @@ recommendationItems.map(item => (
 <span style={styles.typeTag}>{item.type}</span>
 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
 {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
-<ContentActions contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} />
 {authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
 <button onClick={() => handleDeletePost(item._id || item.id)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
 Trash
@@ -404,6 +403,7 @@ Trash
 )}
 </div>
 </div>
+<ContentActions variant="bar" style={{ marginBottom: '12px' }} contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} isFollowing={!!item.submittedBy && following.includes(item.submittedBy)} onFollow={onFollowUser} />
 {item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} profileLink={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`} />}
 {item.location && (
 <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
@@ -488,7 +488,6 @@ partnerItems.map(item => (
 <span style={styles.typeTag}>{item.type}</span>
 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
 {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
-<ContentActions contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} />
 {authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
 <button onClick={() => handleDeletePost(item._id || item.id)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
 Trash
@@ -496,6 +495,7 @@ Trash
 )}
 </div>
 </div>
+<ContentActions variant="bar" style={{ marginBottom: '12px' }} contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} isFollowing={!!item.submittedBy && following.includes(item.submittedBy)} onFollow={onFollowUser} />
 {item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} profileLink={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`} />}
 {item.location && (
 <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>

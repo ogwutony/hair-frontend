@@ -560,6 +560,10 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
       {/* 1. WELCOME & RANK PROGRESS */}
       <div style={{ marginBottom: '40px' }}>
         <h1 style={{ fontSize: '32px', marginBottom: '8px', fontWeight: '700' }}>Welcome</h1>
+        <button type="button" onClick={() => document.getElementById('account')?.scrollIntoView({ behavior: 'smooth' })}
+          style={{ background: 'none', border: 'none', padding: 0, marginBottom: '8px', color: '#666', fontSize: '12px', textDecoration: 'underline', cursor: 'pointer' }}>
+          Account settings · Blocked users · Delete account
+        </button>
         {displayRankTitle && (
           <div style={{ marginTop: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>

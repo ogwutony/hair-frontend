@@ -202,11 +202,12 @@ export default function App() {
     sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); sessionStorage.removeItem("rankTitle"); sessionStorage.removeItem("rankScore"); sessionStorage.removeItem("userAvatar");
   };
 
-  const handleAvatarUpdate = (url) => {
+  // Memoized: ProfilePage lists this in an effect's deps, so a new function each render refetches the profile
+  const handleAvatarUpdate = useCallback((url) => {
     setUserAvatar(url);
     const storage = localStorage.getItem("authToken") ? localStorage : sessionStorage;
     if (url) { storage.setItem("userAvatar", url); } else { storage.removeItem("userAvatar"); }
-  };
+  }, []);
 
   const saveSetToProfile = (items) => { const newSet = { items, date: new Date().toLocaleDateString() }; const updatedSets = [newSet, ...savedSets]; setSavedSets(updatedSets); localStorage.setItem("savedSets", JSON.stringify(updatedSets)); };
   const addDumaItem = (item) => setDumaItems(prev => [item, ...prev]);

@@ -12,7 +12,12 @@ import { messageLink } from '../utils/messages';
 import { AccountSettings } from '../components/AccountSettings';
 import { ContentActions } from '../components/ContentActions';
 
-export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar, tokens, addDumaItem, following = [], followers = [], onFollowUser, onUnfollowUser, onAccountDeleted }) => {
+// Stable fallbacks: a fresh `[]` default on every render re-triggers the
+// followers/following sync effect forever, and that render loop starves
+// React Router's navigation transition (URL changes, page never swaps).
+const EMPTY_LIST = [];
+
+export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar, tokens, addDumaItem, following = EMPTY_LIST, followers = EMPTY_LIST, onFollowUser, onUnfollowUser, onAccountDeleted }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [avatarUrl, setAvatarUrl] = useState(userAvatar || null);
@@ -203,36 +208,64 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
   const [postSubmitStatus, setCultureSubmitStatus] = useState("idle");
   const [postErrorMsg, setCultureErrorMsg] = useState("");
 
-  const perspectivePrompts = [
-    { id: 1, text: "Share a photo or video of your results after using The Majorities products. What changed for your hair or skin?" },
-    { id: 2, text: "Show us your before-and-after results with The Majorities. Which products were part of your routine?" },
-    { id: 3, text: "Walk us through your wash-day routine using The Majorities shampoo, conditioner, or hair oil." },
-    { id: 4, text: "What is your favorite way to layer The Majorities skincare products in your daily routine?" },
-    { id: 5, text: "Which Majorities product has become your essential, and how do you use it?" },
-    { id: 6, text: "Share your routine for dry, damaged, or frizz-prone hair using The Majorities products." },
-    { id: 7, text: "Post a photo of your current Majorities set and tell us why you chose each product." },
-    { id: 8, text: "What tips would you give someone trying The Majorities products for the first time?" },
-    { id: 9, text: "How often do you use The Majorities shampoo, conditioner, hair oil, scrub, toner, or lotion?" },
-    { id: 10, text: "Share the results you notice when you stay consistent with your Majorities routine." },
-    { id: 11, text: "Team toner or straight to moisturizer?" },
-    { id: 12, text: "How many days do you really go between shampooing?" },
-    { id: 13, text: "Facial scrubs: love them or leave them?" },
-    { id: 14, text: "What’s your emergency fix for a surprise pimple?" },
-    { id: 15, text: "How do you instantly hide morning eye bags?" },
-    { id: 16, text: "What’s the secret to preventing neck bumps after a fresh haircut?" },
-    { id: 17, text: "What is your favorite unconventional use for baby oil?" },
-    { id: 18, text: "Hair oil: split-end lifesaver or grease trap?" },
-    { id: 19, text: "What is your holy grail daily moisturizing lotion?" },
-    { id: 20, text: "What’s the worst DIY skincare trend you’ve ever tried?" },
-    { id: 21, text: "Desert island: Shampoo, conditioner, or hair oil?" },
-    { id: 22, text: "Drop your best hack for treating razor bumps!" },
-    { id: 23, text: "What was the very first skincare product you ever bought?" },
-    { id: 24, text: "What is your #1 tip for clearing up stubborn breakouts?" },
-    { id: 25, text: "Splurge or save: Which product is always worth the money?" },
-    { id: 26, text: "Show us your current OOTD (Outfit of the Day) or favorite wardrobe piece right now!" },
-    { id: 27, text: "What is your favorite brand or boutique to shop at for quality clothes or accessories?" },
-    { id: 28, text: "Drop your best budget fashion or shopping hack. How do you build killer looks for less?" }
-  ];
+  // Prompts are split by tab. Beauty keeps the original product/beauty prompts
+  // (numeric ids, so previously completed prompts still count). Culture ids are
+  // prefixed so they never collide with Beauty ids in completed-prompt tracking.
+  const PROMPT_TABS = ['Beauty', 'Culture'];
+  const promptsByTab = {
+    Beauty: [
+      { id: 1, text: "Share a photo or video of your results after using The Majorities products. What changed for your hair or skin?" },
+      { id: 2, text: "Show us your before-and-after results with The Majorities. Which products were part of your routine?" },
+      { id: 3, text: "Walk us through your wash-day routine using The Majorities shampoo, conditioner, or hair oil." },
+      { id: 4, text: "What is your favorite way to layer The Majorities skincare products in your daily routine?" },
+      { id: 5, text: "Which Majorities product has become your essential, and how do you use it?" },
+      { id: 6, text: "Share your routine for dry, damaged, or frizz-prone hair using The Majorities products." },
+      { id: 7, text: "Post a photo of your current Majorities set and tell us why you chose each product." },
+      { id: 8, text: "What tips would you give someone trying The Majorities products for the first time?" },
+      { id: 9, text: "How often do you use The Majorities shampoo, conditioner, hair oil, scrub, toner, or lotion?" },
+      { id: 10, text: "Share the results you notice when you stay consistent with your Majorities routine." },
+      { id: 11, text: "Team toner or straight to moisturizer?" },
+      { id: 12, text: "How many days do you really go between shampooing?" },
+      { id: 13, text: "Facial scrubs: love them or leave them?" },
+      { id: 14, text: "What’s your emergency fix for a surprise pimple?" },
+      { id: 15, text: "How do you instantly hide morning eye bags?" },
+      { id: 16, text: "What’s the secret to preventing neck bumps after a fresh haircut?" },
+      { id: 17, text: "What is your favorite unconventional use for baby oil?" },
+      { id: 18, text: "Hair oil: split-end lifesaver or grease trap?" },
+      { id: 19, text: "What is your holy grail daily moisturizing lotion?" },
+      { id: 20, text: "What’s the worst DIY skincare trend you’ve ever tried?" },
+      { id: 21, text: "Desert island: Shampoo, conditioner, or hair oil?" },
+      { id: 22, text: "Drop your best hack for treating razor bumps!" },
+      { id: 23, text: "What was the very first skincare product you ever bought?" },
+      { id: 24, text: "What is your #1 tip for clearing up stubborn breakouts?" },
+      { id: 25, text: "Splurge or save: Which product is always worth the money?" }
+    ],
+    Culture: [
+      // Restaurants & bars
+      { id: "culture-1", text: "What's the best restaurant or local hidden gem you've eaten at recently? What should we order?" },
+      { id: "culture-2", text: "Share your top bar or cocktail lounge recommendation. What's the go-to drink there?" },
+      { id: "culture-3", text: "What is your absolute favorite brunch spot, and what makes it a must-visit?" },
+      { id: "culture-4", text: "What's the coolest coffee shop or late-night dessert place in your area?" },
+      // Vacations & fun places to go
+      { id: "culture-5", text: "If you could recommend one vacation destination for a quick weekend getaway, where are we going?" },
+      { id: "culture-6", text: "Drop your ultimate dream vacation spot or a past trip that blew your expectations away!" },
+      { id: "culture-7", text: "What's a fun local spot or unique activity in your city that tourists usually miss out on?" },
+      { id: "culture-8", text: "Share a photo or clip from your favorite travel memory or outdoor adventure." },
+      // Shopping & outfits
+      { id: "culture-9", text: "Show us your current OOTD (Outfit of the Day) or favorite wardrobe piece right now!" },
+      { id: "culture-10", text: "What is your favorite brand or boutique to shop at for quality clothes or accessories?" },
+      { id: "culture-11", text: "Drop your best budget fashion or shopping hack. How do you build killer looks for less?" },
+      // Movies & TV shows
+      { id: "culture-12", text: "What TV show or series are you currently binge-watching that everyone needs to check out?" },
+      { id: "culture-13", text: "What is a movie you can watch over and over again without ever getting tired of it?" },
+      { id: "culture-14", text: "Recommend an underrated movie or show that doesn't get enough hype!" },
+      // Anything goes
+      { id: "culture-15", text: "Post Anything! Share whatever is on your mind today—a random thought, life update, or funny hot take." }
+    ]
+  };
+  const [activePromptTab, setActivePromptTab] = useState('Beauty');
+  const perspectivePrompts = promptsByTab[activePromptTab];
+
 
   const syncAvatarSlotsToBackend = (slotsArray) => {
     const urls = slotsArray.map((slot) => (slot ? slot.url : null));
@@ -486,7 +519,9 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
 
       setCultureSubmitStatus("saved");
       setDumaSlots(Array(6).fill(null));
-      setTimeout(() => { navigate("/duma"); }, 1500);
+      setCultureResponse("");
+      setSelectedPromptIndex(null);
+      navigate("/duma");
     } catch {
       setCultureSubmitStatus("error");
       setCultureErrorMsg("Server error processing your post.");
@@ -830,8 +865,33 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
             ANSWER PROMPTS FOR EXTRA POINTS
           </label>
           <p style={{ fontSize: '11px', color: '#888', margin: '0 0 10px 0' }}>
-            Select a product prompt to attach it to your post and earn 150 points.
+            Pick a tab, then select a prompt to attach it to your post and earn 150 points.
           </p>
+
+          <div role="tablist" aria-label="Prompt categories" style={{ display: 'flex', gap: '4px', borderBottom: '1px solid #e0e0e0', marginBottom: '10px' }}>
+            {PROMPT_TABS.map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                aria-selected={activePromptTab === tab}
+                onClick={() => { setActivePromptTab(tab); setSelectedPromptIndex(null); }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  borderBottom: activePromptTab === tab ? '2px solid #222' : '2px solid transparent',
+                  padding: '8px 16px',
+                  marginBottom: '-1px',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  color: activePromptTab === tab ? '#222' : '#888',
+                  cursor: 'pointer'
+                }}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
 
           <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '8px', marginBottom: '20px', backgroundColor: '#fafafa' }}>
             {perspectivePrompts.map((prompt, idx) => (
@@ -849,7 +909,7 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
                   color: '#333'
                 }}
               >
-                {prompt.id}. {prompt.text}
+                {idx + 1}. {prompt.text}
               </div>
             ))}
           </div>

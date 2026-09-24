@@ -11,7 +11,9 @@ import { styles } from '../utils/styles';
 import { ContentActions } from '../components/ContentActions';
 import { useModeration } from '../utils/moderation';
 
-export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, following = [], followers = [], onFollowUser, onUnfollowUser, onAddPoints, userAvatar }) => {
+const EMPTY_LIST = []; // stable default so effects keyed on it don't re-run every render
+
+export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, following = EMPTY_LIST, followers = EMPTY_LIST, onFollowUser, onUnfollowUser, onAddPoints, userAvatar }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const viewedPerson = new URLSearchParams(location.search).get('person');

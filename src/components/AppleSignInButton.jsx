@@ -4,14 +4,16 @@
 //   REACT_APP_APPLE_SERVICE_ID    — the Services ID from the Apple Developer portal
 //   REACT_APP_APPLE_REDIRECT_URI  — a Return URL registered on that Services ID
 //                                   (e.g. https://themajorities.com/login)
-// The button is hidden until both are set.
+// Both are optional — the defaults below are used when they're not set.
 
 import React, { useEffect, useState } from 'react';
 import { BACKEND_URL } from '../utils/constants';
 
 const APPLE_SCRIPT = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
-const SERVICE_ID = process.env.REACT_APP_APPLE_SERVICE_ID || '';
-const REDIRECT_URI = process.env.REACT_APP_APPLE_REDIRECT_URI || '';
+// Defaults match the Services ID registered in Apple Developer (com.themajorities.web),
+// whose Return URLs are https://themajorities.com/login and https://www.themajorities.com/login.
+const SERVICE_ID = process.env.REACT_APP_APPLE_SERVICE_ID || 'com.themajorities.web';
+const REDIRECT_URI = process.env.REACT_APP_APPLE_REDIRECT_URI || (typeof window !== 'undefined' ? `${window.location.origin}/login` : '');
 
 let scriptPromise = null;
 const loadAppleScript = () => {

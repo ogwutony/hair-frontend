@@ -56,6 +56,12 @@ export const ContentActions = ({
     return () => document.removeEventListener('mousedown', close);
   }, [menuOpen]);
 
+  // Only signed-in members can report or block.
+  if (!authToken || !userEmail) return null;
+
+  // Sample/placeholder posts (not saved on the server) can't be reported.
+  if (contentType !== 'user' && !/^[a-f0-9]{24}$/i.test(String(contentId || ''))) return null;
+
   // Never offer report/block on your own content.
   if (authorEmail && userEmail && authorEmail.trim().toLowerCase() === userEmail.trim().toLowerCase()) {
     return null;

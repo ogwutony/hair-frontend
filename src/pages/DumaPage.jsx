@@ -12,7 +12,9 @@ import { styles } from '../utils/styles';
 import { ContentActions } from '../components/ContentActions';
 import { useModeration } from '../utils/moderation';
 
-export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints, userAvatar, following = [], onFollowUser }) => {
+const EMPTY_LIST = []; // stable default so effects keyed on it don't re-run every render
+
+export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints, userAvatar, following = EMPTY_LIST, onFollowUser }) => {
 const isMobile = useIsMobile();
 const [dumaItems, setDumaItems] = useState(items);
 const { isHiddenItem } = useModeration();

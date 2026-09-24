@@ -7,6 +7,8 @@ import { RankBadge } from '../components/RankBadge';
 import { BACKEND_URL } from '../utils/constants';
 import { normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
+import { ContentActions } from '../components/ContentActions';
+import { useModeration } from '../utils/moderation';
 
 export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, following = [], followers = [], onFollowUser, onUnfollowUser, onAddPoints, userAvatar }) => {
   const location = useLocation();
@@ -14,6 +16,7 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
   const [selectedFollowing, setSelectedFollowing] = useState(following || []);
   const [filteredItems, setFilteredItems] = useState([]);
   const [allItems, setAllItems] = useState(items);
+  const { isHiddenItem } = useModeration();
   const [followedAt, setFollowedAt] = useState({});
   const [avatarByUser, setAvatarByUser] = useState({});
   const [nameByUser, setNameByUser] = useState({});
@@ -200,6 +203,7 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            <ContentActions contentId={personEmail} contentType="user" authorEmail={personEmail} authorName={resolvedDisplayName} authToken={authToken} userEmail={userEmail} />
             <button
               onClick={() => setActiveChatUser(activeChatUser === personEmail ? null : personEmail)}
               style={{ border: '1px solid #222', background: activeChatUser === personEmail ? '#222' : '#fff', color: activeChatUser === personEmail ? '#fff' : '#222', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', padding: '6px 12px' }}
@@ -323,12 +327,13 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
             No perspectives yet. Follow people from the Duma or share your own perspective!
           </div>
         ) : (
-          filteredItems.map(item => (
+          filteredItems.filter(item => !isHiddenItem(item)).map(item => (
             <div key={item.id || item._id} style={styles.dumaCard}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                 <span style={styles.typeTag}>Perspective</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
+                  <ContentActions contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} />
                   {authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
                     <button onClick={() => handleDeletePost(item._id || item.id)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
                       Trash

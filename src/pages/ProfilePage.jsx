@@ -8,8 +8,10 @@ import { SocialInputRow } from '../components/SocialInputRow';
 import { BACKEND_URL, SOCIAL_FIELDS } from '../utils/constants';
 import { getNextRankTitle, getPointsToNextRank, getRankProgress, getRankTitle, markPromptCompleted, normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
+import { AccountSettings } from '../components/AccountSettings';
+import { ContentActions } from '../components/ContentActions';
 
-export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar, tokens, addDumaItem, following = [], followers = [], onFollowUser, onUnfollowUser }) => {
+export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar, tokens, addDumaItem, following = [], followers = [], onFollowUser, onUnfollowUser, onAccountDeleted }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [avatarUrl, setAvatarUrl] = useState(userAvatar || null);
@@ -542,6 +544,7 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            <ContentActions contentId={personEmail} contentType="user" authorEmail={personEmail} authorName={resolvedDisplayName} authToken={authToken} userEmail={userEmail} />
             <button
               onClick={() => setActiveChatUser(activeChatUser === personEmail ? null : personEmail)}
               style={{ border: '1px solid #222', background: activeChatUser === personEmail ? '#222' : '#fff', color: activeChatUser === personEmail ? '#fff' : '#222', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', padding: '6px 12px' }}
@@ -977,6 +980,9 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
           ))
         )}
       </section>
+
+      {/* 8. ACCOUNT — blocked users and account deletion */}
+      <AccountSettings authToken={authToken} userEmail={userEmail} onAccountDeleted={() => { if (onAccountDeleted) onAccountDeleted(); navigate('/'); }} />
 
     </div>
   );

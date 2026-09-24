@@ -1,6 +1,7 @@
 // src/pages/PerspectivesPage.jsx
 import React, { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { messageLink } from '../utils/messages';
 import { CredentialHeader } from '../components/CredentialHeader';
 import { MediaModal } from '../components/MediaModal';
 import { RankBadge } from '../components/RankBadge';
@@ -12,6 +13,8 @@ import { useModeration } from '../utils/moderation';
 
 export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankScore, following = [], followers = [], onFollowUser, onUnfollowUser, onAddPoints, userAvatar }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const viewedPerson = new URLSearchParams(location.search).get('person');
   const [followingList, setFollowingList] = useState([]);
   const [selectedFollowing, setSelectedFollowing] = useState(following || []);
   const [filteredItems, setFilteredItems] = useState([]);
@@ -26,10 +29,6 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
   // Accordion state (Only Followers & Following)
   const [openSection, setOpenSection] = useState(null);
 
-  // Direct Messaging inline state
-  const [activeChatUser, setActiveChatUser] = useState(null);
-  const [directMessages, setDirectMessages] = useState({});
-  const [newMessageText, setNewMessageText] = useState('');
 
   const toggleSection = (sectionName) => {
     setOpenSection(prev => (prev === sectionName ? null : sectionName));
@@ -140,21 +139,6 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
     }
   };
 
-  const handleSendMessage = (recipientEmail) => {
-    if (!newMessageText.trim()) return;
-    const msg = {
-      sender: userEmail,
-      recipient: recipientEmail,
-      text: newMessageText,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-    setDirectMessages(prev => ({
-      ...prev,
-      [recipientEmail]: [...(prev[recipientEmail] || []), msg]
-    }));
-    setNewMessageText('');
-  };
-
   const getCleanDisplayName = (personIdentifier) => {
     if (!personIdentifier) return 'User';
     if (typeof personIdentifier === 'object') {
@@ -204,12 +188,14 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             <ContentActions contentId={personEmail} contentType="user" authorEmail={personEmail} authorName={resolvedDisplayName} authToken={authToken} userEmail={userEmail} />
-            <button
-              onClick={() => setActiveChatUser(activeChatUser === personEmail ? null : personEmail)}
-              style={{ border: '1px solid #222', background: activeChatUser === personEmail ? '#222' : '#fff', color: activeChatUser === personEmail ? '#fff' : '#222', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', padding: '6px 12px' }}
-            >
-              Message
-            </button>
+            {authToken && (
+              <button
+                onClick={() => navigate(messageLink(personEmail, resolvedDisplayName))}
+                style={{ border: '1px solid #222', background: '#fff', color: '#222', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', padding: '6px 12px' }}
+              >
+                Message
+              </button>
+            )}
             <button
               onClick={() => handleFollowingToggle(personEmail)}
               style={{ border: '1px solid #ddd', background: isFollowing ? '#eee' : '#fff', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', padding: '6px 14px' }}
@@ -220,38 +206,6 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
 
         </div>
 
-        {/* Inline DM Drawer */}
-        {activeChatUser === personEmail && (
-          <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #ccc' }}>
-            <div style={{ maxHeight: '150px', overflowY: 'auto', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {(!directMessages[personEmail] || directMessages[personEmail].length === 0) ? (
-                <p style={{ fontSize: '11px', color: '#999', margin: 0 }}>No messages yet. Send a direct message below!</p>
-              ) : (
-                directMessages[personEmail].map((msg, idx) => (
-                  <div key={idx} style={{ alignSelf: msg.sender === userEmail ? 'flex-end' : 'flex-start', backgroundColor: msg.sender === userEmail ? '#222' : '#eee', color: msg.sender === userEmail ? '#fff' : '#222', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', maxWidth: '80%' }}>
-                    <div>{msg.text}</div>
-                    <div style={{ fontSize: '9px', opacity: 0.7, textAlign: 'right', marginTop: '2px' }}>{msg.timestamp}</div>
-                  </div>
-                ))
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <input
-                type="text"
-                placeholder={`Message ${resolvedDisplayName}...`}
-                value={newMessageText}
-                onChange={(e) => setNewMessageText(e.target.value)}
-                style={{ flex: 1, padding: '6px 10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px' }}
-              />
-              <button
-                onClick={() => handleSendMessage(personEmail)}
-                style={{ padding: '6px 12px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
-              >
-                Send
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     );
   };
@@ -270,6 +224,30 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
       {userEmail && rankTitle && (
         <div style={{ marginBottom: '20px' }}>
           <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
+        </div>
+      )}
+
+      {/* Individual person's Perspectives: who you're viewing, with Message / Follow */}
+      {viewedPerson && viewedPerson.toLowerCase() !== String(userEmail || '').toLowerCase() && (
+        <div style={{ border: '1px solid #eee', borderRadius: '16px', padding: '16px 18px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', overflow: 'hidden', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            {avatarByUser[viewedPerson] && !/\.(mp4|mov|webm)$/i.test(avatarByUser[viewedPerson]) && !avatarByUser[viewedPerson].includes('/video/upload/')
+              ? <img src={avatarByUser[viewedPerson]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <span style={{ fontWeight: 700, fontSize: '20px', color: '#555' }}>{getCleanDisplayName(viewedPerson)[0]?.toUpperCase()}</span>}
+          </div>
+          <div style={{ flex: 1, minWidth: '140px' }}>
+            <div style={{ fontWeight: 800, fontSize: '18px' }}>{getCleanDisplayName(viewedPerson)}</div>
+            <div style={{ fontSize: '12px', color: '#888' }}>Perspectives</div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {authToken && (
+              <button onClick={() => navigate(messageLink(viewedPerson, getCleanDisplayName(viewedPerson)))}
+                style={{ border: 'none', background: '#222', color: '#fff', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 700, padding: '9px 16px' }}>
+                Message
+              </button>
+            )}
+            <ContentActions contentId={viewedPerson} contentType="user" authorEmail={viewedPerson} authorName={getCleanDisplayName(viewedPerson)} authToken={authToken} userEmail={userEmail} />
+          </div>
         </div>
       )}
 

@@ -8,6 +8,7 @@ import { SocialInputRow } from '../components/SocialInputRow';
 import { BACKEND_URL, SOCIAL_FIELDS } from '../utils/constants';
 import { getNextRankTitle, getPointsToNextRank, getRankProgress, getRankTitle, markPromptCompleted, normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
+import { messageLink } from '../utils/messages';
 import { AccountSettings } from '../components/AccountSettings';
 import { ContentActions } from '../components/ContentActions';
 
@@ -44,9 +45,6 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
   const [showFollowing, setShowFollowing] = useState(false);
 
   // Direct Messaging state
-  const [activeChatUser, setActiveChatUser] = useState(null);
-  const [directMessages, setDirectMessages] = useState({});
-  const [newMessageText, setNewMessageText] = useState('');
 
   const blobAvatarUrlRef = useRef(null);
 
@@ -130,21 +128,6 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
       onFollowUser?.(person);
       setFollowingList(prev => [...prev, person]);
     }
-  };
-
-  const handleSendMessage = (recipientEmail) => {
-    if (!newMessageText.trim()) return;
-    const msg = {
-      sender: userEmail,
-      recipient: recipientEmail,
-      text: newMessageText,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-    setDirectMessages(prev => ({
-      ...prev,
-      [recipientEmail]: [...(prev[recipientEmail] || []), msg]
-    }));
-    setNewMessageText('');
   };
 
   const getCleanDisplayName = (personIdentifier) => {
@@ -546,8 +529,8 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             <ContentActions contentId={personEmail} contentType="user" authorEmail={personEmail} authorName={resolvedDisplayName} authToken={authToken} userEmail={userEmail} />
             <button
-              onClick={() => setActiveChatUser(activeChatUser === personEmail ? null : personEmail)}
-              style={{ border: '1px solid #222', background: activeChatUser === personEmail ? '#222' : '#fff', color: activeChatUser === personEmail ? '#fff' : '#222', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', padding: '6px 12px' }}
+              onClick={() => navigate(messageLink(personEmail, resolvedDisplayName))}
+              style={{ border: '1px solid #222', background: '#fff', color: '#222', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', padding: '6px 12px' }}
             >
               Message
             </button>
@@ -560,37 +543,6 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
           </div>
         </div>
 
-        {activeChatUser === personEmail && (
-          <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #ccc' }}>
-            <div style={{ maxHeight: '150px', overflowY: 'auto', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {(!directMessages[personEmail] || directMessages[personEmail].length === 0) ? (
-                <p style={{ fontSize: '11px', color: '#999', margin: 0 }}>No messages yet. Send a direct message!</p>
-              ) : (
-                directMessages[personEmail].map((msg, idx) => (
-                  <div key={idx} style={{ alignSelf: msg.sender === userEmail ? 'flex-end' : 'flex-start', backgroundColor: msg.sender === userEmail ? '#222' : '#eee', color: msg.sender === userEmail ? '#fff' : '#222', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', maxWidth: '80%' }}>
-                    <div>{msg.text}</div>
-                    <div style={{ fontSize: '9px', opacity: 0.7, textAlign: 'right', marginTop: '2px' }}>{msg.timestamp}</div>
-                  </div>
-                ))
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <input
-                type="text"
-                placeholder={`Message ${resolvedDisplayName}...`}
-                value={newMessageText}
-                onChange={(e) => setNewMessageText(e.target.value)}
-                style={{ flex: 1, padding: '6px 10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px' }}
-              />
-              <button
-                onClick={() => handleSendMessage(personEmail)}
-                style={{ padding: '6px 12px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
-              >
-                Send
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     );
   };

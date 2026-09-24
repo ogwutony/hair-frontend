@@ -32,6 +32,7 @@ import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { ReturnPolicyPage } from './pages/ReturnPolicyPage';
 import { AboutPage } from './pages/AboutPage';
 import { MessagesPage } from './pages/MessagesPage';
+import { AdminModerationPage } from './pages/AdminModerationPage';
 import { fetchInbox, countUnreadThreads } from './utils/messages';
 import { TermsGate } from './components/TermsGate';
 import { clearModerationData } from './utils/moderation';
@@ -152,7 +153,14 @@ export default function App() {
   const [savedSets, setSavedSets] = useState([]);
   const [userAvatar, setUserAvatar] = useState("");
   const [dumaItems, setDumaItems] = useState(INITIAL_DUMA_ITEMS);
-  const [following, setFollowing] = useState([]);
+  // People this member follows — remembered in this browser (the backend doesn't store follows yet)
+  const [following, setFollowing] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`following_${storedAuth.email}`) || '[]'); } catch { return []; }
+  });
+  useEffect(() => {
+    if (!userEmail) return;
+    try { localStorage.setItem(`following_${userEmail}`, JSON.stringify(following)); } catch {}
+  }, [following, userEmail]);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -256,14 +264,14 @@ export default function App() {
               {isLoggedIn ? (
               <>
                 <Link to="/perspectives" style={styles.navLink}>Perspectives</Link>
-                <Link to="/messages" style={{ ...styles.navLink, position: 'relative' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: isMobile ? 'none' : '1px solid #eee', paddingLeft: isMobile ? '0' : '15px', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-start', marginTop: isMobile ? '5px' : '0' }}>
+                  {rankTitle && <RankBadge rankTitle={rankTitle} />}
+                  <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
+                  <Link to="/messages" style={{ ...styles.navLink, position: 'relative' }}>
                   Messages
                   {unreadMessages > 0 && <span aria-label={`${unreadMessages} unread`} style={{ marginLeft: '5px', background: '#0a84ff', color: '#fff', borderRadius: '999px', padding: '1px 6px', fontSize: '10px', fontWeight: 700 }}>{unreadMessages}</span>}
-                </Link>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: isMobile ? 'none' : '1px solid #eee', paddingLeft: isMobile ? '0' : '15px', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-start', marginTop: isMobile ? '5px' : '0' }}>
-                  <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
-                  {rankTitle && <RankBadge rankTitle={rankTitle} />}
-                  <span style={styles.auth} onClick={handleLogout}>Logout</span>
+                  </Link>
+                  <button type="button" onClick={handleLogout} style={{ ...styles.auth, background: 'none', border: 'none', padding: 0, font: 'inherit', fontWeight: 600 }}>Logout</button>
                 </div>
               </>
             ) : (
@@ -287,13 +295,14 @@ export default function App() {
           <Route path="/recommend" element={<RecommendPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
           <Route path="/partner" element={<PartnerPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
           <Route path="/culture" element={isLoggedIn ? <CultureLabPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
-          <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} />} />
+          <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} following={following} onFollowUser={followUser} />} />
           <Route path="/perspectives" element={isLoggedIn ? <PerspectivesPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} following={following} onFollowUser={followUser} onUnfollowUser={unfollowUser} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
-          <Route path="/legislature" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} />} />
+          <Route path="/legislature" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} following={following} onFollowUser={followUser} />} />
           <Route path="/profile" element={<ProfilePage userEmail={userEmail} savedSets={savedSets} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} onAvatarUpdate={handleAvatarUpdate} tokens={tokens} addDumaItem={addDumaItem} onAccountDeleted={handleLogout} />} />
           <Route path="/orders" element={<div style={{ padding: '60px', textAlign: 'center' }}><h2>Payment Received!</h2><p>Your custom hair set is being prepared. Check your Profile to see your formula.</p><Link to="/profile">Go to Profile</Link></div>} />
           <Route path="/admin/orders" element={userEmail === 'ogwutony@gmail.com' ? <AdminOrdersPage authToken={authToken} userEmail={userEmail} /> : <Navigate to="/" />} />
           <Route path="/messages" element={isLoggedIn ? <MessagesPage authToken={authToken} userEmail={userEmail} onUnreadChange={setUnreadMessages} /> : <Navigate to="/login" />} />
+          <Route path="/admin/moderation" element={<AdminModerationPage authToken={authToken} />} />
           <Route path="/model" element={<ModelFriendlyPage />} />
           <Route path="/TermsofService" element={<TermsOfServicePage />} />
                         <Route path="/returns" element={<ReturnPolicyPage />} />

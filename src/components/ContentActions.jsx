@@ -3,6 +3,8 @@
 // or block the person who posted it.
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { messageLink } from '../utils/messages';
 import { REPORT_REASONS, blockUser, reportContent } from '../utils/moderation';
 
 const menuBtn = {
@@ -39,7 +41,11 @@ export const ContentActions = ({
   onBlocked,
   onReported,
   style,
+  variant = 'menu',      // 'menu' = "•••" dropdown, 'bar' = row of buttons (Direct Message, Follow, Report, Block)
+  isFollowing = false,
+  onFollow,              // bar only: called with the author's email when "Follow" is tapped
 }) => {
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reason, setReason] = useState('');
@@ -122,40 +128,7 @@ export const ContentActions = ({
     );
   };
 
-  return (
-    <div ref={wrapRef} style={{ position: 'relative', display: 'inline-block', ...style }}>
-      <button type="button" aria-label="Report or block" title="Report or block" style={menuBtn} onClick={() => setMenuOpen((v) => !v)}>
-        •••
-      </button>
-
-      {menuOpen && (
-        <div
-          role="menu"
-          style={{
-            position: 'absolute',
-            right: 0,
-            top: 'calc(100% + 6px)',
-            background: '#fff',
-            border: '1px solid #e5e5e5',
-            borderRadius: '10px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-            zIndex: 50,
-            minWidth: '170px',
-            overflow: 'hidden',
-          }}
-        >
-          <button type="button" role="menuitem" style={menuItem} onClick={openReport}>
-            🚩 Report
-          </button>
-          {authorEmail && (
-            <button type="button" role="menuitem" style={{ ...menuItem, color: '#c0392b' }} onClick={handleBlock}>
-              ⛔ Block {authorName ? authorName : 'user'}
-            </button>
-          )}
-        </div>
-      )}
-
-      {reportOpen && (
+  const reportDialog = (
         <div
           role="dialog"
           aria-modal="true"
@@ -203,7 +176,66 @@ export const ContentActions = ({
             </div>
           </div>
         </div>
+  );
+
+  const barBtn = { border: '1px solid #ddd', background: '#fff', color: '#333', borderRadius: '6px', padding: '6px 11px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' };
+
+  if (variant === 'bar') {
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', ...style }}>
+        {authorEmail && (
+          <button type="button" style={{ ...barBtn, background: '#222', color: '#fff', borderColor: '#222' }} onClick={() => navigate(messageLink(authorEmail, authorName))}>
+            ✉️ Direct Message
+          </button>
+        )}
+        {authorEmail && onFollow && (
+          <button type="button" style={{ ...barBtn, background: isFollowing ? '#f2f2f2' : '#fff' }} disabled={isFollowing} onClick={() => onFollow(authorEmail)}>
+            {isFollowing ? '✓ Following' : '+ Add User'}
+          </button>
+        )}
+        <button type="button" style={{ ...barBtn, color: '#b7791f', borderColor: '#f0d9a8' }} onClick={openReport}>🚩 Report</button>
+        {authorEmail && (
+          <button type="button" style={{ ...barBtn, color: '#c0392b', borderColor: '#f5c6cb' }} onClick={handleBlock}>⛔ Block</button>
+        )}
+        {reportOpen && reportDialog}
+      </div>
+    );
+  }
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative', display: 'inline-block', ...style }}>
+      <button type="button" aria-label="Report or block" title="Report or block" style={menuBtn} onClick={() => setMenuOpen((v) => !v)}>
+        •••
+      </button>
+
+      {menuOpen && (
+        <div
+          role="menu"
+          style={{
+            position: 'absolute',
+            right: 0,
+            top: 'calc(100% + 6px)',
+            background: '#fff',
+            border: '1px solid #e5e5e5',
+            borderRadius: '10px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            zIndex: 50,
+            minWidth: '170px',
+            overflow: 'hidden',
+          }}
+        >
+          <button type="button" role="menuitem" style={menuItem} onClick={openReport}>
+            🚩 Report
+          </button>
+          {authorEmail && (
+            <button type="button" role="menuitem" style={{ ...menuItem, color: '#c0392b' }} onClick={handleBlock}>
+              ⛔ Block {authorName ? authorName : 'user'}
+            </button>
+          )}
+        </div>
       )}
+
+      {reportOpen && reportDialog}
     </div>
   );
 };

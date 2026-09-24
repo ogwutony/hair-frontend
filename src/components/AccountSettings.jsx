@@ -29,7 +29,7 @@ export const AccountSettings = ({ authToken, userEmail, onAccountDeleted }) => {
   };
 
   return (
-    <section style={{ marginTop: '40px' }}>
+    <section id="account" style={{ marginTop: '40px', scrollMarginTop: '20px' }}>
       <h2 style={{ fontSize: '18px', marginBottom: '16px', fontWeight: '600' }}>Account</h2>
 
       <div style={{ border: '1px solid #eee', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>

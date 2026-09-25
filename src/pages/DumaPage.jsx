@@ -301,6 +301,9 @@ profileLink={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`}
 
 <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
 <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6', marginBottom: '14px' }}>{item.response || item.reason || item.desc}</p>
+{/^[a-f0-9]{24}$/i.test(String(itemId || '')) && (
+<Link to={`/duma/${itemId}`} style={{ display: 'inline-block', fontSize: '12px', fontWeight: 600, color: '#1f4f99', marginBottom: '14px' }}>Read full perspective →</Link>
+)}
 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
 <button type="button" onClick={() => sharePost(item, 'instagram')} style={{ border: '1px solid #c13584', background: '#fff', color: '#c13584', borderRadius: '6px', padding: '7px 10px', cursor: 'pointer', fontSize: '12px', fontWeight: '700' }}>Share to Instagram</button>
 <button type="button" onClick={() => sharePost(item, 'tiktok')} style={{ border: '1px solid #222', background: '#fff', color: '#222', borderRadius: '6px', padding: '7px 10px', cursor: 'pointer', fontSize: '12px', fontWeight: '700' }}>Share to TikTok</button>
@@ -381,14 +384,9 @@ Yes: {item.votes?.yes || 0} | No: {item.votes?.no || 0} | Abstain: {item.votes?.
 </div>
 )}
 
-{activeSection === "Recommendations" && !authToken && (
-<div style={{ padding: '20px 0' }}>
-<GuestSubmissionPrompt message="This section contains proprietary commerce ledger records, partner structures, and product recommendations. Please log in or register to view this data." />
-</div>
-)}
-
-{activeSection === "Recommendations" && authToken && (
+{activeSection === "Recommendations" && (
 <div>
+{!authToken && <GuestSubmissionPrompt message="Anyone can read the Duma. Log in or register to vote, recommend products, and share your perspective." />}
 {recommendationItems.length === 0 ? (
 <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No product recommendations yet. Be the first to recommend a product!</div>
 ) : (
@@ -634,9 +632,8 @@ Yes: {item.votes?.yes || 0} | No: {item.votes?.no || 0} | Abstain: {item.votes?.
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
 <h3 style={{ margin: 0 }}>Marketplace</h3>
 </div>
-{!authToken ? (
-<GuestSubmissionPrompt message="Log in or register to view listings and sell in the Marketplace." />
-) : marketplaceItems.length === 0 ? (
+{!authToken && <GuestSubmissionPrompt message="Log in or register to sell in the Marketplace." />}
+{marketplaceItems.length === 0 ? (
 <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No listings yet. Be the first to offer a product or service.</div>
 ) : (
 marketplaceItems.map(item => {

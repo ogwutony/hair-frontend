@@ -9,6 +9,8 @@ import { BACKEND_URL } from '../utils/constants';
 import { normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
 import { ContentActions } from '../components/ContentActions';
+import { GuestSubmissionPrompt } from '../components/GuestSubmissionPrompt';
+import { Helmet } from 'react-helmet-async';
 import { useModeration } from '../utils/moderation';
 
 const EMPTY_LIST = []; // stable default so effects keyed on it don't re-run every render
@@ -22,6 +24,7 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
   const [filteredItems, setFilteredItems] = useState([]);
   const [allItems, setAllItems] = useState(items);
   const { isHiddenItem } = useModeration();
+  const isGuest = !authToken;
   const [followedAt, setFollowedAt] = useState({});
   const [avatarByUser, setAvatarByUser] = useState({});
   const [nameByUser, setNameByUser] = useState({});
@@ -216,12 +219,20 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
     <div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto', position: 'relative' }}>
       <MediaModal media={activeMedia} onClose={() => setActiveMedia(null)} />
       
+      <Helmet>
+        <title>Perspectives | The Majorities</title>
+        <meta name="description" content="Read perspectives on beauty, culture and identity shared by The Majorities community." />
+        <link rel="canonical" href="https://themajorities.com/perspectives" />
+      </Helmet>
       <div style={{ marginBottom: '30px' }}>
-        <h2 style={{ marginBottom: '6px' }}>My Perspectives</h2>
+        <h1 style={{ marginBottom: '6px', fontSize: '1.5em' }}>{isGuest ? 'Perspectives' : 'My Perspectives'}</h1>
         <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
-          Follow people from The Duma to see their perspectives in your personalized feed. Earn +20 points for each person you follow!
+          {isGuest
+            ? 'Perspectives on beauty, culture and identity from The Majorities community.'
+            : 'Follow people from The Duma to see their perspectives in your personalized feed. Earn +20 points for each person you follow!'}
         </p>
       </div>
+      {isGuest && <GuestSubmissionPrompt message="Anyone can read Perspectives. Log in or register to follow people, message them, and share your own." />}
 
       {userEmail && rankTitle && (
         <div style={{ marginBottom: '20px' }}>
@@ -261,7 +272,8 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
         </div>
       )}
 
-      {/* Community Accordions (Only Followers and Following) */}
+      {/* Community Accordions (Only Followers and Following) — members only */}
+      {!isGuest && (
       <div style={{ ...styles.dumaCard, marginBottom: '30px' }}>
         <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Community</h3>
         
@@ -305,6 +317,7 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
           )}
         </div>
       </div>
+      )}
 
       {/* Perspectives Feed */}
       <div>
@@ -367,6 +380,9 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
               )}
               <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
               <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6' }}>{item.response || item.reason || item.desc}</p>
+              {/^[a-f0-9]{24}$/i.test(String(item._id || item.id || '')) && (
+                <Link to={`/duma/${item._id || item.id}`} style={{ fontSize: '12px', fontWeight: 600, color: '#1f4f99' }}>Read full perspective →</Link>
+              )}
 
               {(() => {
                 const mediaList = Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0
@@ -403,7 +419,7 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
       </div>
 
       <Link
-        to="/culture"
+        to={isGuest ? '/login' : '/culture'}
         style={{
           position: 'fixed',
           right: '20px',

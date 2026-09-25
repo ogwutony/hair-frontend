@@ -48,7 +48,7 @@ const INITIAL_DUMA_ITEMS = [
     response: "We started The Majorities to build hair and skin essentials that work across routines, textures, and climates without compromise.",
     submittedBy: "team@themajorities.com",
     submitterDisplayName: "The Majorities Team",
-    submitterRank: "Madrid"
+    submitterRank: "Comrade"
   },
   {
     id: "seed-culture-2",
@@ -58,7 +58,7 @@ const INITIAL_DUMA_ITEMS = [
     response: "We prioritize performance-first formulas with ingredients selected for consistency, safety, and daily use across hair and skin types.",
     submittedBy: "lab@themajorities.com",
     submitterDisplayName: "The Majorities Lab",
-    submitterRank: "Tokyo"
+    submitterRank: "Comrade"
   },
   {
     id: "seed-rec-1",

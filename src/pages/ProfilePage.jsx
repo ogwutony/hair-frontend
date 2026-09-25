@@ -6,7 +6,8 @@ import { LocationAutocomplete } from '../components/LocationAutocomplete';
 import { RankBadge } from '../components/RankBadge';
 import { SocialInputRow } from '../components/SocialInputRow';
 import { BACKEND_URL, SOCIAL_FIELDS } from '../utils/constants';
-import { getNextRankTitle, getPointsToNextRank, getRankProgress, getRankTitle, markPromptCompleted, normalizeMediaVideoUrl } from '../utils/helpers';
+import { getNextRankTitle, getPointsToNextRank, getRankProgress, getRankTitle, getRankDescription, markPromptCompleted, normalizeMediaVideoUrl } from '../utils/helpers';
+import { RANK_TIERS } from '../utils/constants';
 import { styles } from '../utils/styles';
 import { messageLink } from '../utils/messages';
 import { AccountSettings } from '../components/AccountSettings';
@@ -588,6 +589,8 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
   const nextRankTitle = getNextRankTitle(displayRankTitle);
   const { currentMin, nextMin, progressPercent } = getRankProgress(displayRankScore, displayRankTitle);
   const percentToNextRank = Math.max(0, 100 - progressPercent);
+  const currentRankDescription = getRankDescription(displayRankTitle);
+  const nextRankDescription = nextRankTitle ? getRankDescription(nextRankTitle) : '';
 
   return (
     <div style={{ padding: isMobile ? '25px 16px' : '40px 60px', maxWidth: '900px', margin: '0 auto' }}>
@@ -619,12 +622,38 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
                 <span>{nextMin.toLocaleString()} pts</span>
               </div>
             </div>
-            {nextRankTitle && (
-              <div style={{ fontSize: '11px', color: '#888', marginTop: '6px' }}>
+            {currentRankDescription && (
+              <p style={{ fontSize: '13px', color: '#444', lineHeight: 1.5, margin: '10px 0 0' }}>{currentRankDescription}</p>
+            )}
+            {nextRankTitle ? (
+              <div style={{ fontSize: '11px', color: '#888', marginTop: '10px', padding: '10px 12px', border: '1px solid #eee', borderRadius: '8px', background: '#fafafa' }}>
                 <div><strong>{percentToNextRank.toFixed(0)}%</strong> to {nextRankTitle}</div>
                 <div><strong>{pointsToNextRank.toLocaleString()}</strong> points needed</div>
+                {nextRankDescription && <div style={{ marginTop: '6px', color: '#666', fontStyle: 'italic' }}>Next up: {nextRankDescription}</div>}
               </div>
+            ) : (
+              <div style={{ fontSize: '11px', color: '#888', marginTop: '10px' }}>You have reached the highest rank in The Majorities.</div>
             )}
+            <details style={{ marginTop: '14px' }}>
+              <summary style={{ cursor: 'pointer', fontSize: '12px', fontWeight: '600', color: '#222' }}>View all ranks</summary>
+              <ol style={{ listStyle: 'none', padding: 0, margin: '10px 0 0', maxHeight: '360px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '8px' }}>
+                {RANK_TIERS.map((tier) => {
+                  const isCurrent = tier.title === displayRankTitle;
+                  const isEarned = displayRankScore >= tier.min;
+                  return (
+                    <li key={tier.title} style={{ padding: '10px 12px', borderBottom: '1px solid #f0f0f0', background: isCurrent ? '#fff8e1' : '#fff', opacity: isEarned ? 1 : 0.75 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'baseline' }}>
+                        <span style={{ fontSize: '12px', fontWeight: isCurrent ? '800' : '600', color: '#222' }}>
+                          {isEarned ? '✓ ' : ''}{tier.title}{isCurrent ? ' (you)' : ''}
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#888', whiteSpace: 'nowrap' }}>{tier.min.toLocaleString()} pts</span>
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#666', marginTop: '3px', lineHeight: 1.4 }}>{tier.description}</div>
+                    </li>
+                  );
+                })}
+              </ol>
+            </details>
           </div>
         )}
       </div>

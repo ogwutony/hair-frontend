@@ -5,14 +5,22 @@ import { RANK_TIERS, PRODUCT_VARIANT_MAP, SHOP_DOMAIN } from './constants';
 
 // --- Rank System ---
 
+export const DEFAULT_RANK_TITLE = "Comrade";
+
 export const getRankTitle = (score) => {
+  const numeric = Number(score) || 1;
   for (const tier of RANK_TIERS) {
-    if (score >= tier.min) return tier.title;
+    if (numeric >= tier.min) return tier.title;
   }
-  return "Comrade";
+  return DEFAULT_RANK_TITLE;
 };
 
-export const LOWER_HIERARCHY_TITLES = RANK_TIERS.slice(RANK_TIERS.findIndex(t => t.title === "Ibiza")).map(t => t.title);
+export const getRankTier = (rankTitle) => RANK_TIERS.find(t => t.title === rankTitle) || null;
+
+export const getRankDescription = (rankTitle) => getRankTier(rankTitle)?.description || "";
+
+// Titles below "The Salvation of the Drowning" (under 1,000,000 pts) can earn the "Lord" prefix
+export const LOWER_HIERARCHY_TITLES = RANK_TIERS.filter(t => t.min < 1000000).map(t => t.title);
 
 export const getFormattedRankTitle = (rankTitle, completedPromptsCount = 0) => {
   if (LOWER_HIERARCHY_TITLES.includes(rankTitle) && completedPromptsCount >= 15) {
@@ -47,7 +55,7 @@ export const markPromptCompleted = (userEmail, promptId) => {
   }
 };
 
-export const isPolitburoOrHigher = (score) => score >= 10000000;
+export const isPolitburoOrHigher = (score) => (Number(score) || 0) >= 10000000;
 
 export const getPointsToNextRank = (currentScore, currentRankTitle) => {
   const currentIndex = RANK_TIERS.findIndex(r => r.title === currentRankTitle);
@@ -75,22 +83,10 @@ export const getRankProgress = (currentScore, currentRankTitle) => {
   return { currentMin, nextMin: nextTier.min, progressPercent };
 };
 
+// Gold for the honours ladder (1,000,000+ pts), grey for everyone else
 export const getRankColor = (rankTitle) => {
-  const goldTier = [
-    "Servant of the People", "Servant of the Majorities", "Generalissimo ", "General Secretary of The Majorities",
-    "Premier of The Majorities", "Chairman of the Standing Committee of the Majorities Duma",
-    "Chairman of the National Committee of the Majorities Political Consultative",
-    "Director of the General Office of the Majorities",
-    "Secretary of the Central Commission for Discipline Inspection",
-    "Politburo Member of The Majorities", "Secretary of Majorities Committees of Provinces",
-    "Hero of Socialist Labor", "Hero of the Majorities", "Order of The Majorities",
-    "Order of the October Revolution", "Order of the Red Banner of Labor",
-    "Order of Friendship of Peoples", "Order of the Badge of Honor",
-    "the Salvation of the Drowning"
-  ];
-  const silverTier = ["Ibiza", "Berlin", "Bangkok", "Vegas", "Janeiro", "York", "Melbourne", "Paulo"];
-  if (goldTier.includes(rankTitle)) return '#FFD700';
-  if (silverTier.includes(rankTitle)) return '#C0C0C0';
+  const tier = getRankTier(rankTitle);
+  if (tier && tier.min >= 1000000) return '#FFD700';
   return '#888';
 };
 

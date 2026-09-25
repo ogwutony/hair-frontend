@@ -2,10 +2,11 @@
 import React from 'react';
 import { getRankColor } from '../utils/helpers';
 import { styles } from '../utils/styles';
+import { RANK_TIERS } from '../utils/constants';
 
 export const RankBadge = ({ rankTitle, score }) => {
   const color = getRankColor(rankTitle);
-  const isTopRank = rankTitle === "Servant of the People";
+  const isTopRank = rankTitle === RANK_TIERS[0].title;
   const isLongTitle = rankTitle && rankTitle.length > 20;
   return (
     <span style={{

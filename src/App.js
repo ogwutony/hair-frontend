@@ -260,7 +260,6 @@ export default function App() {
           <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}><div style={styles.logo}>The Majorities</div></Link>
           <nav style={{ ...styles.nav, flexWrap: 'wrap', justifyContent: 'center', gap: isMobile ? '12px' : '25px' }}>
             <Link to="/" style={styles.navLink}>Home</Link>
-                <Link to="/about" style={styles.navLink}>About</Link>
             <Link to="/recommend" style={styles.navLink}>Recommend</Link>
             <Link to="/partner" style={styles.navLink}>Partner</Link>
             <Link to="/duma" style={styles.navLink}>The Duma</Link>

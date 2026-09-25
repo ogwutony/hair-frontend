@@ -11,7 +11,8 @@ const SnapchatIcon = () => (
 );
 
 export const CredentialHeader = ({ email, displayName, rankTitle, rankScore, avatarUrl, socialLinks = {}, profileLink = null }) => {
-  const nameToDisplay = displayName || email;
+  // Never print a member's full email address on public pages — fall back to the part before the @
+  const nameToDisplay = displayName || (email && email.includes('@') ? email.split('@')[0] : email);
   const initial = (nameToDisplay || 'C')[0].toUpperCase();
   const color = getRankColor(rankTitle || 'Comrade');
   const isTopRank = rankTitle === "Nice and Helpful";

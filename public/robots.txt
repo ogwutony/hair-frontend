@@ -1,6 +1,9 @@
 User-agent: *
 Allow: /
 Disallow: /admin/
-Disallow: /orders/
+Disallow: /orders
+Disallow: /api/
+Disallow: /_prerender/
+Disallow: /app-shell.html
 
 Sitemap: https://themajorities.com/sitemap.xml

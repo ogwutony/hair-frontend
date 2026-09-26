@@ -263,7 +263,7 @@ export default function App() {
             <Link to="/recommend" style={styles.navLink}>Recommend</Link>
             <Link to="/partner" style={styles.navLink}>Partner</Link>
             <Link to="/duma" style={styles.navLink}>The Duma</Link>
-            <Link to="/perspectives" style={styles.navLink}>Perspectives</Link>
+            {isLoggedIn && <Link to="/perspectives" style={styles.navLink}>Perspectives</Link>}
               {isLoggedIn ? (
               <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: isMobile ? 'none' : '1px solid #eee', paddingLeft: isMobile ? '0' : '15px', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-start', marginTop: isMobile ? '5px' : '0' }}>

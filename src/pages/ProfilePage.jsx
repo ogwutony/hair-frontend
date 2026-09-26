@@ -590,7 +590,6 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
   const { currentMin, nextMin, progressPercent } = getRankProgress(displayRankScore, displayRankTitle);
   const percentToNextRank = Math.max(0, 100 - progressPercent);
   const currentRankDescription = getRankDescription(displayRankTitle);
-  const nextRankDescription = nextRankTitle ? getRankDescription(nextRankTitle) : '';
 
   return (
     <div style={{ padding: isMobile ? '25px 16px' : '40px 60px', maxWidth: '900px', margin: '0 auto' }}>
@@ -629,7 +628,6 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
               <div style={{ fontSize: '11px', color: '#888', marginTop: '10px', padding: '10px 12px', border: '1px solid #eee', borderRadius: '8px', background: '#fafafa' }}>
                 <div><strong>{percentToNextRank.toFixed(0)}%</strong> to {nextRankTitle}</div>
                 <div><strong>{pointsToNextRank.toLocaleString()}</strong> points needed</div>
-                {nextRankDescription && <div style={{ marginTop: '6px', color: '#666', fontStyle: 'italic' }}>Next up: {nextRankDescription}</div>}
               </div>
             ) : (
               <div style={{ fontSize: '11px', color: '#888', marginTop: '10px' }}>You have reached the highest rank in The Majorities.</div>

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from "react-router-dom";
 import { trackEvent } from "./components/AdMonetization";
 import { Helmet } from 'react-helmet-async';
-import { BACKEND_URL, RANK_TIERS } from './utils/constants';
+import { BACKEND_URL, RANK_TIERS, POINTS } from './utils/constants';
 import { getRankTitle } from './utils/helpers';
 import { styles } from './utils/styles';
 import { useIsMobile } from './utils/useIsMobile';
@@ -237,7 +237,16 @@ export default function App() {
   const followUser = useCallback((personEmail) => {
     if (!following.includes(personEmail)) {
       setFollowing(prev => [...prev, personEmail]);
-      addPoints(20);
+      // Follow points are paid once per person, so unfollow/re-follow cycles don't earn more.
+      // Existing members are seeded with their current follows, which were already rewarded.
+      const rewardedKey = `followRewarded_${userEmail}`;
+      let rewarded;
+      try { rewarded = JSON.parse(localStorage.getItem(rewardedKey) || 'null'); } catch { rewarded = null; }
+      if (!Array.isArray(rewarded)) rewarded = [...following];
+      if (!rewarded.includes(personEmail)) {
+        addPoints(POINTS.FOLLOW_USER);
+        try { localStorage.setItem(rewardedKey, JSON.stringify([...rewarded, personEmail])); } catch {}
+      }
       if (authToken) {
         fetch(`${BACKEND_URL}/api/profile/follow`, {
           method: 'POST',
@@ -246,7 +255,7 @@ export default function App() {
         }).catch(err => console.error("Error notifying follow:", err));
       }
     }
-  }, [following, addPoints, authToken]);
+  }, [following, addPoints, authToken, userEmail]);
 
   const unfollowUser = (personEmail) => {
     setFollowing(prev => prev.filter(p => p !== personEmail));
@@ -294,8 +303,8 @@ export default function App() {
           <Route path="/signup" element={<SignupPage onLogin={handleLoginSuccess} />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-          <Route path="/recommend" element={<RecommendPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
-          <Route path="/partner" element={<PartnerPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
+          <Route path="/recommend" element={<RecommendPage addDumaItem={addDumaItem} onAddPoints={addPoints} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
+          <Route path="/partner" element={<PartnerPage addDumaItem={addDumaItem} onAddPoints={addPoints} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
           <Route path="/culture" element={isLoggedIn ? <CultureLabPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
           <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} following={following} onFollowUser={followUser} />} />
           <Route path="/duma/:id" element={<PerspectiveDetailPage authToken={authToken} />} />

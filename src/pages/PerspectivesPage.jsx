@@ -5,7 +5,7 @@ import { messageLink } from '../utils/messages';
 import { CredentialHeader } from '../components/CredentialHeader';
 import { MediaModal } from '../components/MediaModal';
 import { RankBadge } from '../components/RankBadge';
-import { BACKEND_URL } from '../utils/constants';
+import { BACKEND_URL, POINTS } from '../utils/constants';
 import { normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
 import { ContentActions } from '../components/ContentActions';
@@ -229,7 +229,7 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
         <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
           {isGuest
             ? 'Perspectives on beauty, culture and identity from The Majorities community.'
-            : 'Follow people from The Duma to see their perspectives in your personalized feed. Earn +20 points for each person you follow!'}
+            : `Follow people from The Duma to see their perspectives in your personalized feed. Earn +${POINTS.FOLLOW_USER} points for each person you follow!`}
         </p>
       </div>
       {isGuest && <GuestSubmissionPrompt message="Anyone can read Perspectives. Log in or register to follow people, message them, and share your own." />}

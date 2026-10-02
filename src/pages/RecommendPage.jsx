@@ -4,10 +4,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { CredentialHeader } from '../components/CredentialHeader';
 import { GuestSubmissionPrompt } from '../components/GuestSubmissionPrompt';
 import { RankBadge } from '../components/RankBadge';
-import { BACKEND_URL } from '../utils/constants';
+import { BACKEND_URL, POINTS } from '../utils/constants';
 import { styles } from '../utils/styles';
 
-export const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, userAvatar }) => {
+export const RecommendPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, rankScore, authToken, userAvatar }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ 
     name: "", 
@@ -66,6 +66,7 @@ export const RecommendPage = ({ addDumaItem, userEmail, rankTitle, rankScore, au
       if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); setIsLoading(false); return; }
 
       addDumaItem({ ...formData, id: Date.now(), type: "Product Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'Comrade', section: "Commerce" });
+      if (onAddPoints) onAddPoints(POINTS.RECOMMENDATION);
       setSubmitted(true);
     } catch (err) {
       addDumaItem({ ...formData, id: Date.now(), type: "Product Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'Comrade', section: "Commerce" });

@@ -1,7 +1,7 @@
 // src/components/CredentialHeader.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { getRankColor, getFormattedRankTitle, getCompletedPromptIds, safeSocialUrl, normalizeMediaVideoUrl } from '../utils/helpers';
+import { getRankColor, getDumaPostCount, withLordPrefix, safeSocialUrl, normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
 
 const SnapchatIcon = () => (
@@ -10,13 +10,16 @@ const SnapchatIcon = () => (
   </svg>
 );
 
-export const CredentialHeader = ({ email, displayName, rankTitle, rankScore, avatarUrl, socialLinks = {}, profileLink = null }) => {
+export const CredentialHeader = ({ email, displayName, rankTitle, rankScore, avatarUrl, socialLinks = {}, profileLink = null, dumaPostCount }) => {
   // Never print a member's full email address on public pages — fall back to the part before the @
-  const nameToDisplay = displayName || (email && email.includes('@') ? email.split('@')[0] : email);
-  const initial = (nameToDisplay || 'C')[0].toUpperCase();
+  const postCount = dumaPostCount ?? getDumaPostCount(email);
+  const baseName = displayName || (email && email.includes('@') ? email.split('@')[0] : email);
+  // The Lord prefix goes on the name only ("Lord [Username]") — never on the rank badge as well
+  const nameToDisplay = withLordPrefix(baseName, postCount);
+  const initial = (baseName || 'C')[0].toUpperCase();
   const color = getRankColor(rankTitle || 'Comrade');
   const isTopRank = rankTitle === "Nice and Helpful";
-  const formattedRankTitle = getFormattedRankTitle(rankTitle || 'Comrade', getCompletedPromptIds(email).length);
+  const formattedRankTitle = rankTitle || 'Comrade';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', background: '#fff', flexWrap: 'wrap', marginBottom: '12px' }}>
       <div style={{
@@ -45,7 +48,7 @@ export const CredentialHeader = ({ email, displayName, rankTitle, rankScore, ava
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(nameToDisplay)}&background=333&color=fff`;
+                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(baseName)}&background=333&color=fff`;
               }}
             />
           )

@@ -5,8 +5,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LocationAutocomplete } from '../components/LocationAutocomplete';
 import { RankBadge } from '../components/RankBadge';
 import { SocialInputRow } from '../components/SocialInputRow';
-import { BACKEND_URL, SOCIAL_FIELDS } from '../utils/constants';
-import { getNextRankTitle, getPointsToNextRank, getRankProgress, getRankTitle, getRankDescription, markPromptCompleted, normalizeMediaVideoUrl } from '../utils/helpers';
+import { BACKEND_URL, SOCIAL_FIELDS, POINTS } from '../utils/constants';
+import { getNextRankTitle, getPointsToNextRank, getRankProgress, getRankTitle, getRankDescription, markPromptCompleted, incrementDumaPostCount, claimAvatarSlotReward, normalizeMediaVideoUrl } from '../utils/helpers';
 import { RANK_TIERS } from '../utils/constants';
 import { styles } from '../utils/styles';
 import { messageLink } from '../utils/messages';
@@ -23,7 +23,6 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
   const isMobile = useIsMobile();
   const [avatarUrl, setAvatarUrl] = useState(userAvatar || null);
   const [avatarSlots, setAvatarSlots] = useState(Array(6).fill(null)); 
-  const [hadExistingAvatar, setHadExistingAvatar] = useState(false);
   
   const [backendRankScore, setBackendRankScore] = useState(rankScore || 1);
   const [backendRankTitle, setBackendRankTitle] = useState(rankTitle || "Comrade");
@@ -105,7 +104,6 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
       setIsFeaturedContributor(Boolean(data.featuredOnInstagram) || (data.socialEngagement || 0) >= 100);
       if (data.avatar) {
         setAvatarUrl(data.avatar);
-        setHadExistingAvatar(true);
         if (onAvatarUpdate) onAvatarUpdate(data.avatar);
       }
       if (data.displayName) setDisplayName(data.displayName);
@@ -279,7 +277,8 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
     }).catch(err => console.error('Failed to sync avatar slots:', err));
   };
 
-  const uploadFileToBackend = async (file, index, isMain) => {
+  // wasEmptySlot must be captured by the caller before the blob preview is placed in the slot
+  const uploadFileToBackend = async (file, index, isMain, wasEmptySlot = false) => {
     if (!authToken) return;
     try {
       setAvatarSaveStatus("saving");
@@ -311,11 +310,10 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
               body: JSON.stringify({ avatar: cloudUrl })
             });
-
-            if (!hadExistingAvatar && onAddPoints) {
-              onAddPoints(25);
-              setHadExistingAvatar(true);
-            }
+          }
+          // +50 points per picture added: images only, into an empty slot, once per slot
+          if (wasEmptySlot && file.type.startsWith('image/') && onAddPoints && claimAvatarSlotReward(userEmail, index)) {
+            onAddPoints(POINTS.PROFILE_PICTURE_UPLOAD);
           }
         }
         setAvatarSaveStatus("saved");
@@ -360,11 +358,12 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
       const first = updatedSlots[firstIdx];
       setAvatarUrl(first.url);
       if (onAvatarUpdate) onAvatarUpdate(first.url);
-      uploadFileToBackend(first.file, firstIdx, true);
+      uploadFileToBackend(first.file, firstIdx, true, true);
     }
+    // Batch uploads only ever fill empty slots
     newlyFilled.forEach((idx) => {
       if (!(hadNoMain && idx === newlyFilled[0])) {
-        uploadFileToBackend(updatedSlots[idx].file, idx, false);
+        uploadFileToBackend(updatedSlots[idx].file, idx, false, true);
       }
     });
   };
@@ -380,6 +379,7 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
       return;
     }
     const wasMain = avatarSlots[index] && avatarSlots[index].url === avatarUrl;
+    const wasEmptySlot = !avatarSlots[index]?.url;
     if (avatarSlots[index]?.url?.startsWith('blob:')) URL.revokeObjectURL(avatarSlots[index].url);
     const previewObj = {
       url: URL.createObjectURL(file),
@@ -395,7 +395,7 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
       setAvatarUrl(previewObj.url);
       if (onAvatarUpdate) onAvatarUpdate(previewObj.url);
     }
-    uploadFileToBackend(file, index, shouldBeMain);
+    uploadFileToBackend(file, index, shouldBeMain, wasEmptySlot);
   };
 
   const removeAvatarSlot = (index) => {
@@ -514,8 +514,9 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
         });
       }
 
-      const pointsEarned = activePrompt ? 150 : 100;
+      const pointsEarned = activePrompt ? POINTS.DUMA_PROMPT_POST : POINTS.DUMA_POST;
       if (onAddPoints) onAddPoints(pointsEarned);
+      if (userEmail) incrementDumaPostCount(userEmail);
       if (userEmail && activePrompt?.id) markPromptCompleted(userEmail, activePrompt.id);
 
       setCultureSubmitStatus("saved");
@@ -801,7 +802,7 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
       <section style={{ marginBottom: '50px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '4px', fontWeight: '600' }}>Post About Anything</h2>
         <p style={{ color: '#888', fontSize: '12px', marginBottom: '20px' }}>
-          Share your thoughts or photos/videos directly to the Duma (+100 points). Address a product prompt below to earn 150 points!
+          Share your thoughts or photos/videos directly to the Duma (+{POINTS.DUMA_POST} points). Address a product prompt below to earn {POINTS.DUMA_PROMPT_POST} points!
         </p>
         <p style={{ color: '#2d6a4f', fontSize: '12px', fontWeight: '700', marginTop: '-12px', marginBottom: '20px' }}>Share your take here and on Instagram with #TheMajorities.</p>
 
@@ -892,7 +893,7 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
             ANSWER PROMPTS FOR EXTRA POINTS
           </label>
           <p style={{ fontSize: '11px', color: '#888', margin: '0 0 10px 0' }}>
-            Pick a tab, then select a prompt to attach it to your post and earn 150 points.
+            Pick a tab, then select a prompt to attach it to your post and earn {POINTS.DUMA_PROMPT_POST} points.
           </p>
 
           <div role="tablist" aria-label="Prompt categories" style={{ display: 'flex', gap: '4px', borderBottom: '1px solid #e0e0e0', marginBottom: '10px' }}>

@@ -1,7 +1,7 @@
 // src/utils/helpers.js
 // Rank system utilities, commerce helpers, and media/social URL helpers
 
-import { RANK_TIERS, PRODUCT_VARIANT_MAP, SHOP_DOMAIN } from './constants';
+import { RANK_TIERS, PRODUCT_VARIANT_MAP, SHOP_DOMAIN, LORD_POST_MILESTONE } from './constants';
 
 // --- Rank System ---
 
@@ -19,14 +19,58 @@ export const getRankTier = (rankTitle) => RANK_TIERS.find(t => t.title === rankT
 
 export const getRankDescription = (rankTitle) => getRankTier(rankTitle)?.description || "";
 
-// Titles below "The Salvation of the Drowning" (under 1,000,000 pts) can earn the "Lord" prefix
-export const LOWER_HIERARCHY_TITLES = RANK_TIERS.filter(t => t.min < 1000000).map(t => t.title);
+// Duma Post Milestone: reaching LORD_POST_MILESTONE (15) Duma posts grants the "Lord" prefix
+export const hasLordPrefix = (dumaPostCount = 0) => (Number(dumaPostCount) || 0) >= LORD_POST_MILESTONE;
 
-export const getFormattedRankTitle = (rankTitle, completedPromptsCount = 0) => {
-  if (LOWER_HIERARCHY_TITLES.includes(rankTitle) && completedPromptsCount >= 15) {
-    return `Lord ${rankTitle}`;
+export const withLordPrefix = (name, dumaPostCount = 0) =>
+  name && hasLordPrefix(dumaPostCount) && !String(name).startsWith('Lord ') ? `Lord ${name}` : name;
+
+export const DUMA_POST_COUNT_KEY = "majorities_duma_post_counts";
+
+// Members with no stored count yet are seeded from their completed prompts (the old Lord criterion),
+// so nobody loses progress in the switch to post-based counting.
+const resolveDumaPostCount = (stored, userEmail) =>
+  stored[userEmail] != null ? Number(stored[userEmail]) || 0 : getCompletedPromptIds(userEmail).length;
+
+export const getDumaPostCount = (userEmail) => {
+  if (typeof window === "undefined" || !userEmail) return 0;
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(DUMA_POST_COUNT_KEY) || "{}");
+    return resolveDumaPostCount(stored, userEmail);
+  } catch {
+    return 0;
   }
-  return rankTitle;
+};
+
+export const incrementDumaPostCount = (userEmail) => {
+  if (typeof window === "undefined" || !userEmail) return 0;
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(DUMA_POST_COUNT_KEY) || "{}");
+    stored[userEmail] = resolveDumaPostCount(stored, userEmail) + 1;
+    window.localStorage.setItem(DUMA_POST_COUNT_KEY, JSON.stringify(stored));
+    return stored[userEmail];
+  } catch {
+    return getDumaPostCount(userEmail);
+  }
+};
+
+export const AVATAR_SLOT_REWARDS_KEY = "majorities_avatar_slot_rewards";
+
+// Each profile picture slot pays out once; returns true the first time a slot is claimed,
+// so removing and re-adding a picture can't farm points.
+export const claimAvatarSlotReward = (userEmail, slotIndex) => {
+  if (typeof window === "undefined" || !userEmail) return false;
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(AVATAR_SLOT_REWARDS_KEY) || "{}");
+    const claimed = new Set(stored[userEmail] || []);
+    if (claimed.has(slotIndex)) return false;
+    claimed.add(slotIndex);
+    stored[userEmail] = Array.from(claimed);
+    window.localStorage.setItem(AVATAR_SLOT_REWARDS_KEY, JSON.stringify(stored));
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 export const COMPLETED_PROMPTS_KEY = "majorities_completed_prompts";

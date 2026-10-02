@@ -254,6 +254,33 @@ export const RANK_TIERS = [
   }
 ];
 
+// --- Points System ---
+// Single source of truth for how many points each action is worth.
+export const POINTS = {
+  PROFILE_PICTURE_UPLOAD: 50,        // per picture added
+  DUMA_POST: 100,                    // standard Duma post
+  DUMA_PROMPT_POST: 150,             // Duma post tied to a prompt
+  FOLLOWER_GAINED: 50,               // per follower gained (awarded server-side to the followed user)
+  FOLLOW_USER: 50,                   // per user followed
+  RECOMMENDATION: 120,               // per recommendation
+  INFLUENCER_PARTNER_APPLY: 200,     // Creator / Influencer partner application
+  INFLUENCER_PARTNER_APPROVAL: 400,  // awarded server-side on approval
+  INFLUENCER_POST: 200,              // per influencer post (awarded server-side)
+  PARTNER_APPLY: 300,                // all other partnership applications
+  PARTNER_APPROVAL: 300,             // all other partnership approvals (server-side)
+};
+
+export const INFLUENCER_PARTNER_CATEGORY = "Creator / Influencer Partners";
+
+export const getPartnerApplyPoints = (category) =>
+  category === INFLUENCER_PARTNER_CATEGORY ? POINTS.INFLUENCER_PARTNER_APPLY : POINTS.PARTNER_APPLY;
+
+export const getPartnerApprovalPoints = (category) =>
+  category === INFLUENCER_PARTNER_CATEGORY ? POINTS.INFLUENCER_PARTNER_APPROVAL : POINTS.PARTNER_APPROVAL;
+
+// Special rank milestone: reaching this many Duma posts grants the "Lord" prefix
+export const LORD_POST_MILESTONE = 15;
+
 export const productsData = {
 shampoos: [
 {

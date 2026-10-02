@@ -191,7 +191,7 @@ export const ModelFriendlyPage = () => {
         <div style={subHeadingStyle}>The Duma Ledger</div>
         <div style={valueStyle}>A community feed with three sections: Culture (user perspective posts with prompts), Product Recommendations (community-submitted products), and Partners (business partnership applications).</div>
         <div style={subHeadingStyle}>Points and Rewards</div>
-        <div style={valueStyle}>Users earn points for community actions (e.g., submitting a Culture post = 100 points, uploading a profile avatar = 25 points). Points determine rank tier.</div>
+        <div style={valueStyle}>Users earn points for community actions: profile picture upload +50 each, standard Duma post +100, prompt-tied Duma post +150, follower gained +50, following a user +50, recommendation +120, Influencer Partner application +200 (approval +400), influencer post +200, all other partnership applications +300 (approval +300). Points determine rank tier. Reaching 15 Duma posts grants the "Lord" prefix (e.g., Lord [Username]).</div>
         <div style={subHeadingStyle}>Partner Program</div>
         <div style={valueStyle}>Businesses can apply for a distribution partnership. Minimum order: 500 units of 34oz. Commission structure: 25% distribution fee.</div>
         <div style={subHeadingStyle}>Social Profiles</div>

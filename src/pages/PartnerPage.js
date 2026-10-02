@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CredentialHeader } from '../components/CredentialHeader';
-import { BACKEND_URL } from '../utils/constants';
+import { BACKEND_URL, getPartnerApplyPoints } from '../utils/constants';
 import { styles } from '../utils/styles';
 
 const PRODUCT_TYPE_OPTIONS = [
@@ -17,7 +17,7 @@ const MARKETPLACE_AGREEMENTS = [
 { key: 'ownershipTitleAgreed', label: 'I agree to the Ownership & Title Policy *' },
 ];
 
-export const PartnerPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, userAvatar }) => {
+export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, rankScore, authToken, userAvatar }) => {
 const navigate = useNavigate();
 
 const [formData, setFormData] = useState({
@@ -271,6 +271,9 @@ body: formDataObj
 });
 const data = await res.json();
 if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); return; }
+
+// Application points: Influencer +200, all other partnerships +300
+if (onAddPoints) onAddPoints(getPartnerApplyPoints(formData.partnerCategory));
 
 addDumaItem({
 ...formData,

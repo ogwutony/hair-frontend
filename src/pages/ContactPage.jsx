@@ -6,6 +6,7 @@ import { BUSINESS } from '../utils/business';
 
 const page = { maxWidth: '860px', margin: '0 auto', padding: '60px 30px', fontFamily: 'Inter, sans-serif', color: '#222', lineHeight: 1.8 };
 const h2 = { fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' };
+const SUPPORT_EMAIL = 'support@themajorities.com';
 
 export const ContactPage = () => (
   <div style={page}>
@@ -23,7 +24,7 @@ export const ContactPage = () => (
       {BUSINESS.streetAddress}<br />
       {BUSINESS.city}, {BUSINESS.region} {BUSINESS.postalCode}<br />
       United States<br /><br />
-      Email: <a href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}</a><br />
+      Email: <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a><br />
       Phone: <a href={`tel:${BUSINESS.phone}`}>{BUSINESS.phoneDisplay}</a>
     </address>
 

@@ -22,6 +22,9 @@
       ]
     }
   ],
+  "redirects": [
+    { "source": "/support", "destination": "/contact", "permanent": false }
+  ],
   "rewrites": [
     {
       "source": "/sitemap.xml",

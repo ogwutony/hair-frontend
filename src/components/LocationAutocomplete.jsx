@@ -1,6 +1,18 @@
 // src/components/LocationAutocomplete.jsx
 import React, { useEffect } from 'react';
 
+// Combine the place name (venue, business, landmark) with its address,
+// e.g. "Klyde Warren Park, 2012 Woodall Rodgers Fwy, Dallas, TX 75201, USA".
+// Skips the name when it's already the start of the address (cities, street addresses).
+export const formatPlaceLabel = (place) => {
+  if (!place) return '';
+  const name = (place.name || '').trim();
+  const address = (place.formatted_address || '').trim();
+  if (!address) return name;
+  if (!name || address.toLowerCase().startsWith(name.toLowerCase())) return address;
+  return `${name}, ${address}`;
+};
+
 export const LocationAutocomplete = ({ value, onChange, placeholder, style }) => {
   const inputRef = React.useRef(null);
   const autocompleteRef = React.useRef(null); // CRITICAL: Prevents double-binding
@@ -23,7 +35,7 @@ export const LocationAutocomplete = ({ value, onChange, placeholder, style }) =>
       });
       autocomplete.addListener('place_changed', () => {
         const place = autocomplete.getPlace();
-        onChange(place.formatted_address || place.name || '');
+        onChange(formatPlaceLabel(place));
       });
       inputRef.current.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') e.preventDefault();

@@ -102,10 +102,11 @@ style={{ width: '100%', height: '120px', objectFit: 'contain', borderRadius: '10
 return (
 <div>
 <Helmet>
-<title>Build Your Set | The Majorities</title>
-<meta name="description" content="Build your custom 6-product haircare and skincare set. Choose from premium shampoos, conditioners, oils, and scrubs." />
+<title>The Majorities | Premium Hair Care &amp; Solutions</title>
+<meta name="description" content="The Majorities makes premium multicultural hair care and skincare. Build your custom 6-product set from our shampoos, conditioners, oils, face scrubs, toners and creams." />
 <link rel="canonical" href="https://themajorities.com/" />
 </Helmet>
+<h1 style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}>The Majorities — Premium Multicultural Hair Care &amp; Skincare</h1>
 <div style={{ ...styles.layout, flexDirection: isMobile ? 'column' : 'row', padding: isMobile ? '20px 16px' : '20px 60px', overflowX: isMobile ? 'hidden' : 'visible', boxSizing: 'border-box' }}>
 <div style={{ ...styles.left, width: isMobile ? '100%' : '70%', paddingRight: isMobile ? 0 : '40px', minWidth: 0, overflowX: 'hidden' }}>
 {renderRow("Pick Shampoos", "shampoos")}

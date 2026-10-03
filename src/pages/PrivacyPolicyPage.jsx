@@ -17,7 +17,7 @@ export const PrivacyPolicyPage = () => {
         <link rel="canonical" href="https://themajorities.com/privacy" />
       </Helmet>
       <h1 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px' }}>Privacy Policy</h1>
-      <p style={{ color: '#888', fontSize: '13px', marginBottom: '40px' }}>Last updated: September 25, 2026</p>
+      <p style={{ color: '#888', fontSize: '13px', marginBottom: '40px' }}>Last updated: October 3, 2026</p>
 
       <p>This policy explains how {BUSINESS.legalName}, doing business as {BUSINESS.dba} (“we”, “us”), collects, uses and shares information when you visit themajorities.com, use our app, or buy our products.</p>
 
@@ -26,6 +26,7 @@ export const PrivacyPolicyPage = () => {
       <p><strong>Order information:</strong> your name, shipping address and order details. Card payments are processed by Stripe; we never see or store your full card number.</p>
       <p><strong>Information collected automatically:</strong> device and browser type, IP address, pages viewed, referring pages, and similar usage data, collected through cookies, local storage and similar technologies.</p>
       <p><strong>Sign-in providers:</strong> if you sign in with Google, Apple, Instagram or TikTok, we receive your email address and basic profile information from that provider.</p>
+      <p><strong>Mobile app permissions:</strong> our app asks for permission before using any of these, and you can turn each off in your device settings. <em>Location</em> is used only when you choose to add a location tag to a post; we use your precise location at that moment to show where the post was made, and we do not track your location in the background. <em>Camera and photos</em> are used only for the photos and videos you choose to upload. <em>Notifications</em> are used for order updates, community activity and, if you opt in, promotions. The app does not track you across other companies’ apps or websites.</p>
 
       <h2 style={h2}>2. How we use information</h2>
       <p>We use information to run your account and the community features (the Duma, Perspectives, points and ranks, messaging), process and ship orders, provide customer support, keep the service safe and moderate content, understand how the site is used, show advertising, and meet legal obligations.</p>
@@ -40,7 +41,7 @@ export const PrivacyPolicyPage = () => {
       <p>We use Google Analytics and Google Tag Manager to understand how visitors use the site. These services set cookies and receive usage data such as pages viewed and device information. You can install the <a href="https://tools.google.com/dlpage/gaoptout" {...ext}>Google Analytics opt-out browser add-on</a>.</p>
 
       <h2 style={h2}>5. How we share information</h2>
-      <p>We do not sell your personal information. We share it only with service providers that help us run the business, including Stripe (payments), ShipBob (order fulfillment and shipping), Cloudinary (image and video hosting), our hosting and database providers, Google (advertising and analytics) and the sign-in providers you choose. We may also disclose information when required by law or to protect the safety of our members.</p>
+      <p>We do not sell your personal information. We share it only with service providers that help us run the business, including Stripe and Shopify (payments and checkout), ShipBob (order fulfillment and shipping), Cloudinary (image and video hosting), our hosting and database providers, Google (advertising and analytics) and the sign-in providers you choose. We may also disclose information when required by law or to protect the safety of our members.</p>
       <p><strong>Public content:</strong> perspectives, recommendations and marketplace listings you post on the Duma are public, along with your display name, rank and profile photo. Anyone, including search engines, can see them.</p>
 
       <h2 style={h2}>6. Your choices and rights</h2>

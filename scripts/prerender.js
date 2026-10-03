@@ -64,13 +64,16 @@ const PAGES = [
   { route: '/partner', file: 'partner', mod: './src/pages/PartnerPage', exp: 'PartnerPage', props: { addDumaItem: noopFn, userEmail: '', rankTitle: 'Comrade', rankScore: 1, authToken: '', userAvatar: '' } },
 ];
 
+// Helmet HTML-escapes its output; decode so api/render.js doesn't escape twice
+const unescapeHtml = (s) => s.replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+
 const pickHead = (helmet) => {
   if (!helmet) return {};
   const str = (x) => (x && typeof x.toString === 'function' ? x.toString() : '');
-  const title = str(helmet.title).replace(/<[^>]+>/g, '').trim();
+  const title = unescapeHtml(str(helmet.title).replace(/<[^>]+>/g, '').trim());
   const metaHtml = str(helmet.meta);
   const desc = /<meta[^>]*name="description"[^>]*content="([^"]*)"/i.exec(metaHtml);
-  return { title: title || undefined, description: desc ? desc[1] : undefined };
+  return { title: title || undefined, description: desc ? unescapeHtml(desc[1]) : undefined };
 };
 
 function main() {

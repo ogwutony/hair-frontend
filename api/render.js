@@ -94,7 +94,7 @@ async function staticPage(route, host) {
 }
 
 const FALLBACK_TITLES = {
-  '/': 'The Majorities | Premium Multicultural Personal Care & Community',
+  '/': 'The Majorities | Premium Hair Care & Solutions',
   '/about': 'About | The Majorities', '/contact': 'Contact Us | The Majorities', '/privacy': 'Privacy Policy | The Majorities',
   '/termsofservice': 'Terms of Service | The Majorities', '/returns': 'Return Policy | The Majorities',
   '/recommend': 'Recommend a Product | The Majorities', '/partner': 'Partner With Us | The Majorities',

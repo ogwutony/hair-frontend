@@ -82,6 +82,8 @@ const [errorMsg, setErrorMsg] = useState("");
 const [submitted, setSubmitted] = useState(false);
 const [submitting, setSubmitting] = useState(false);
 const isReviewRequest = formData.partnerCategory === REVIEW_REQUEST;
+const isCreator = formData.partnerCategory === "Creator / Influencer Partners";
+const einRequired = !isReviewRequest && !isCreator; // individual creators often have no EIN
 const isPhysicalReviewTarget = PHYSICAL_REVIEW_TARGETS.includes(formData.reviewTargetType);
 const [photoPreviews, setPhotoPreviews] = useState([]);
 const [videoPreview, setVideoPreview] = useState(null);
@@ -153,7 +155,7 @@ setErrorMsg("You must be logged in to submit a partnership application.");
 return;
 }
 
-if (!formData.name || !formData.contactEmail || !formData.phoneNumber || (!isReviewRequest && !formData.ein)) {
+if (!formData.name || !formData.contactEmail || !formData.phoneNumber || (einRequired && !formData.ein)) {
 setErrorMsg("Please fill in all contact information fields.");
 return;
 }
@@ -421,7 +423,7 @@ onChange={e => setFormData({ ...formData, partnerCategory: e.target.value })}
 <input required placeholder="Business Email *" type="email" style={styles.input} value={formData.contactEmail} onChange={e => setFormData({ ...formData, contactEmail: e.target.value })} />
 <input required placeholder="Phone Number *" style={styles.input} value={formData.phoneNumber} onChange={e => setFormData({ ...formData, phoneNumber: e.target.value })} />
 {!isReviewRequest && (
-<input required placeholder="EIN (Employer Identification Number) *" style={styles.input} value={formData.ein} onChange={e => setFormData({ ...formData, ein: e.target.value })} />
+<input required={einRequired} placeholder={einRequired ? "EIN (Employer Identification Number) *" : "EIN (optional for individual creators)"} style={styles.input} value={formData.ein} onChange={e => setFormData({ ...formData, ein: e.target.value })} />
 )}
 </div>
 

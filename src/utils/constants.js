@@ -377,14 +377,10 @@ desc: (
 ]
 };
 
-export const PRODUCT_IMAGE_BY_NAME = {
-  "The Majorities Shampoo": "/Amazon S.jpg",
-  "The Majorities Conditioner": "/Amazon hc.jpg",
-  "The Majorities Hair Oil": "/amazon HO.jpg",
-  "The Majorities Facial Scrub": "/Amazon fs.jpg",
-  "The Majorities Face Toner": "/Amazon FT.jpg",
-  "The Majorities Lotion": "/Lotion Front.jpg"
-};
+// Built from productsData so product images can't drift out of sync
+export const PRODUCT_IMAGE_BY_NAME = Object.fromEntries(
+  Object.values(productsData).flat().map(product => [product.name, product.imageUrl])
+);
 
 export const SOCIAL_FIELDS = [
 { key: 'instagram', label: '📷 Instagram', placeholder: 'instagram.com/yourprofile' },

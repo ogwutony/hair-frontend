@@ -269,7 +269,7 @@ export default function App() {
       <ScrollToTop />
       <div style={styles.pageWrapper} className={isMobile ? 'ms-page' : undefined}>
         {isMobile ? (
-          <MobileHeader isLoggedIn={isLoggedIn} onLogout={handleLogout} unreadMessages={unreadMessages} />
+          <MobileHeader isLoggedIn={isLoggedIn} onLogout={handleLogout} unreadMessages={unreadMessages} rankTitle={rankTitle} />
         ) : (
         <header style={{ ...styles.header, flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '15px' : '0', padding: isMobile ? '15px 20px' : '15px 60px' }}>
           <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}><div style={styles.logo}>The Majorities</div></Link>

@@ -29,8 +29,7 @@
 .ms-close { align-self: flex-end; }
 .ms-menu { display: flex; flex-direction: column; }
 .ms-menu button { text-align: left; font-size: 22px; font-weight: 600; padding: 10px 0; border: 0; border-bottom: 1px solid var(--ms-line); background: none; color: var(--ms-fg); cursor: pointer; font-family: inherit; }
-.ms-submenu { display: flex; flex-direction: column; gap: 12px; }
-.ms-submenu button { text-align: left; font-size: 14px; background: none; border: 0; padding: 0; color: var(--ms-fg); text-decoration: underline; cursor: pointer; font-family: inherit; }
+.ms-rank { align-self: flex-start; }
 
 .ms-cart-head { display: flex; justify-content: space-between; align-items: center; }
 .ms-cart-head h2 { margin: 0; font-size: 20px; }

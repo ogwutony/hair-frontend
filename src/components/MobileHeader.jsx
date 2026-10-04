@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCart, checkoutCart } from '../utils/cart';
 import { SHOP_ITEM_BY_ID } from '../utils/shopCatalog';
 import { formatCurrency } from '../utils/helpers';
+import { RankBadge } from './RankBadge';
 import '../mobileShop.css';
 
 const Icon = {
@@ -16,7 +17,7 @@ const Icon = {
 };
 export { Icon };
 
-export function MobileHeader({ isLoggedIn, onLogout, unreadMessages }) {
+export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { lines, count, subtotal, changeQty, wishlist, cartOpen, setCartOpen } = useCart();
   const navigate = useNavigate();
@@ -57,29 +58,30 @@ export function MobileHeader({ isLoggedIn, onLogout, unreadMessages }) {
 
       <aside className={`ms-drawer${menuOpen ? ' on' : ''}`} aria-label="Menu" aria-hidden={!menuOpen}>
         <button type="button" className="ms-ib ms-close" aria-label="Close menu" onClick={closeAll}>{Icon.close}</button>
+        {isLoggedIn && rankTitle && <div className="ms-rank"><RankBadge rankTitle={rankTitle} /></div>}
         <nav className="ms-menu">
-          <button type="button" onClick={() => go('/')}>Shop all</button>
-          <button type="button" onClick={() => go('/?c=bundles')}>Bundles</button>
-          <button type="button" onClick={() => go('/?c=hair')}>Hair</button>
-          <button type="button" onClick={() => go('/?c=face')}>Face</button>
-          <button type="button" onClick={() => go('/about')}>About us</button>
-          <button type="button" onClick={() => go('/?c=faq')}>FAQ</button>
-          <button type="button" onClick={() => go('/partner')}>Wholesale</button>
-        </nav>
-        <div className="ms-submenu">
           {isLoggedIn ? (
             <>
+              <button type="button" onClick={() => go('/')}>Home</button>
+              <button type="button" onClick={() => go('/recommend')}>Recommend</button>
+              <button type="button" onClick={() => go('/partner')}>Partner</button>
+              <button type="button" onClick={() => go('/duma')}>The Duma</button>
+              <button type="button" onClick={() => go('/perspectives')}>Perspectives</button>
               <button type="button" onClick={() => go('/profile')}>Profile</button>
               <button type="button" onClick={() => go('/messages')}>Messages{unreadMessages > 0 ? ` (${unreadMessages})` : ''}</button>
+              <button type="button" onClick={() => { closeAll(); onLogout(); }}>Logout</button>
             </>
           ) : (
-            <button type="button" onClick={() => go('/login')}>Log in</button>
+            <>
+              <button type="button" onClick={() => go('/')}>Shop</button>
+              <button type="button" onClick={() => go('/recommend')}>Recommend</button>
+              <button type="button" onClick={() => go('/partner')}>Partner</button>
+              <button type="button" onClick={() => go('/duma')}>The Duma</button>
+              <button type="button" onClick={() => go('/signup')}>Sign Up</button>
+              <button type="button" onClick={() => go('/login')}>Login</button>
+            </>
           )}
-          <button type="button" onClick={() => go('/?c=wishlist')}>Wishlist</button>
-          <button type="button" onClick={() => go('/recommend')}>Recommend</button>
-          <button type="button" onClick={() => go('/duma')}>The Duma</button>
-          {isLoggedIn && <button type="button" onClick={() => { closeAll(); onLogout(); }}>Log out</button>}
-        </div>
+        </nav>
       </aside>
 
       <aside className={`ms-cart${cartOpen ? ' on' : ''}`} aria-label="Cart" aria-hidden={!cartOpen}>

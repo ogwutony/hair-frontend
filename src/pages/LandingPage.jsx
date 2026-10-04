@@ -6,10 +6,13 @@ import { trackEvent } from '../components/AdMonetization';
 import { productsData, PRODUCT_IMAGE_BY_NAME } from '../utils/constants';
 import { calculateSetTotals, formatCurrency, getProductCommerceConfig, submitShopifyCheckout } from '../utils/helpers';
 import { styles } from '../utils/styles';
+import { MobileShop } from './MobileShop';
 
 export function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
 const [selection, setSelection] = useState([]);
 const [focusedItem, setFocusedItem] = useState(null);
+// On mobile the shop grid is the default view; the custom 6-bottle builder opens from its card
+const [building, setBuilding] = useState(false);
 const MOBILE_BREAKPOINT = 768;
 const [isMobile, setIsMobile] = useState(() => window.innerWidth <= MOBILE_BREAKPOINT);
 
@@ -99,8 +102,26 @@ style={{ width: '100%', height: '120px', objectFit: 'contain', borderRadius: '10
 </div>
 );
 
+const helmet = (
+<Helmet>
+<title>The Majorities | Premium Hair Care &amp; Solutions</title>
+<meta name="description" content="The Majorities makes premium multicultural hair care and skincare. Build your custom 6-product set from our shampoos, conditioners, oils, face scrubs, toners and creams." />
+<link rel="canonical" href="https://themajorities.com/" />
+</Helmet>
+);
+
+if (isMobile && !building) {
 return (
 <div>
+{helmet}
+<MobileShop setCount={selectedItems.length} onBuildSet={() => { setBuilding(true); window.scrollTo(0, 0); }} />
+</div>
+);
+}
+
+return (
+<div>
+{isMobile && <button type="button" className="ms-back" onClick={() => { setBuilding(false); window.scrollTo(0, 0); }}>← Back to shop</button>}
 <Helmet>
 <title>The Majorities | Premium Hair Care &amp; Solutions</title>
 <meta name="description" content="The Majorities makes premium multicultural hair care and skincare. Build your custom 6-product set from our shampoos, conditioners, oils, face scrubs, toners and creams." />

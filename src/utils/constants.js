@@ -3,7 +3,7 @@
 
 export const SHOP_DOMAIN = "c0bqfe-z2.myshopify.com";
 
-export const DEFAULT_SELLING_PLAN_ID = "1467875506";
+export const DEFAULT_SELLING_PLAN_ID = "3011281074";
 
 export const PRODUCT_VARIANT_MAP = {
 "The Majorities Shampoo": {

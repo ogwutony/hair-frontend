@@ -14,6 +14,8 @@ import { RankBadge } from './components/RankBadge';
 
 // Pages
 import { LandingPage } from './pages/LandingPage';
+import { MobileHeader } from './components/MobileHeader';
+import { CartProvider } from './utils/cart';
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
@@ -263,8 +265,12 @@ export default function App() {
 
   return (
     <Router>
+      <CartProvider>
       <ScrollToTop />
-      <div style={styles.pageWrapper}>
+      <div style={styles.pageWrapper} className={isMobile ? 'ms-page' : undefined}>
+        {isMobile ? (
+          <MobileHeader isLoggedIn={isLoggedIn} onLogout={handleLogout} unreadMessages={unreadMessages} />
+        ) : (
         <header style={{ ...styles.header, flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '15px' : '0', padding: isMobile ? '15px 20px' : '15px 60px' }}>
           <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}><div style={styles.logo}>The Majorities</div></Link>
           <nav style={{ ...styles.nav, flexWrap: 'wrap', justifyContent: 'center', gap: isMobile ? '12px' : '25px' }}>
@@ -293,6 +299,7 @@ export default function App() {
             )}
           </nav>
         </header>
+        )}
         <Routes>
           <Route path="/" element={<LandingPage saveSetToProfile={saveSetToProfile} onAddPoints={addPoints} savedSets={savedSets} />} />
           <Route path="/login" element={<LoginPage onLogin={handleLoginSuccess} />} />
@@ -332,6 +339,7 @@ export default function App() {
           <Link to="/returns" style={{ color: '#666', textDecoration: 'none' }}>Returns</Link>
         </footer>
       </div>
+      </CartProvider>
     </Router>
   );
 }

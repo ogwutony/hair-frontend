@@ -503,7 +503,7 @@ Trash
 </div>
 )}
 
-<h3 style={{ marginTop: '12px', marginBottom: '12px' }}>{item.productType} - {item.company}</h3>
+<h3 style={{ marginTop: '12px', marginBottom: '12px' }}>{item.desc || item.partnerCategory || item.productType} - {item.company}</h3>
 
 <h4 style={{ marginBottom: '6px', fontSize: '13px', color: '#555', fontWeight: '700' }}>Product Details:</h4>
 <p style={{ color: '#666', fontSize: '13px', marginBottom: '6px', lineHeight: '1.5' }}>
@@ -526,9 +526,6 @@ Trash
 
 <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '12px', borderLeft: '4px solid #27ae60' }}>
 <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Business Logistics:</h4>
-<p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-<strong>EIN:</strong> {item.ein || 'N/A'}
-</p>
 <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
 <strong>MOQ:</strong> 200 units (3.4 oz)
 </p>

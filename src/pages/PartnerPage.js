@@ -2,8 +2,14 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CredentialHeader } from '../components/CredentialHeader';
+import { LocationAutocomplete } from '../components/LocationAutocomplete';
 import { BACKEND_URL, getPartnerApplyPoints } from '../utils/constants';
 import { styles } from '../utils/styles';
+
+const REVIEW_REQUEST = "Review Request";
+const REVIEW_TARGET_TYPES = ['Restaurant', 'Bar', 'Event', 'Product'];
+const PHYSICAL_REVIEW_TARGETS = ['Restaurant', 'Bar', 'Event'];
+const isHttpUrl = (v) => /^https?:\/\/\S+\.\S+/i.test((v || '').trim());
 
 const PRODUCT_TYPE_OPTIONS = [
 'Shampoos', 'Conditioners', 'Oils', 'Face Scrubs',
@@ -57,6 +63,15 @@ advertisingInterest: false,
 wholesaleInterest: false,
 sponsoredDumaInterest: false,
 sponsoredMarketplaceInterest: false,
+// Review Request fields
+reviewTargetType: "Restaurant",
+reviewAddress: "",
+preferredDate: "",
+preferredTime: "",
+websiteLink: "",
+socialLink: "",
+sponsoredDumaPlacement: false,
+reviewTermsAgreed: false,
 // Shared Media
 photoFiles: [],
 videoFile: null,
@@ -65,11 +80,14 @@ tier: "National Associate"
 
 const [errorMsg, setErrorMsg] = useState("");
 const [submitted, setSubmitted] = useState(false);
+const [submitting, setSubmitting] = useState(false);
+const isReviewRequest = formData.partnerCategory === REVIEW_REQUEST;
+const isPhysicalReviewTarget = PHYSICAL_REVIEW_TARGETS.includes(formData.reviewTargetType);
 const [photoPreviews, setPhotoPreviews] = useState([]);
 const [videoPreview, setVideoPreview] = useState(null);
 
 const userScore = rankScore || 1;
-const canApplyPremium = userScore >= 900000; // Requires "Ibiza" rank (900,000+ pts)
+const canApplyPremium = userScore >= 900000; // Requires "Supreme Lizard King" rank (900,000+ pts)
 
 // ── Handlers ─────────────────────────────────────────────────────────────────
 const handlePhotosChange = (e) => {
@@ -135,7 +153,7 @@ setErrorMsg("You must be logged in to submit a partnership application.");
 return;
 }
 
-if (!formData.name || !formData.contactEmail || !formData.phoneNumber || !formData.ein) {
+if (!formData.name || !formData.contactEmail || !formData.phoneNumber || (!isReviewRequest && !formData.ein)) {
 setErrorMsg("Please fill in all contact information fields.");
 return;
 }
@@ -208,23 +226,51 @@ return;
 }
 }
 
+if (isReviewRequest) {
+if (isPhysicalReviewTarget && !formData.reviewAddress.trim()) {
+setErrorMsg("Please provide the venue or event address.");
+return;
+}
+if (!formData.preferredDate || !formData.preferredTime) {
+setErrorMsg("Please provide the best date and time to visit.");
+return;
+}
+if (!isHttpUrl(formData.websiteLink) || !isHttpUrl(formData.socialLink)) {
+setErrorMsg("Please provide a valid website link and social media link (starting with https://).");
+return;
+}
+if (!formData.reviewTermsAgreed) {
+setErrorMsg("You must agree to the Review Terms & Media Rights Consent.");
+return;
+}
+}
+
 if (formData.tier === "Premium Partner" && !canApplyPremium) {
-setErrorMsg("Premium Partner status requires Ibiza rank (900,000+ points) or higher.");
+setErrorMsg("Premium Partner status requires Supreme Lizard King rank (900,000+ points) or higher.");
 return;
 }
 
+if (submitting) return;
+setSubmitting(true);
 try {
 const formDataObj = new FormData();
 formDataObj.append('partnerCategory', formData.partnerCategory);
 formDataObj.append('name', formData.name);
 formDataObj.append('contactEmail', formData.contactEmail);
 formDataObj.append('phoneNumber', formData.phoneNumber);
-formDataObj.append('ein', formData.ein);
+if (!isReviewRequest) formDataObj.append('ein', formData.ein);
 formDataObj.append('company', formData.company);
-formDataObj.append('websiteOrSocial', formData.websiteOrSocial);
+formDataObj.append('websiteOrSocial', isReviewRequest ? formData.websiteLink : formData.websiteOrSocial);
 formDataObj.append('countryOfOrigin', formData.countryOfOrigin);
 formDataObj.append('operatingCountry', formData.operatingCountry);
 formDataObj.append('tier', formData.tier);
+// Agreements (marketplace-style terms for every category except Review Request)
+if (isReviewRequest) {
+formDataObj.append('reviewTermsAgreed', formData.reviewTermsAgreed);
+} else {
+['customerRewardAgreed', 'commission20AgreedTo', 'shippingReturnsAgreed', 'ownershipTitleAgreed']
+.forEach(k => formDataObj.append(k, formData[k]));
+}
 
 formData.photoFiles.forEach((f, i) => formDataObj.append(`photo_${i}`, f));
 if (formData.videoFile) formDataObj.append('video', formData.videoFile);
@@ -248,9 +294,18 @@ formData.productTypes.forEach(type => {
 const photos = formData.productDetails[type]?.photos || [];
 photos.forEach((photo, i) => formDataObj.append(`product_photo_${type}_${i}`, photo));
 });
+} else if (isReviewRequest) {
+formDataObj.append('reviewTargetType', formData.reviewTargetType);
+formDataObj.append('reviewAddress', formData.reviewAddress);
+formDataObj.append('preferredDate', formData.preferredDate);
+formDataObj.append('preferredTime', formData.preferredTime);
+formDataObj.append('websiteLink', formData.websiteLink.trim());
+formDataObj.append('socialLink', formData.socialLink.trim());
+formDataObj.append('sponsoredDumaPlacement', formData.sponsoredDumaPlacement);
 } else if (formData.partnerCategory === "Creator / Influencer Partners") {
 formDataObj.append('contentTypes', formData.contentTypes.join(', '));
 formDataObj.append('contentPitch', formData.contentPitch);
+formDataObj.append('commission8Agreed', formData.commission8Agreed);
 } else if (formData.partnerCategory === "Community / Venue Partners") {
 formDataObj.append('eventDetails', formData.eventDetails);
 formDataObj.append('majoritiesRole', formData.majoritiesRole);
@@ -269,15 +324,17 @@ method: 'POST',
 headers: { Authorization: `Bearer ${authToken}` },
 body: formDataObj
 });
-const data = await res.json();
-if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); return; }
+// The server can answer with non-JSON (e.g. an upload too large for the host) — never treat that as success
+const data = await res.json().catch(() => ({}));
+if (!res.ok) { setErrorMsg(data.error || `Submission failed (${res.status}). Please try again.`); return; }
 
 // Application points: Influencer +200, all other partnerships +300
 if (onAddPoints) onAddPoints(getPartnerApplyPoints(formData.partnerCategory));
 
+// Public item from the server (no EIN or contact details)
 addDumaItem({
-...formData,
-id: Date.now(),
+...(data.item || {}),
+id: data.item?._id || Date.now(),
 type: "Partner",
 submittedBy: userEmail || "anonymous",
 submitterRank: rankTitle || 'Comrade',
@@ -286,16 +343,9 @@ hasVideo: !!formData.videoFile
 });
 setSubmitted(true);
 } catch (err) {
-addDumaItem({
-...formData,
-id: Date.now(),
-type: "Partner",
-submittedBy: userEmail || "anonymous",
-submitterRank: rankTitle || 'Comrade',
-hasPhoto: formData.photoFiles.length > 0,
-hasVideo: !!formData.videoFile
-});
-setSubmitted(true);
+setErrorMsg("We couldn't reach the server, so your application was not sent. Please check your connection and try again.");
+} finally {
+setSubmitting(false);
 }
 };
 
@@ -348,6 +398,7 @@ onChange={e => setFormData({ ...formData, partnerCategory: e.target.value })}
 <option value="Community / Venue Partners">Community / Venue Partners</option>
 <option value="Brand & Retail Partners">Brand &amp; Retail Partners</option>
 <option value="Marketplace Access">Marketplace Access</option>
+<option value={REVIEW_REQUEST}>Review Request</option>
 </select>
 <p style={{ fontSize: '12px', color: '#666', marginTop: '8px', lineHeight: '1.6' }}>
 {formData.partnerCategory === "Creator / Influencer Partners" &&
@@ -358,6 +409,8 @@ onChange={e => setFormData({ ...formData, partnerCategory: e.target.value })}
 "Independent beauty and grooming brands seeking advertising, wholesale access, and verified sponsored visibility across The Duma and The Majorities Marketplace."}
 {formData.partnerCategory === "Marketplace Access" &&
 "Gain verified access to sell directly on The Majorities Marketplace."}
+{isReviewRequest &&
+"Request an official review for your restaurant, bar, event, or product."}
 </p>
 </div>
 
@@ -367,15 +420,63 @@ onChange={e => setFormData({ ...formData, partnerCategory: e.target.value })}
 <input required placeholder="Full Name *" style={styles.input} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
 <input required placeholder="Business Email *" type="email" style={styles.input} value={formData.contactEmail} onChange={e => setFormData({ ...formData, contactEmail: e.target.value })} />
 <input required placeholder="Phone Number *" style={styles.input} value={formData.phoneNumber} onChange={e => setFormData({ ...formData, phoneNumber: e.target.value })} />
+{!isReviewRequest && (
 <input required placeholder="EIN (Employer Identification Number) *" style={styles.input} value={formData.ein} onChange={e => setFormData({ ...formData, ein: e.target.value })} />
+)}
 </div>
 
 {/* ── 3. COMPANY / ENTITY INFORMATION ─────────────────────────────── */}
 <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
 <h3 style={styles.formSectionTitle}>3. COMPANY / ENTITY INFORMATION</h3>
-<input required placeholder="Company / Brand / Profile Name *" style={styles.input} value={formData.company} onChange={e => setFormData({ ...formData, company: e.target.value })} />
+<input required placeholder={isReviewRequest ? "Business / Event / Product Name *" : "Company / Brand / Profile Name *"} style={styles.input} value={formData.company} onChange={e => setFormData({ ...formData, company: e.target.value })} />
+{isReviewRequest && (
+<>
+<label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '6px', marginBottom: '6px' }}>
+What should we review? *
+</label>
+<select
+style={{ ...styles.input, appearance: 'auto', backgroundColor: '#fff' }}
+value={formData.reviewTargetType}
+onChange={e => setFormData({ ...formData, reviewTargetType: e.target.value })}
+>
+{REVIEW_TARGET_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+</select>
+{isPhysicalReviewTarget ? (
+<LocationAutocomplete
+value={formData.reviewAddress}
+onChange={reviewAddress => setFormData(prev => ({ ...prev, reviewAddress }))}
+placeholder="Venue / Event Address *"
+style={styles.input}
+/>
+) : (
+<input
+placeholder="Shipping Address (for product evaluation) or Digital Access Link"
+style={styles.input}
+value={formData.reviewAddress}
+onChange={e => setFormData({ ...formData, reviewAddress: e.target.value })}
+/>
+)}
+<div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+<label style={{ flex: '1 1 160px', fontSize: '13px', fontWeight: '600' }}>
+Best Date to Visit *
+<input required type="date" style={styles.input} value={formData.preferredDate} onChange={e => setFormData({ ...formData, preferredDate: e.target.value })} />
+</label>
+<label style={{ flex: '1 1 160px', fontSize: '13px', fontWeight: '600' }}>
+Best Time to Visit *
+<input required type="time" style={styles.input} value={formData.preferredTime} onChange={e => setFormData({ ...formData, preferredTime: e.target.value })} />
+</label>
+</div>
+</>
+)}
 <input required placeholder="Country of Origin *" style={styles.input} value={formData.countryOfOrigin} onChange={e => setFormData({ ...formData, countryOfOrigin: e.target.value })} />
 <input required placeholder="Operating Country *" style={styles.input} value={formData.operatingCountry} onChange={e => setFormData({ ...formData, operatingCountry: e.target.value })} />
+{isReviewRequest ? (
+<>
+<input required type="url" placeholder="Website Link (https://...) *" style={styles.input} value={formData.websiteLink} onChange={e => setFormData({ ...formData, websiteLink: e.target.value })} />
+<input required type="url" placeholder="Social Media Link (Instagram, TikTok, etc.) *" style={styles.input} value={formData.socialLink} onChange={e => setFormData({ ...formData, socialLink: e.target.value })} />
+</>
+) : (
+<>
 <input placeholder="Website or Social Media Link" style={styles.input} value={formData.websiteOrSocial} onChange={e => setFormData({ ...formData, websiteOrSocial: e.target.value })} />
 <p style={{ fontSize: '12px', color: '#888', marginTop: '8px', marginBottom: '8px' }}>
 Or link your online storefront:
@@ -404,6 +505,8 @@ textDecoration: 'none', backgroundColor: '#fff',
 </a>
 ))}
 </div>
+</>
+)}
 </div>
 
 {/* ── 4. MARKETPLACE: PRODUCT DETAILS ─────────────────────────────── */}
@@ -619,6 +722,20 @@ onChange={e => setFormData({ ...formData, totalBudget: e.target.value })}
 </div>
 )}
 
+{/* ── 4. REVIEW REQUEST: PLACEMENT ─────────────────────────────────── */}
+{isReviewRequest && (
+<div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+<h3 style={styles.formSectionTitle}>4. PLACEMENT</h3>
+<label style={{ ...cardOption, borderColor: formData.sponsoredDumaPlacement ? '#1a1a1a' : '#e0e0e0', backgroundColor: formData.sponsoredDumaPlacement ? '#f9f9f9' : '#fff' }}>
+<input type="checkbox" checked={formData.sponsoredDumaPlacement} onChange={e => setFormData({ ...formData, sponsoredDumaPlacement: e.target.checked })} style={{ marginTop: '3px', flexShrink: 0 }} />
+<div>
+<div style={{ fontWeight: '600', marginBottom: '3px' }}>Sponsored Placements in The Duma <span style={{ fontSize: '12px', fontWeight: '500', color: '#666' }}>(Optional Add-on)</span></div>
+<div style={{ fontSize: '12px', color: '#666', lineHeight: '1.5' }}>Boost your review to top-of-feed for local users in your city. Our team will contact you with local placement rates once your review is approved.</div>
+</div>
+</label>
+</div>
+)}
+
 {/* ── 5. MEDIA ─────────────────────────────────────────────────────── */}
 <div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
 <h3 style={styles.formSectionTitle}>5. MEDIA</h3>
@@ -642,7 +759,9 @@ Photo / Banner Upload (up to 3)
 ) : (
 <>
 <p style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>
-Upload photos or videos of your product, venue, or brand.
+{isReviewRequest
+? "Upload high-res photos or promotional videos of your venue, menu, event, or product (or a promotional flyer) to help our review team."
+: "Upload photos or videos of your product, venue, or brand."}
 </p>
 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
 Photo Upload (up to 3)
@@ -762,6 +881,17 @@ style={{ marginTop: '4px' }}
 </div>
 )}
 
+{/* ── 6. REVIEW REQUEST AGREEMENT ──────────────────────────────────── */}
+{isReviewRequest && (
+<div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+<h3 style={styles.formSectionTitle}>6. AGREEMENT</h3>
+<label style={{ ...checkLabel, marginTop: '4px' }}>
+<input type="checkbox" required checked={formData.reviewTermsAgreed} onChange={e => setFormData({ ...formData, reviewTermsAgreed: e.target.checked })} style={{ marginTop: '4px' }} />
+<span>I agree to the Review Terms &amp; Media Rights Consent, granting The Majorities permission to photograph and film the venue, event, or product and to publish that coverage across The Majorities network *</span>
+</label>
+</div>
+)}
+
 {/* ── PARTNER TIER ─────────────────────────────────────────────────── */}
 <div style={{ marginBottom: '20px' }}>
 <h3 style={styles.formSectionTitle}>PARTNER TIER</h3>
@@ -781,7 +911,7 @@ checked={formData.tier === "Premium Partner"}
 disabled={!canApplyPremium}
 onChange={e => setFormData({ ...formData, tier: e.target.value })}
 />
-Premium Partner {!canApplyPremium && <span style={{ fontSize: '11px', color: '#aaa' }}>(Ibiza rank+ only)</span>}
+Premium Partner {!canApplyPremium && <span style={{ fontSize: '11px', color: '#aaa' }}>(Supreme Lizard King rank+ only)</span>}
 </label>
 </div>
 </div>
@@ -811,8 +941,8 @@ Create Account
 </div>
 </div>
 ) : (
-<button type="submit" style={{ ...styles.authButton, marginTop: '20px' }}>
-Submit Partnership Application
+<button type="submit" disabled={submitting} style={{ ...styles.authButton, marginTop: '20px', opacity: submitting ? 0.6 : 1, cursor: submitting ? 'wait' : 'pointer' }}>
+{submitting ? "Submitting..." : isReviewRequest ? "Submit Review Request" : "Submit Partnership Application"}
 </button>
 )}
 </form>

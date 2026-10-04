@@ -77,7 +77,34 @@ const itemDate = (item) => {
   return Number.isNaN(d.getTime()) || d.getTime() === 0 ? null : d;
 };
 
+// ---- Public URL list (sitemap.xml + IndexNow) --------------------------------
+const STATIC_PAGES = [
+  { loc: '/', changefreq: 'daily', priority: '1.0' },
+  { loc: '/duma', changefreq: 'hourly', priority: '0.9' },
+  { loc: '/perspectives', changefreq: 'hourly', priority: '0.8' },
+  { loc: '/about', changefreq: 'monthly', priority: '0.7' },
+  { loc: '/recommend', changefreq: 'weekly', priority: '0.6' },
+  { loc: '/partner', changefreq: 'monthly', priority: '0.6' },
+  { loc: '/contact', changefreq: 'yearly', priority: '0.5' },
+  { loc: '/returns', changefreq: 'yearly', priority: '0.3' },
+  { loc: '/privacy', changefreq: 'yearly', priority: '0.3' },
+  { loc: '/TermsofService', changefreq: 'yearly', priority: '0.3' },
+];
+
+function sitemapUrls(items) {
+  const urls = STATIC_PAGES.map(u => ({ ...u }));
+  publicPerspectives(items).forEach(item => {
+    const d = itemDate(item);
+    urls.push({ loc: `/duma/${itemId(item)}`, changefreq: 'weekly', priority: '0.6', lastmod: d ? d.toISOString().slice(0, 10) : undefined, date: d });
+  });
+  return urls;
+}
+
+// IndexNow (Bing, Yandex, Seznam, Naver…). The key file lives at public/<key>.txt.
+const INDEXNOW_KEY = process.env.INDEXNOW_KEY || '34a5fcd1bc17d8d53d2139ff6af1d4d3';
+
 module.exports = {
+  STATIC_PAGES, sitemapUrls, INDEXNOW_KEY,
   SITE, BACKEND_URL, escapeHtml, clip, readBuildFile, fetchDuma, itemId, isPublicId,
   publicPerspectives, publicRecommendations, authorName, itemDate,
 };

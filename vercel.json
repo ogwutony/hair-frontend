@@ -23,7 +23,11 @@
     }
   ],
   "redirects": [
-    { "source": "/support", "destination": "/contact", "permanent": false }
+    {
+      "source": "/support",
+      "destination": "/contact",
+      "permanent": false
+    }
   ],
   "rewrites": [
     {
@@ -42,6 +46,15 @@
     },
     "api/sitemap.js": {
       "maxDuration": 10
+    },
+    "api/indexnow.js": {
+      "maxDuration": 10
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/indexnow",
+      "schedule": "15 11 * * *"
+    }
+  ]
 }

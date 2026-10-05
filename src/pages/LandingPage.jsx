@@ -11,7 +11,7 @@ import { MobileShop } from './MobileShop';
 export function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
 const [selection, setSelection] = useState([]);
 const [focusedItem, setFocusedItem] = useState(null);
-// On mobile the shop grid is the default view; the custom 6-bottle builder opens from its card
+// The shop grid is the default view; the custom 6-bottle builder opens from its card
 const [building, setBuilding] = useState(false);
 const MOBILE_BREAKPOINT = 768;
 const [isMobile, setIsMobile] = useState(() => window.innerWidth <= MOBILE_BREAKPOINT);
@@ -110,7 +110,7 @@ const helmet = (
 </Helmet>
 );
 
-if (isMobile && !building) {
+if (!building) {
 return (
 <div>
 {helmet}
@@ -121,7 +121,7 @@ return (
 
 return (
 <div>
-{isMobile && <button type="button" className="ms-back" onClick={() => { setBuilding(false); window.scrollTo(0, 0); }}>← Back to shop</button>}
+<button type="button" className="ms-back" onClick={() => { setBuilding(false); window.scrollTo(0, 0); }}>← Back to shop</button>
 <Helmet>
 <title>The Majorities | Premium Hair Care &amp; Solutions</title>
 <meta name="description" content="The Majorities makes premium multicultural hair care and skincare. Build your custom 6-product set from our shampoos, conditioners, oils, face scrubs, toners and creams." />

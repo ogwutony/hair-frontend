@@ -1,5 +1,5 @@
 // src/components/MobileHeader.jsx
-// Mobile-only header: promo bar, hamburger menu, logo, account / wishlist / cart, plus the menu and cart drawers.
+// Site header (mobile and desktop): promo bar, hamburger menu, logo, account / wishlist / cart, plus the menu and cart drawers.
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart, checkoutCart } from '../utils/cart';
@@ -34,6 +34,28 @@ export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle }
 
   const closeAll = () => { setMenuOpen(false); setCartOpen(false); };
   const go = (to) => { closeAll(); navigate(to); };
+  const logout = () => { closeAll(); onLogout(); };
+
+  // Same items in the mobile drawer and the desktop nav bar
+  const navItems = isLoggedIn
+    ? [
+        ['Home', () => go('/')],
+        ['Recommend', () => go('/recommend')],
+        ['Partner', () => go('/partner')],
+        ['The Duma', () => go('/duma')],
+        ['Perspectives', () => go('/perspectives')],
+        ['Profile', () => go('/profile')],
+        [`Messages${unreadMessages > 0 ? ` (${unreadMessages})` : ''}`, () => go('/messages')],
+        ['Logout', logout],
+      ]
+    : [
+        ['Shop', () => go('/')],
+        ['Recommend', () => go('/recommend')],
+        ['Partner', () => go('/partner')],
+        ['The Duma', () => go('/duma')],
+        ['Sign Up', () => go('/signup')],
+        ['Login', () => go('/login')],
+      ];
 
   return (
     <>
@@ -41,6 +63,12 @@ export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle }
       <header className="ms-header">
         <button type="button" className="ms-ib" aria-label="Open menu" onClick={() => setMenuOpen(true)}>{Icon.menu}</button>
         <Link to="/" className="ms-logo">The Majorities</Link>
+        <nav className="ms-nav" aria-label="Main">
+          {isLoggedIn && rankTitle && <RankBadge rankTitle={rankTitle} />}
+          {navItems.map(([label, action]) => (
+            <button type="button" key={label} onClick={action}>{label}</button>
+          ))}
+        </nav>
         <div className="ms-icons">
           <Link to={isLoggedIn ? '/profile' : '/login'} className="ms-ib" aria-label="Account">{Icon.user}</Link>
           <Link to="/?c=wishlist" className="ms-ib" aria-label="Wishlist">
@@ -60,27 +88,9 @@ export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle }
         <button type="button" className="ms-ib ms-close" aria-label="Close menu" onClick={closeAll}>{Icon.close}</button>
         {isLoggedIn && rankTitle && <div className="ms-rank"><RankBadge rankTitle={rankTitle} /></div>}
         <nav className="ms-menu">
-          {isLoggedIn ? (
-            <>
-              <button type="button" onClick={() => go('/')}>Home</button>
-              <button type="button" onClick={() => go('/recommend')}>Recommend</button>
-              <button type="button" onClick={() => go('/partner')}>Partner</button>
-              <button type="button" onClick={() => go('/duma')}>The Duma</button>
-              <button type="button" onClick={() => go('/perspectives')}>Perspectives</button>
-              <button type="button" onClick={() => go('/profile')}>Profile</button>
-              <button type="button" onClick={() => go('/messages')}>Messages{unreadMessages > 0 ? ` (${unreadMessages})` : ''}</button>
-              <button type="button" onClick={() => { closeAll(); onLogout(); }}>Logout</button>
-            </>
-          ) : (
-            <>
-              <button type="button" onClick={() => go('/')}>Shop</button>
-              <button type="button" onClick={() => go('/recommend')}>Recommend</button>
-              <button type="button" onClick={() => go('/partner')}>Partner</button>
-              <button type="button" onClick={() => go('/duma')}>The Duma</button>
-              <button type="button" onClick={() => go('/signup')}>Sign Up</button>
-              <button type="button" onClick={() => go('/login')}>Login</button>
-            </>
-          )}
+          {navItems.map(([label, action]) => (
+            <button type="button" key={label} onClick={action}>{label}</button>
+          ))}
         </nav>
       </aside>
 

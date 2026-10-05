@@ -6,11 +6,9 @@ import { Helmet } from 'react-helmet-async';
 import { BACKEND_URL, RANK_TIERS, POINTS } from './utils/constants';
 import { getRankTitle } from './utils/helpers';
 import { styles } from './utils/styles';
-import { useIsMobile } from './utils/useIsMobile';
 
 // Shared components
 import { ScrollToTop } from './components/ScrollToTop';
-import { RankBadge } from './components/RankBadge';
 
 // Pages
 import { LandingPage } from './pages/LandingPage';
@@ -165,7 +163,6 @@ export default function App() {
     if (!userEmail) return;
     try { localStorage.setItem(`following_${userEmail}`, JSON.stringify(following)); } catch {}
   }, [following, userEmail]);
-  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/health`, { method: "GET" }).catch(() => {});
@@ -267,39 +264,8 @@ export default function App() {
     <Router>
       <CartProvider>
       <ScrollToTop />
-      <div style={styles.pageWrapper} className={isMobile ? 'ms-page' : undefined}>
-        {isMobile ? (
-          <MobileHeader isLoggedIn={isLoggedIn} onLogout={handleLogout} unreadMessages={unreadMessages} rankTitle={rankTitle} />
-        ) : (
-        <header style={{ ...styles.header, flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '15px' : '0', padding: isMobile ? '15px 20px' : '15px 60px' }}>
-          <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}><div style={styles.logo}>The Majorities</div></Link>
-          <nav style={{ ...styles.nav, flexWrap: 'wrap', justifyContent: 'center', gap: isMobile ? '12px' : '25px' }}>
-            <Link to="/" style={styles.navLink}>Home</Link>
-            <Link to="/recommend" style={styles.navLink}>Recommend</Link>
-            <Link to="/partner" style={styles.navLink}>Partner</Link>
-            <Link to="/duma" style={styles.navLink}>The Duma</Link>
-            {isLoggedIn && <Link to="/perspectives" style={styles.navLink}>Perspectives</Link>}
-              {isLoggedIn ? (
-              <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderLeft: isMobile ? 'none' : '1px solid #eee', paddingLeft: isMobile ? '0' : '15px', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-start', marginTop: isMobile ? '5px' : '0' }}>
-                  {rankTitle && <RankBadge rankTitle={rankTitle} />}
-                  <Link to="/profile" style={{ ...styles.navLink, fontWeight: '700' }}>Profile</Link>
-                  <Link to="/messages" style={{ ...styles.navLink, position: 'relative' }}>
-                  Messages
-                  {unreadMessages > 0 && <span aria-label={`${unreadMessages} unread`} style={{ marginLeft: '5px', background: '#0a84ff', color: '#fff', borderRadius: '999px', padding: '1px 6px', fontSize: '10px', fontWeight: 700 }}>{unreadMessages}</span>}
-                  </Link>
-                  <button type="button" onClick={handleLogout} style={{ ...styles.auth, background: 'none', border: 'none', padding: 0, font: 'inherit', fontWeight: 600 }}>Logout</button>
-                </div>
-              </>
-            ) : (
-              <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                <Link to="/signup" style={styles.auth}>Sign Up</Link>
-                <Link to="/login" style={styles.auth}>Login</Link>
-              </div>
-            )}
-          </nav>
-        </header>
-        )}
+      <div style={styles.pageWrapper} className="ms-page">
+        <MobileHeader isLoggedIn={isLoggedIn} onLogout={handleLogout} unreadMessages={unreadMessages} rankTitle={rankTitle} />
         <Routes>
           <Route path="/" element={<LandingPage saveSetToProfile={saveSetToProfile} onAddPoints={addPoints} savedSets={savedSets} />} />
           <Route path="/login" element={<LoginPage onLogin={handleLoginSuccess} />} />

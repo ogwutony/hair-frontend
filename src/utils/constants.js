@@ -38,6 +38,22 @@ sellingPlanId: DEFAULT_SELLING_PLAN_ID
 }
 };
 
+// Custom 6-bottle subscription: hidden duplicate single-bottle products in Shopify, sold only
+// through the custom set builder at a lower per-bottle subscription price.
+// Until every variantId and the sellingPlanId are filled in, the builder keeps the regular products and prices.
+export const CUSTOM_SET_SUBSCRIPTION = {
+bottlePrice: 9.16,
+sellingPlanId: "",
+variantIds: {
+"The Majorities Shampoo": "",
+"The Majorities Conditioner": "",
+"The Majorities Hair Oil": "",
+"The Majorities Facial Scrub": "",
+"The Majorities Face Toner": "",
+"The Majorities Lotion": ""
+}
+};
+
 export const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://hair-backend-1.onrender.com";
 
 // Single rank ladder for the whole site (and mirrored in the backend lib/rankTiers.js + mobile app).

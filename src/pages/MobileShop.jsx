@@ -4,7 +4,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { SHOP_ITEMS, SHOP_ITEM_BY_ID } from '../utils/shopCatalog';
 import { useCart } from '../utils/cart';
-import { formatCurrency } from '../utils/helpers';
+import { calculateSetTotals, formatCurrency } from '../utils/helpers';
+import { PRODUCT_VARIANT_MAP } from '../utils/constants';
 import { Icon } from '../components/MobileHeader';
 import '../mobileShop.css';
 
@@ -130,7 +131,7 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
               <button type="button" className="ms-build-inner" onClick={onBuildSet}>
                 <span className="ms-build-count">{setCount}/6</span>
                 <span className="ms-name">Build your own 6-bottle set</span>
-                <span className="ms-muted">Mix any six bottles. From {formatCurrency(6 * 14.99)} a month with subscribe.</span>
+                <span className="ms-muted">Mix any six bottles. From {formatCurrency(calculateSetTotals(Array(6).fill({ name: Object.keys(PRODUCT_VARIANT_MAP)[0] })).subscription)} a month with subscribe.</span>
                 <span className="ms-btn">Start building</span>
               </button>
             </article>

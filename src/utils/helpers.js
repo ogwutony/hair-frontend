@@ -1,7 +1,7 @@
 // src/utils/helpers.js
 // Rank system utilities, commerce helpers, and media/social URL helpers
 
-import { RANK_TIERS, PRODUCT_VARIANT_MAP, SHOP_DOMAIN, LORD_POST_MILESTONE } from './constants';
+import { RANK_TIERS, PRODUCT_VARIANT_MAP, SHOP_DOMAIN, LORD_POST_MILESTONE, CUSTOM_SET_SUBSCRIPTION } from './constants';
 
 // --- Rank System ---
 
@@ -144,11 +144,21 @@ export const getProductCommerceConfig = (productName) => PRODUCT_VARIANT_MAP[pro
   sellingPlanId: null
 };
 
+export const isCustomSetSubscriptionReady = () =>
+  Boolean(CUSTOM_SET_SUBSCRIPTION.sellingPlanId) &&
+  Object.keys(PRODUCT_VARIANT_MAP).every((name) => CUSTOM_SET_SUBSCRIPTION.variantIds[name]);
+
+// Per-bottle subscription price inside a custom 6-bottle set
+export const getCustomSetBottleSubscriptionPrice = (productName) =>
+  isCustomSetSubscriptionReady()
+    ? CUSTOM_SET_SUBSCRIPTION.bottlePrice
+    : getProductCommerceConfig(productName).pricing.subscription;
+
 export const calculateSetTotals = (items = []) => items.reduce((totals, item) => {
   const { pricing } = getProductCommerceConfig(item.name);
   return {
     oneTime: totals.oneTime + (pricing.oneTime || 0),
-    subscription: totals.subscription + (pricing.subscription || 0)
+    subscription: totals.subscription + (getCustomSetBottleSubscriptionPrice(item.name) || 0)
   };
 }, { oneTime: 0, subscription: 0 });
 
@@ -162,6 +172,31 @@ export const submitShopifyCheckout = (items, purchaseType = "one-time") => {
     window.location.href =
       `https://${SHOP_DOMAIN}/cart/${lineItems}` +
       `?checkout[shipping_address][country]=US`;
+    return;
+  }
+
+  if (isCustomSetSubscriptionReady()) {
+    // POST to /cart/add so each line carries the custom-set selling plan
+    const counts = {};
+    items.forEach((item) => { counts[item.name] = (counts[item.name] || 0) + 1; });
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = `https://${SHOP_DOMAIN}/cart/add`;
+    const field = (name, value) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = name;
+      input.value = String(value);
+      form.appendChild(input);
+    };
+    Object.entries(counts).forEach(([name, qty], i) => {
+      field(`items[${i}][id]`, CUSTOM_SET_SUBSCRIPTION.variantIds[name]);
+      field(`items[${i}][quantity]`, qty);
+      field(`items[${i}][selling_plan]`, CUSTOM_SET_SUBSCRIPTION.sellingPlanId);
+    });
+    field("return_to", "/checkout");
+    document.body.appendChild(form);
+    form.submit();
     return;
   }
 

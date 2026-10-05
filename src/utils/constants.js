@@ -43,14 +43,14 @@ sellingPlanId: DEFAULT_SELLING_PLAN_ID
 // Until every variantId and the sellingPlanId are filled in, the builder keeps the regular products and prices.
 export const CUSTOM_SET_SUBSCRIPTION = {
 bottlePrice: 9.16,
-sellingPlanId: "",
+sellingPlanId: "8559493298",
 variantIds: {
-"The Majorities Shampoo": "",
-"The Majorities Conditioner": "",
-"The Majorities Hair Oil": "",
-"The Majorities Facial Scrub": "",
-"The Majorities Face Toner": "",
-"The Majorities Lotion": ""
+"The Majorities Shampoo": "67637378875570",
+"The Majorities Conditioner": "67637387133106",
+"The Majorities Hair Oil": "67637391229106",
+"The Majorities Facial Scrub": "67637395620018",
+"The Majorities Face Toner": "67637438349490",
+"The Majorities Lotion": "67637450932402"
 }
 };
 

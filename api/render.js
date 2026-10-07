@@ -5,7 +5,7 @@
 // vercel.json rewrites every non-file path here as /api/render?path=/<path>.
 const {
   SITE, escapeHtml: esc, clip, readBuildFile, fetchDuma, itemId, isPublicId,
-  publicPerspectives, publicRecommendations, authorName, itemDate,
+  publicPerspectives, publicRecommendations, authorName, itemDate, locationHtml,
 } = require('./_lib/site');
 
 const DEFAULT_DESC = 'Join The Majorities community. Discover premium, clean-beauty multicultural personal care products, tailored subscriptions, and routine bundles.';
@@ -21,7 +21,7 @@ function perspectiveCard(item) {
   const d = itemDate(item);
   return `<article style="border:1px solid #eee;border-radius:24px;padding:24px;margin-bottom:20px">
 <h3 style="margin:0 0 6px;color:#555"><a href="/duma/${esc(id)}" style="color:inherit">${esc(item.prompt || 'A perspective from The Majorities')}</a></h3>
-<p style="margin:0 0 8px;font-size:13px;color:#888">By ${esc(authorName(item))}${d ? ` · <time datetime="${d.toISOString()}">${d.toISOString().slice(0, 10)}</time>` : ''}${item.location ? ` · ${esc(item.location)}` : ''}</p>
+<p style="margin:0 0 8px;font-size:13px;color:#888">By ${esc(authorName(item))}${d ? ` · <time datetime="${d.toISOString()}">${d.toISOString().slice(0, 10)}</time>` : ''}${item.location ? ` · ${locationHtml(item.location)}` : ''}</p>
 <p style="margin:0">${esc(clip(item.response || item.reason || item.desc, 600))}</p>
 </article>`;
 }
@@ -72,7 +72,7 @@ async function perspectivePage(id) {
   };
   const body = `<p style="font-size:13px"><a href="/duma">← The Duma</a></p>
 <article><h1 style="font-size:28px;line-height:1.3">${esc(title)}</h1>
-<p style="color:#888;font-size:13px">By ${esc(authorName(item))}${created && !Number.isNaN(created.getTime()) ? ` · <time datetime="${created.toISOString()}">${created.toISOString().slice(0, 10)}</time>` : ''}${item.location ? ` · ${esc(item.location)}` : ''}</p>
+<p style="color:#888;font-size:13px">By ${esc(authorName(item))}${created && !Number.isNaN(created.getTime()) ? ` · <time datetime="${created.toISOString()}">${created.toISOString().slice(0, 10)}</time>` : ''}${item.location ? ` · ${locationHtml(item.location)}` : ''}</p>
 <div style="font-size:17px;line-height:1.75;white-space:pre-wrap">${esc(text)}</div></article>
 <p><a href="/signup">Join The Majorities</a> to vote on perspectives and share your own.</p>`;
   return {

@@ -16,3 +16,9 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Location pills and lines that link to Google Maps */
+.address-link:hover,
+.address-link:focus-visible {
+  text-decoration: underline !important;
+}

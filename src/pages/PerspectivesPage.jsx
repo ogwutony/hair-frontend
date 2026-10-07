@@ -12,6 +12,7 @@ import { ContentActions } from '../components/ContentActions';
 import { GuestSubmissionPrompt } from '../components/GuestSubmissionPrompt';
 import { Helmet } from 'react-helmet-async';
 import { useModeration } from '../utils/moderation';
+import { AddressLink } from '../components/AddressLink';
 
 const EMPTY_LIST = []; // stable default so effects keyed on it don't re-run every render
 
@@ -373,11 +374,7 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
                   })}
                 </div>
               )}
-              {item.location && (
-                <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
-                  📍 {item.location}
-                </div>
-              )}
+              <AddressLink address={item.location} />
               <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
               <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6' }}>{item.response || item.reason || item.desc}</p>
               {/^[a-f0-9]{24}$/i.test(String(item._id || item.id || '')) && (

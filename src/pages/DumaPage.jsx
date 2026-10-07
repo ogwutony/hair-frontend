@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useIsMobile } from '../utils/useIsMobile';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
-import { CredentialHeader } from '../components/CredentialHeader';
+import { CredentialHeader, CredentialExtras } from '../components/CredentialHeader';
 import { GuestSubmissionPrompt } from '../components/GuestSubmissionPrompt';
 import { RankBadge } from '../components/RankBadge';
 import { BACKEND_URL, PRODUCT_IMAGE_BY_NAME } from '../utils/constants';
@@ -271,11 +271,12 @@ const verifiedRank = item.rankScore ? getRankTitle(item.rankScore) : (item.submi
 return (
 <React.Fragment key={itemId}>
 <div style={styles.dumaCard}>
-<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '12px' }}>
 <span style={styles.typeTag}>Perspective</span>
-<div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '8px' }}>
 {isFeaturedContributor(item) && <span style={{ background: '#f4d35e', color: '#222', borderRadius: '999px', padding: '4px 8px', fontSize: '10px', fontWeight: '800' }}>★ Featured on The Duma</span>}
 <RankBadge rankTitle={verifiedRank} />
+<CredentialExtras rankScore={item.rankScore || null} socialLinks={item.submitterSocialLinks || null} />
 {authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
 <button onClick={() => handleDeletePost(itemId)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
 Trash
@@ -290,9 +291,10 @@ Trash
 email={item.submittedBy}
 displayName={item.submitterDisplayName || null}
 rankTitle={verifiedRank}
-rankScore={item.rankScore || null}
+rankScore={null}
 avatarUrl={item.submitterAvatar || null}
-socialLinks={item.submitterSocialLinks || null}
+socialLinks={null}
+showRank={false}
 profileLink={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`}
 />
 )}
@@ -398,10 +400,11 @@ Yes: {item.votes?.yes || 0} | No: {item.votes?.no || 0} | Abstain: {item.votes?.
 ) : (
 recommendationItems.map(item => (
 <div key={item.id || item._id} style={styles.dumaCard}>
-<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '12px' }}>
 <span style={styles.typeTag}>{item.type}</span>
-<div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '8px' }}>
 {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
+<CredentialExtras rankScore={null} socialLinks={item.submitterSocialLinks || null} />
 {authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
 <button onClick={() => handleDeletePost(item._id || item.id)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
 Trash
@@ -410,7 +413,7 @@ Trash
 </div>
 </div>
 <ContentActions variant="bar" style={{ marginBottom: '12px' }} contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} isFollowing={!!item.submittedBy && following.includes(item.submittedBy)} onFollow={onFollowUser} />
-{item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} profileLink={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`} />}
+{item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={null} showRank={!item.submitterRank} profileLink={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`} />}
 {item.location && (
 <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
 📍 {item.location}
@@ -490,10 +493,11 @@ Yes: {item.votes?.yes || 0} | No: {item.votes?.no || 0} | Abstain: {item.votes?.
 ) : (
 partnerItems.map(item => (
 <div key={item.id || item._id} style={styles.dumaCard}>
-<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '12px' }}>
 <span style={styles.typeTag}>{item.type}</span>
-<div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '8px' }}>
 {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
+<CredentialExtras rankScore={null} socialLinks={item.submitterSocialLinks || null} />
 {authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
 <button onClick={() => handleDeletePost(item._id || item.id)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
 Trash
@@ -502,7 +506,7 @@ Trash
 </div>
 </div>
 <ContentActions variant="bar" style={{ marginBottom: '12px' }} contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} isFollowing={!!item.submittedBy && following.includes(item.submittedBy)} onFollow={onFollowUser} />
-{item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={item.submitterSocialLinks || null} profileLink={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`} />}
+{item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={null} showRank={!item.submitterRank} profileLink={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`} />}
 {item.location && (
 <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
 📍 {item.location}

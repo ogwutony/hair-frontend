@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { BACKEND_URL } from '../utils/constants';
 import { styles } from '../utils/styles';
 import { AppleSignInButton } from '../components/AppleSignInButton';
+import { startGoogleSignIn } from '../utils/googleAuth';
 
 export const LoginPage = ({ onLogin }) => {
   const navigate = useNavigate();
@@ -30,12 +31,8 @@ export const LoginPage = ({ onLogin }) => {
 
   const handleGoogleLogin = () => {
     setSocialError("");
-    const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
-    if (!clientId) { setSocialError("Google login is not configured."); return; }
-    const redirectUri = window.location.origin + "/auth/google/callback";
-    const scope = "openid email profile";
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&prompt=select_account`;
-    window.location.href = authUrl;
+    const msg = startGoogleSignIn();
+    if (msg) setSocialError(msg);
   };
 
   const handleInstagramLogin = () => {
@@ -53,7 +50,7 @@ export const LoginPage = ({ onLogin }) => {
     <div style={styles.authContainer}>
       <div style={{ ...styles.authCard, maxWidth: '420px' }}>
         <h1 style={{ fontSize: '22px', fontWeight: '700', marginBottom: '4px', letterSpacing: '-0.5px' }}>The Majorities</h1>
-        <p style={{ fontSize: '13px', color: '#888', marginBottom: '24px' }}>Sign in to your account</p>
+        <p style={{ fontSize: '13px', color: '#888', marginBottom: '24px' }}>Sign in to your account — new here? <Link to="/signup">Create one</Link></p>
         {socialError && <div style={{ background: '#fff0f0', color: '#c00', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '16px', textAlign: 'left' }}>{socialError}</div>}
         <AppleSignInButton
           onSuccess={(data) => { onLogin(data.email, data.token, true, data.rank_title, data.rank_score); navigate("/profile"); }}

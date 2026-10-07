@@ -10,7 +10,7 @@ const SnapchatIcon = () => (
   </svg>
 );
 
-export const CredentialHeader = ({ email, displayName, rankTitle, rankScore, avatarUrl, socialLinks = {}, profileLink = null, dumaPostCount }) => {
+export const CredentialHeader = ({ email, displayName, rankTitle, rankScore, avatarUrl, socialLinks = {}, profileLink = null, dumaPostCount, showRank = true }) => {
   // Never print a member's full email address on public pages — fall back to the part before the @
   const postCount = dumaPostCount ?? getDumaPostCount(email);
   const baseName = displayName || (email && email.includes('@') ? email.split('@')[0] : email);
@@ -21,7 +21,7 @@ export const CredentialHeader = ({ email, displayName, rankTitle, rankScore, ava
   const isTopRank = rankTitle === "Nice and Helpful";
   const formattedRankTitle = rankTitle || 'Comrade';
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', background: '#fff', flexWrap: 'wrap', marginBottom: '12px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', background: 'transparent', flexWrap: 'wrap', marginBottom: '12px' }}>
       <div style={{
         width: '42px',
         height: '42px',
@@ -68,7 +68,7 @@ export const CredentialHeader = ({ email, displayName, rankTitle, rankScore, ava
           {nameToDisplay}
         </span>
       )}
-      <span style={{
+      {showRank && <span style={{
         fontSize: rankTitle && rankTitle.length > 20 ? '9px' : '11px',
         fontWeight: '700',
         textTransform: 'uppercase',
@@ -84,57 +84,64 @@ export const CredentialHeader = ({ email, displayName, rankTitle, rankScore, ava
         ...(isTopRank ? styles.generalSecretaryBadge : {})
       }}>
         {formattedRankTitle}
-      </span>
-      {rankScore != null && (
-        <span style={{
-          fontSize: '11px',
-          fontWeight: '700',
-          textTransform: 'uppercase',
-          padding: '4px 10px',
-          borderRadius: '4px',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '3px',
-          backgroundColor: '#f5f5f5',
-          color: '#d4af37',
-          border: '1px solid #e0e0e0',
-          whiteSpace: 'nowrap',
-          lineHeight: '1.3'
-        }}>
-          ★ {(rankScore || 1).toLocaleString()} pts
-        </span>
-      )}
-      {socialLinks && (
-        <>
-          {socialLinks.instagram ? (
-            <a
-              href={safeSocialUrl(socialLinks.instagram)}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ textDecoration: 'none', fontSize: '15px' }}
-              title="Instagram"
-            >{"📷"}</a>
-          ) : null}
-          {socialLinks.tiktok ? (
-            <a
-              href={safeSocialUrl(socialLinks.tiktok)}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ textDecoration: 'none', fontSize: '15px' }}
-              title="TikTok"
-            >{"🎵"}</a>
-          ) : null}
-          {socialLinks.snapchat ? (
-            <a
-              href={safeSocialUrl(socialLinks.snapchat)}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none', fontSize: '11px', color: '#000000', backgroundColor: '#FFFC00', padding: '2px 8px', borderRadius: '6px', fontWeight: '600' }}
-              title="Snapchat"
-            ><SnapchatIcon /> Snapchat</a>
-          ) : null}
-        </>
-      )}
+      </span>}
+      <CredentialExtras rankScore={rankScore} socialLinks={socialLinks} />
     </div>
   );
 };
+
+// Points and social links; shown inside the header, or on their own (e.g. on the right of a Duma card)
+export const CredentialExtras = ({ rankScore, socialLinks }) => (
+  <>
+    {rankScore != null && (
+      <span style={{
+        fontSize: '11px',
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        padding: '4px 10px',
+        borderRadius: '4px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '3px',
+        backgroundColor: '#f5f5f5',
+        color: '#d4af37',
+        border: '1px solid #e0e0e0',
+        whiteSpace: 'nowrap',
+        lineHeight: '1.3'
+      }}>
+        ★ {(rankScore || 1).toLocaleString()} pts
+      </span>
+    )}
+    {socialLinks && (
+      <>
+        {socialLinks.instagram ? (
+          <a
+            href={safeSocialUrl(socialLinks.instagram)}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ textDecoration: 'none', fontSize: '15px' }}
+            title="Instagram"
+          >{"📷"}</a>
+        ) : null}
+        {socialLinks.tiktok ? (
+          <a
+            href={safeSocialUrl(socialLinks.tiktok)}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ textDecoration: 'none', fontSize: '15px' }}
+            title="TikTok"
+          >{"🎵"}</a>
+        ) : null}
+        {socialLinks.snapchat ? (
+          <a
+            href={safeSocialUrl(socialLinks.snapchat)}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none', fontSize: '11px', color: '#000000', backgroundColor: '#FFFC00', padding: '2px 8px', borderRadius: '6px', fontWeight: '600' }}
+            title="Snapchat"
+          ><SnapchatIcon /> Snapchat</a>
+        ) : null}
+      </>
+    )}
+  </>
+);

@@ -11,6 +11,7 @@ import { getRankTitle, normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
 import { ContentActions } from '../components/ContentActions';
 import { useModeration } from '../utils/moderation';
+import { EzoicAd, DUMA_AD_PLACEHOLDER_START, DUMA_AD_EVERY_N_POSTS, DUMA_AD_MAX_SLOTS } from '../components/EzoicAd';
 
 const EMPTY_LIST = []; // stable default so effects keyed on it don't re-run every render
 
@@ -260,13 +261,16 @@ setSocialFeedUnavailable(false);
 {culturalItems.length === 0 ? (
 <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No perspectives shared yet. Share yours and contribute to our culture section!</div>
 ) : (
-culturalItems.map(item => {
+culturalItems.map((item, index) => {
 const itemId = item._id || item.id;
+const adSlotIndex = Math.floor((index + 1) / DUMA_AD_EVERY_N_POSTS) - 1;
+const showAdAfter = (index + 1) % DUMA_AD_EVERY_N_POSTS === 0 && index + 1 < culturalItems.length && adSlotIndex < DUMA_AD_MAX_SLOTS;
 // Dynamically recalculate rank badge from stored score to always reflect correct tier
 const verifiedRank = item.rankScore ? getRankTitle(item.rankScore) : (item.submitterRank || "Comrade");
 
 return (
-<div key={itemId} style={styles.dumaCard}>
+<React.Fragment key={itemId}>
+<div style={styles.dumaCard}>
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '12px' }}>
 <span style={styles.typeTag}>Perspective</span>
 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '8px' }}>
@@ -380,6 +384,8 @@ Yes: {item.votes?.yes || 0} | No: {item.votes?.no || 0} | Abstain: {item.votes?.
 </div>
 )}
 </div>
+{showAdAfter && <EzoicAd placeholderId={DUMA_AD_PLACEHOLDER_START + adSlotIndex} />}
+</React.Fragment>
 );
 })
 )}

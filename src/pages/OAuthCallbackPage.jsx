@@ -17,13 +17,22 @@ export const OAuthCallbackPage = ({ onLogin, provider }) => {
     const code = queryParams.get("code");
     const error = queryParams.get("error") || hashParams.get("error");
 
-    if (error) { setStatus(provider + " authentication was cancelled."); setTimeout(() => navigate("/login"), 2500); return; }
-    if (provider === "google" && !code) { setStatus("Authentication failed. No authorization code received."); setTimeout(() => navigate("/login"), 2500); return; }
-    if (provider !== "google" && !accessToken) { setStatus("Authentication failed. No token received."); setTimeout(() => navigate("/login"), 2500); return; }
+    if (error) { setStatus(provider + " sign-in was cancelled."); setTimeout(() => navigate("/login"), 2500); return; }
+    if (provider === "google") {
+      // Token flow returns access_token in the hash; reject if state doesn't match the one we sent
+      let expected = null;
+      try { expected = sessionStorage.getItem("googleOAuthState"); } catch (e) { /* blocked */ }
+      try { expected = expected || localStorage.getItem("googleOAuthState"); } catch (e) { /* blocked */ }
+      try { sessionStorage.removeItem("googleOAuthState"); } catch (e) { /* ignore */ }
+      try { localStorage.removeItem("googleOAuthState"); } catch (e) { /* ignore */ }
+      const returned = hashParams.get("state") || queryParams.get("state");
+      if (expected && returned !== expected) { setStatus("Sign-in could not be verified. Please try again."); setTimeout(() => navigate("/login"), 2500); return; }
+      if (!accessToken && !code) { setStatus("Authentication failed. No token received from Google."); setTimeout(() => navigate("/login"), 2500); return; }
+    } else if (!accessToken) { setStatus("Authentication failed. No token received."); setTimeout(() => navigate("/login"), 2500); return; }
 
     const endpoint = provider === "instagram" ? "/api/auth/instagram" : "/api/auth/google";
     const body = provider === "google"
-      ? { code, redirectUri: window.location.origin + "/auth/google/callback" }
+      ? (accessToken ? { accessToken } : { code, redirectUri: window.location.origin + "/auth/google/callback" })
       : { accessToken };
 
     fetch(BACKEND_URL + endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })

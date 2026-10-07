@@ -103,8 +103,19 @@ function sitemapUrls(items) {
 // IndexNow (Bing, Yandex, Seznam, Naver…). The key file lives at public/<key>.txt.
 const INDEXNOW_KEY = process.env.INDEXNOW_KEY || '34a5fcd1bc17d8d53d2139ff6af1d4d3';
 
+// Location text, linked to Google Maps when it's specific enough to pin
+// (same rule as src/utils/maps.js: a street number/ZIP, or 4+ comma-separated parts).
+const locationHtml = (location) => {
+  const text = String(location == null ? '' : location).trim();
+  if (!text) return '';
+  const specific = /\d/.test(text) || text.split(',').filter((part) => part.trim()).length >= 4;
+  if (!specific) return escapeHtml(text);
+  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(text)}`;
+  return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" style="color:inherit">${escapeHtml(text)}</a>`;
+};
+
 module.exports = {
   STATIC_PAGES, sitemapUrls, INDEXNOW_KEY,
   SITE, BACKEND_URL, escapeHtml, clip, readBuildFile, fetchDuma, itemId, isPublicId,
-  publicPerspectives, publicRecommendations, authorName, itemDate,
+  publicPerspectives, publicRecommendations, authorName, itemDate, locationHtml,
 };

@@ -9,6 +9,7 @@ import { GuestSubmissionPrompt } from '../components/GuestSubmissionPrompt';
 import { BACKEND_URL } from '../utils/constants';
 import { getRankTitle, normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
+import { AddressLink } from '../components/AddressLink';
 
 const clip = (text, max) => {
   const t = String(text || '').replace(/\s+/g, ' ').trim();
@@ -73,7 +74,7 @@ export const PerspectiveDetailPage = ({ authToken }) => {
       {posted && !Number.isNaN(posted.getTime()) && (
         <p style={{ color: '#888', fontSize: '13px', margin: '0 0 12px' }}>
           <time dateTime={posted.toISOString()}>{posted.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
-          {item.location ? ` · ${item.location}` : ''}
+          {item.location && <> · <AddressLink address={item.location} variant="inline" /></>}
         </p>
       )}
       {item.submittedBy && (

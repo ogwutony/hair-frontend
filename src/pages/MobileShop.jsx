@@ -88,7 +88,10 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
       </div>
       <div className="ms-info">
         <h3 className="ms-name">{item.name}</h3>
-        <Price item={item} mode={modeOf(item.id)} />
+        <div className="ms-price-row">
+          <Price item={item} mode={modeOf(item.id)} />
+          <span className="ms-free-ship">Free Shipping</span>
+        </div>
         <div className="ms-ship">Ships Oct 31</div>
         <ModeToggle mode={modeOf(item.id)} onChange={(m) => setMode(item.id, m)} />
         <button type="button" className="ms-btn ms-add" onClick={() => add(item.id)}>Add to cart</button>

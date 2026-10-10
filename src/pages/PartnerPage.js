@@ -1,959 +1,173 @@
 // src/pages/PartnerPage.jsx
+// Partner applications. Every track uses the same 3-step wizard (see components/partner) and asks
+// only the questions that fit that kind of partner. Deep link a track with /partner?type=creator.
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { CredentialHeader } from '../components/CredentialHeader';
-import { LocationAutocomplete } from '../components/LocationAutocomplete';
+import { PartnerWizard } from '../components/partner/PartnerWizard';
+import { BRAND_TRACK, CREATOR_TRACK, VENUE_TRACK, MARKETPLACE_TRACK, REVIEW_TRACK } from '../components/partner/tracks';
 import { BACKEND_URL, getPartnerApplyPoints } from '../utils/constants';
 import { styles } from '../utils/styles';
 
-const REVIEW_REQUEST = "Review Request";
-const REVIEW_TARGET_TYPES = ['Restaurant', 'Bar', 'Event', 'Product'];
-const PHYSICAL_REVIEW_TARGETS = ['Restaurant', 'Bar', 'Event'];
-const isHttpUrl = (v) => /^https?:\/\/\S+\.\S+/i.test((v || '').trim());
-
-const PRODUCT_TYPE_OPTIONS = [
-'Shampoos', 'Conditioners', 'Oils', 'Face Scrubs',
-'Toners', 'Creams', 'Body Wash', 'Hair Styling', 'Other'
-];
-
-const MARKETPLACE_AGREEMENTS = [
-{ key: 'customerRewardAgreed', label: 'I agree to the Customer Reward program *' },
-{ key: 'commission20AgreedTo', label: 'I agree to the 20% commission structure *' },
-{ key: 'shippingReturnsAgreed', label: 'I agree to the Shipping & Returns Policy *' },
-{ key: 'ownershipTitleAgreed', label: 'I agree to the Ownership & Title Policy *' },
-];
+const TRACKS = {
+  brand: { track: BRAND_TRACK, icon: '🛍️', title: 'Brand & Retailer', desc: 'Wholesale pricing, marketplace listings, and sponsored placements.',
+    perks: ['Wholesale access on approval', '20% commission, no listing fees', 'Featured on The Duma'] },
+  creator: { track: CREATOR_TRACK, icon: '🎥', title: 'Creator / Influencer', desc: 'Make content, join The Duma, and earn 8% on referrals.',
+    perks: ['8% on every referral sale', 'Paid monthly, no cap', 'Get featured on The Duma'] },
+  venue: { track: VENUE_TRACK, icon: '📍', title: 'Venue / Community', desc: 'Salons, barbershops, run clubs, and local event organizers.',
+    perks: ['Free samples for your people', 'Event sponsorship', 'Sell our products in your space'] },
+  marketplace: { track: MARKETPLACE_TRACK, title: 'Sell on our Marketplace',
+    perks: ['Import products from Shopify', '20% commission, no listing fees', 'Reach a community shopping for you'] },
+  review: { track: REVIEW_TRACK, title: 'Request a Review',
+    perks: ['Honest review by our team', 'Shared across The Majorities', 'Optional boost on The Duma'] },
+};
+const PRIMARY = ['brand', 'creator', 'venue'];
+const SECONDARY = ['marketplace', 'review'];
+const DRAFT_KEYS = Object.values(TRACKS).map(t => t.track.draftKey);
 
 export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, rankScore, authToken, userAvatar, onWholesaleApproved }) => {
-const navigate = useNavigate();
+  const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const initial = TRACKS[params.get('type')] ? params.get('type') : 'brand';
+  const [active, setActive] = useState(initial);
+  const [visited, setVisited] = useState([initial]); // wizards stay mounted once opened, so switching keeps progress
+  const [errorMsg, setErrorMsg] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(null);
 
-const [formData, setFormData] = useState({
-partnerCategory: "Brand & Retail Partners",
-name: "",
-contactEmail: "",
-phoneNumber: "",
-ein: "",
-company: "",
-websiteOrSocial: "",
-countryOfOrigin: "",
-operatingCountry: "",
-// Marketplace fields
-productTypes: [], // array of selected type strings
-productDetails: {}, // { [type]: { description, ingredients, photos: [], photoPreviews: [] } }
-whyPartner: "",
-desiredOrderQuantity: "",
-pricing5Gallon: "",
-standardUnitPrice: "5",
-promotionalUnitPrice: "4",
-commission20AgreedTo: false,
-customerRewardAgreed: false,
-shippingReturnsAgreed: false,
-ownershipTitleAgreed: false,
-// Creator fields
-contentTypes: [],
-contentPitch: "",
-commission8Agreed: false,
-// Community fields
-eventDetails: "",
-majoritiesRole: "",
-bulkOrderNeeded: false,
-// Brand & Community fields
-totalBudget: "",
-// Brand fields
-advertisingInterest: false,
-wholesaleInterest: false,
-sponsoredDumaInterest: false,
-sponsoredMarketplaceInterest: false,
-// Review Request fields
-reviewTargetType: "Restaurant",
-reviewAddress: "",
-preferredDate: "",
-preferredTime: "",
-websiteLink: "",
-socialLink: "",
-sponsoredDumaPlacement: false,
-reviewTermsAgreed: false,
-// Shared Media
-photoFiles: [],
-videoFile: null,
-tier: "National Associate"
-});
+  const canApplyPremium = (rankScore || 1) >= 900000;
 
-const [errorMsg, setErrorMsg] = useState("");
-const [submitted, setSubmitted] = useState(false);
-const [submitting, setSubmitting] = useState(false);
-const isReviewRequest = formData.partnerCategory === REVIEW_REQUEST;
-const isCreator = formData.partnerCategory === "Creator / Influencer Partners";
-const einRequired = !isReviewRequest && !isCreator; // individual creators often have no EIN
-const isPhysicalReviewTarget = PHYSICAL_REVIEW_TARGETS.includes(formData.reviewTargetType);
-const [photoPreviews, setPhotoPreviews] = useState([]);
-const [videoPreview, setVideoPreview] = useState(null);
+  const choose = (key) => {
+    setErrorMsg('');
+    setActive(key);
+    setVisited(v => (v.includes(key) ? v : [...v, key]));
+    setParams({ type: key }, { replace: true });
+  };
 
-const userScore = rankScore || 1;
-const canApplyPremium = userScore >= 900000; // Requires "Supreme Lizard King" rank (900,000+ pts)
+  const sendApplication = async (formDataObj, category, { hasPhoto, hasVideo }) => {
+    setErrorMsg('');
+    if (!authToken) { setErrorMsg('You must be logged in to submit a partnership application.'); return; }
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/duma/partner`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${authToken}` },
+        body: formDataObj,
+      });
+      // The server can answer with non-JSON (e.g. an upload too large for the host) — never treat that as success
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setErrorMsg(data.error || `Submission failed (${res.status}). Please try again.`); return; }
 
-// ── Handlers ─────────────────────────────────────────────────────────────────
-const handlePhotosChange = (e) => {
-const files = Array.from(e.target.files).slice(0, 3);
-setFormData({ ...formData, photoFiles: files });
-setPhotoPreviews(files.map(f => URL.createObjectURL(f)));
-};
+      try { DRAFT_KEYS.forEach(k => sessionStorage.removeItem(k)); } catch (e) { /* storage unavailable */ }
+      if (onAddPoints) onAddPoints(getPartnerApplyPoints(category));
+      // Public item from the server (no EIN or contact details)
+      addDumaItem({
+        ...(data.item || {}),
+        id: data.item?._id || Date.now(),
+        type: 'Partner',
+        submittedBy: userEmail || 'anonymous',
+        submitterRank: rankTitle || 'Comrade',
+        hasPhoto,
+        hasVideo,
+      });
+      setSubmitted(category);
 
-const handleVideoChange = (e) => {
-const file = e.target.files[0];
-if (file) {
-setFormData({ ...formData, videoFile: file });
-setVideoPreview(URL.createObjectURL(file));
-}
-};
+      // Brand & Retail applications unlock wholesale access immediately (the server grants it) — go straight there
+      if (category === BRAND_TRACK.category && data.wholesaleApproved) {
+        if (onWholesaleApproved) onWholesaleApproved();
+        navigate('/wholesale', { state: { fromApplication: true } });
+      }
+    } catch (err) {
+      setErrorMsg("We couldn't reach the server, so your application was not sent. Please check your connection and try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-const toggleContentType = (type) => {
-const current = formData.contentTypes;
-const updated = current.includes(type) ? current.filter(t => t !== type) : [...current, type];
-setFormData({ ...formData, contentTypes: updated });
-};
+  if (submitted) {
+    const isReview = submitted === REVIEW_TRACK.category;
+    return (
+      <div style={{ padding: '40px clamp(16px, 5vw, 60px)', maxWidth: '760px', margin: '0 auto' }}>
+        <div style={{ ...styles.dumaCard, textAlign: 'center', padding: 'clamp(28px, 6vw, 50px)' }}>
+          <div style={{ fontSize: '40px', marginBottom: '16px' }}>✅</div>
+          <h2>{isReview ? 'Review request sent!' : 'Application submitted!'}</h2>
+          <p style={{ color: '#666' }}>We'll review it and get back to you by email. You can follow along on The Duma.</p>
+          <Link to="/duma" style={{ ...styles.authButton, marginTop: '20px', width: 'auto', padding: '12px 24px', textDecoration: 'none', display: 'inline-block' }}>
+            View the Duma
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
-const toggleProductType = (type) => {
-const current = formData.productTypes;
-const alreadySelected = current.includes(type);
-const updated = alreadySelected ? current.filter(t => t !== type) : [...current, type];
-const details = { ...formData.productDetails };
-if (!alreadySelected && !details[type]) {
-details[type] = { description: '', ingredients: '', photos: [], photoPreviews: [] };
-}
-setFormData({ ...formData, productTypes: updated, productDetails: details });
-};
+  const current = TRACKS[active];
 
-const updateProductDetail = (type, field, value) => {
-setFormData({
-...formData,
-productDetails: {
-...formData.productDetails,
-[type]: { ...formData.productDetails[type], [field]: value }
-}
-});
-};
+  return (
+    <div style={{ padding: '32px clamp(16px, 5vw, 60px) 48px', maxWidth: '880px', margin: '0 auto', boxSizing: 'border-box' }}>
 
-const handleProductPhotos = (type, e) => {
-const files = Array.from(e.target.files).slice(0, 3);
-const previews = files.map(f => URL.createObjectURL(f));
-setFormData({
-...formData,
-productDetails: {
-...formData.productDetails,
-[type]: { ...formData.productDetails[type], photos: files, photoPreviews: previews }
-}
-});
-};
+      {/* ── HEADER ─────────────────────────────────────────────────────────── */}
+      <header style={{ marginBottom: '24px' }}>
+        <div style={{ fontSize: '12px', letterSpacing: '0.12em', fontWeight: 700, color: '#888', marginBottom: '8px' }}>PARTNER WITH THE MAJORITIES</div>
+        <h1 style={{ fontSize: 'clamp(28px, 5vw, 40px)', lineHeight: 1.1, margin: '0 0 10px' }}>Grow with The Majorities</h1>
+        <p style={{ fontSize: '16px', color: '#555', lineHeight: 1.6, margin: 0, maxWidth: '600px' }}>
+          Pick how you want to work with us. Each application takes about 3 minutes.
+        </p>
+      </header>
 
-// ── Submit ────────────────────────────────────────────────────────────────────
-const handleSubmit = async (e) => {
-e.preventDefault();
-setErrorMsg("");
+      {userEmail && rankTitle && (
+        <div style={{ marginBottom: '20px' }}>
+          <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
+        </div>
+      )}
 
-if (!authToken) {
-setErrorMsg("You must be logged in to submit a partnership application.");
-return;
-}
+      {/* ── TRACK PICKER ───────────────────────────────────────────────────── */}
+      <div role="radiogroup" aria-label="Partnership type" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+        {PRIMARY.map(key => {
+          const { icon, title, desc } = TRACKS[key];
+          const on = active === key;
+          return (
+            <button key={key} type="button" role="radio" aria-checked={on} onClick={() => choose(key)}
+              style={{ textAlign: 'left', padding: '16px 18px', borderRadius: '16px', cursor: 'pointer', color: '#1a1a1a',
+                border: `2px solid ${on ? '#1a1a1a' : '#e5e5e5'}`, backgroundColor: on ? '#f6f6f6' : '#fff', transition: 'all 0.15s' }}>
+              <div style={{ fontSize: '22px', marginBottom: '6px' }} aria-hidden="true">{icon}</div>
+              <div style={{ fontWeight: 700, fontSize: '15px', marginBottom: '4px' }}>{title}</div>
+              <div style={{ fontSize: '13px', color: '#666', lineHeight: 1.5 }}>{desc}</div>
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', margin: '12px 0 24px', fontSize: '13px', color: '#666' }}>
+        <span>Also:</span>
+        {SECONDARY.map(key => {
+          const on = active === key;
+          return (
+            <button key={key} type="button" aria-pressed={on} onClick={() => choose(key)}
+              style={{ padding: '6px 14px', borderRadius: '999px', cursor: 'pointer', fontSize: '13px',
+                border: `1.5px solid ${on ? '#1a1a1a' : '#ddd'}`, backgroundColor: on ? '#1a1a1a' : '#fff', color: on ? '#fff' : '#1a1a1a' }}>
+              {TRACKS[key].title}
+            </button>
+          );
+        })}
+      </div>
 
-if (!formData.name || !formData.contactEmail || !formData.phoneNumber || (einRequired && !formData.ein)) {
-setErrorMsg("Please fill in all contact information fields.");
-return;
-}
-if (!formData.company || !formData.countryOfOrigin || !formData.operatingCountry) {
-setErrorMsg("Please fill in all company information fields.");
-return;
-}
+      {/* ── WHAT YOU GET (only for the selected track) ─────────────────────── */}
+      <ul aria-label="What you get" style={{ listStyle: 'none', padding: 0, margin: '0 0 16px', display: 'flex', flexWrap: 'wrap', gap: '8px 18px', fontSize: '13px', color: '#444' }}>
+        {current.perks.map(p => <li key={p}>✓ {p}</li>)}
+      </ul>
 
-if (formData.partnerCategory === "Marketplace Access") {
-if (formData.productTypes.length === 0) {
-setErrorMsg("Please select at least one product type.");
-return;
-}
-if (!formData.whyPartner) {
-setErrorMsg("Please tell us why we should partner with you.");
-return;
-}
-if (!formData.desiredOrderQuantity) {
-setErrorMsg("Please provide your desired inventory fulfillment quantity.");
-return;
-}
-if (!formData.standardUnitPrice || !formData.promotionalUnitPrice) {
-setErrorMsg("Please provide both standard and subscription unit prices.");
-return;
-}
-if (!formData.commission20AgreedTo || !formData.shippingReturnsAgreed || !formData.ownershipTitleAgreed || !formData.customerRewardAgreed) {
-setErrorMsg("You must agree to all marketplace policies and agreements.");
-return;
-}
-}
-
-if (formData.partnerCategory === "Creator / Influencer Partners") {
-if (formData.contentTypes.length === 0) {
-setErrorMsg("Please select at least one content type.");
-return;
-}
-if (!formData.contentPitch) {
-setErrorMsg("Please share your pitch details.");
-return;
-}
-if (!formData.commission8Agreed) {
-setErrorMsg("You must agree to the 8% referral commission rate.");
-return;
-}
-if (!formData.commission20AgreedTo || !formData.shippingReturnsAgreed || !formData.ownershipTitleAgreed || !formData.customerRewardAgreed) {
-setErrorMsg("You must agree to all policies and agreements.");
-return;
-}
-}
-
-if (formData.partnerCategory === "Community / Venue Partners") {
-if (!formData.eventDetails || !formData.majoritiesRole) {
-setErrorMsg("Please provide event details and the role you want The Majorities to play.");
-return;
-}
-if (!formData.commission20AgreedTo || !formData.shippingReturnsAgreed || !formData.ownershipTitleAgreed || !formData.customerRewardAgreed) {
-setErrorMsg("You must agree to all policies and agreements.");
-return;
-}
-}
-
-if (formData.partnerCategory === "Brand & Retail Partners") {
-if (!formData.advertisingInterest && !formData.wholesaleInterest && !formData.sponsoredDumaInterest && !formData.sponsoredMarketplaceInterest) {
-setErrorMsg("Please select at least one brand opportunity you are interested in.");
-return;
-}
-if (!formData.commission20AgreedTo || !formData.shippingReturnsAgreed || !formData.ownershipTitleAgreed || !formData.customerRewardAgreed) {
-setErrorMsg("You must agree to all policies and agreements.");
-return;
-}
-}
-
-if (isReviewRequest) {
-if (isPhysicalReviewTarget && !formData.reviewAddress.trim()) {
-setErrorMsg("Please provide the venue or event address.");
-return;
-}
-if (!formData.preferredDate || !formData.preferredTime) {
-setErrorMsg("Please provide the best date and time to visit.");
-return;
-}
-if (!isHttpUrl(formData.websiteLink) || !isHttpUrl(formData.socialLink)) {
-setErrorMsg("Please provide a valid website link and social media link (starting with https://).");
-return;
-}
-if (!formData.reviewTermsAgreed) {
-setErrorMsg("You must agree to the Review Terms & Media Rights Consent.");
-return;
-}
-}
-
-if (formData.tier === "Premium Partner" && !canApplyPremium) {
-setErrorMsg("Premium Partner status requires Supreme Lizard King rank (900,000+ points) or higher.");
-return;
-}
-
-if (submitting) return;
-setSubmitting(true);
-try {
-const formDataObj = new FormData();
-formDataObj.append('partnerCategory', formData.partnerCategory);
-formDataObj.append('name', formData.name);
-formDataObj.append('contactEmail', formData.contactEmail);
-formDataObj.append('phoneNumber', formData.phoneNumber);
-if (!isReviewRequest) formDataObj.append('ein', formData.ein);
-formDataObj.append('company', formData.company);
-formDataObj.append('websiteOrSocial', isReviewRequest ? formData.websiteLink : formData.websiteOrSocial);
-formDataObj.append('countryOfOrigin', formData.countryOfOrigin);
-formDataObj.append('operatingCountry', formData.operatingCountry);
-formDataObj.append('tier', formData.tier);
-// Agreements (marketplace-style terms for every category except Review Request)
-if (isReviewRequest) {
-formDataObj.append('reviewTermsAgreed', formData.reviewTermsAgreed);
-} else {
-['customerRewardAgreed', 'commission20AgreedTo', 'shippingReturnsAgreed', 'ownershipTitleAgreed']
-.forEach(k => formDataObj.append(k, formData[k]));
-}
-
-formData.photoFiles.forEach((f, i) => formDataObj.append(`photo_${i}`, f));
-if (formData.videoFile) formDataObj.append('video', formData.videoFile);
-
-if (formData.partnerCategory === "Marketplace Access") {
-formDataObj.append('productTypes', formData.productTypes.join(', '));
-formDataObj.append('productDetails', JSON.stringify(
-Object.fromEntries(
-formData.productTypes.map(t => [t, {
-description: formData.productDetails[t]?.description || '',
-ingredients: formData.productDetails[t]?.ingredients || ''
-}])
-)
-));
-formDataObj.append('whyPartner', formData.whyPartner);
-formDataObj.append('desiredOrderQuantity', formData.desiredOrderQuantity);
-formDataObj.append('pricing5Gallon', formData.pricing5Gallon);
-formDataObj.append('standardUnitPrice', formData.standardUnitPrice);
-formDataObj.append('promotionalUnitPrice', formData.promotionalUnitPrice);
-formData.productTypes.forEach(type => {
-const photos = formData.productDetails[type]?.photos || [];
-photos.forEach((photo, i) => formDataObj.append(`product_photo_${type}_${i}`, photo));
-});
-} else if (isReviewRequest) {
-formDataObj.append('reviewTargetType', formData.reviewTargetType);
-formDataObj.append('reviewAddress', formData.reviewAddress);
-formDataObj.append('preferredDate', formData.preferredDate);
-formDataObj.append('preferredTime', formData.preferredTime);
-formDataObj.append('websiteLink', formData.websiteLink.trim());
-formDataObj.append('socialLink', formData.socialLink.trim());
-formDataObj.append('sponsoredDumaPlacement', formData.sponsoredDumaPlacement);
-} else if (formData.partnerCategory === "Creator / Influencer Partners") {
-formDataObj.append('contentTypes', formData.contentTypes.join(', '));
-formDataObj.append('contentPitch', formData.contentPitch);
-formDataObj.append('commission8Agreed', formData.commission8Agreed);
-} else if (formData.partnerCategory === "Community / Venue Partners") {
-formDataObj.append('eventDetails', formData.eventDetails);
-formDataObj.append('majoritiesRole', formData.majoritiesRole);
-formDataObj.append('bulkOrderNeeded', formData.bulkOrderNeeded);
-formDataObj.append('totalBudget', formData.totalBudget);
-} else if (formData.partnerCategory === "Brand & Retail Partners") {
-formDataObj.append('advertisingInterest', formData.advertisingInterest);
-formDataObj.append('wholesaleInterest', formData.wholesaleInterest);
-formDataObj.append('sponsoredDumaInterest', formData.sponsoredDumaInterest);
-formDataObj.append('sponsoredMarketplaceInterest', formData.sponsoredMarketplaceInterest);
-formDataObj.append('totalBudget', formData.totalBudget);
-}
-
-const res = await fetch(`${BACKEND_URL}/api/duma/partner`, {
-method: 'POST',
-headers: { Authorization: `Bearer ${authToken}` },
-body: formDataObj
-});
-// The server can answer with non-JSON (e.g. an upload too large for the host) — never treat that as success
-const data = await res.json().catch(() => ({}));
-if (!res.ok) { setErrorMsg(data.error || `Submission failed (${res.status}). Please try again.`); return; }
-
-// Application points: Influencer +200, all other partnerships +300
-if (onAddPoints) onAddPoints(getPartnerApplyPoints(formData.partnerCategory));
-
-// Public item from the server (no EIN or contact details)
-addDumaItem({
-...(data.item || {}),
-id: data.item?._id || Date.now(),
-type: "Partner",
-submittedBy: userEmail || "anonymous",
-submitterRank: rankTitle || 'Comrade',
-hasPhoto: formData.photoFiles.length > 0,
-hasVideo: !!formData.videoFile
-});
-setSubmitted(true);
-
-// Brand & Retail applications unlock wholesale access immediately (the server grants it) — go straight there
-if (formData.partnerCategory === "Brand & Retail Partners" && data.wholesaleApproved) {
-if (onWholesaleApproved) onWholesaleApproved();
-navigate('/wholesale', { state: { fromApplication: true } });
-}
-} catch (err) {
-setErrorMsg("We couldn't reach the server, so your application was not sent. Please check your connection and try again.");
-} finally {
-setSubmitting(false);
-}
-};
-
-if (submitted) {
-return (
-<div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
-<div style={{ ...styles.dumaCard, textAlign: 'center', padding: '50px' }}>
-<div style={{ fontSize: '40px', marginBottom: '16px' }}>✅</div>
-<h2>Partnership Application Submitted!</h2>
-<p style={{ color: '#666' }}>Your partnership application has been sent to The Majorities' Duma for review.</p>
-<Link to="/duma" style={{ ...styles.authButton, marginTop: '20px', width: 'auto', padding: '12px 24px', textDecoration: 'none', display: 'inline-block' }}>
-View the Duma
-</Link>
-</div>
-</div>
-);
-}
-
-const checkLabel = { display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '12px' };
-const cardOption = {
-border: '1.5px solid #e0e0e0', borderRadius: '10px', padding: '14px 16px',
-display: 'flex', alignItems: 'flex-start', gap: '12px',
-cursor: 'pointer', fontSize: '14px', transition: 'border-color 0.2s'
-};
-
-return (
-<div style={{ padding: '40px 60px', maxWidth: '1100px', margin: '0 auto' }}>
-<h2>Partner with The Majorities</h2>
-<p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Apply to become a partner in The Duma</p>
-
-{userEmail && rankTitle && (
-<div style={{ marginBottom: '20px' }}>
-<CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
-</div>
-)}
-
-{errorMsg && <div style={styles.errorMsg}>{errorMsg}</div>}
-
-<form style={styles.dumaCard} onSubmit={handleSubmit}>
-
-{/* ── 1. PARTNERSHIP CATEGORY ─────────────────────────────────────── */}
-<div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-<h3 style={styles.formSectionTitle}>1. PARTNERSHIP CATEGORY</h3>
-<select
-style={{ ...styles.input, appearance: 'auto', backgroundColor: '#fff' }}
-value={formData.partnerCategory}
-onChange={e => setFormData({ ...formData, partnerCategory: e.target.value })}
->
-<option value="Creator / Influencer Partners">Creator / Influencer Partners</option>
-<option value="Community / Venue Partners">Community / Venue Partners</option>
-<option value="Brand & Retail Partners">Brand &amp; Retail Partners</option>
-<option value="Marketplace Access">Marketplace Access</option>
-<option value={REVIEW_REQUEST}>Review Request</option>
-</select>
-<p style={{ fontSize: '12px', color: '#666', marginTop: '8px', lineHeight: '1.6' }}>
-{formData.partnerCategory === "Creator / Influencer Partners" &&
-"Share honest routines and product experiences through video content. Earn 8% commission on every referral sale you drive."}
-{formData.partnerCategory === "Community / Venue Partners" &&
-"Local Dallas spots — run clubs, barbershops, salons, and event organizers who bring people together."}
-{formData.partnerCategory === "Brand & Retail Partners" &&
-"Independent beauty and grooming brands seeking advertising, wholesale access, and verified sponsored visibility across The Duma and The Majorities Marketplace."}
-{formData.partnerCategory === "Marketplace Access" &&
-"Gain verified access to sell directly on The Majorities Marketplace."}
-{isReviewRequest &&
-"Request an official review for your restaurant, bar, event, or product."}
-</p>
-</div>
-
-{/* ── 2. CONTACT INFORMATION ───────────────────────────────────────── */}
-<div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-<h3 style={styles.formSectionTitle}>2. CONTACT INFORMATION</h3>
-<input required placeholder="Full Name *" style={styles.input} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
-<input required placeholder="Business Email *" type="email" style={styles.input} value={formData.contactEmail} onChange={e => setFormData({ ...formData, contactEmail: e.target.value })} />
-<input required placeholder="Phone Number *" style={styles.input} value={formData.phoneNumber} onChange={e => setFormData({ ...formData, phoneNumber: e.target.value })} />
-{!isReviewRequest && (
-<input required={einRequired} placeholder={einRequired ? "EIN (Employer Identification Number) *" : "EIN (optional for individual creators)"} style={styles.input} value={formData.ein} onChange={e => setFormData({ ...formData, ein: e.target.value })} />
-)}
-</div>
-
-{/* ── 3. COMPANY / ENTITY INFORMATION ─────────────────────────────── */}
-<div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-<h3 style={styles.formSectionTitle}>3. COMPANY / ENTITY INFORMATION</h3>
-<input required placeholder={isReviewRequest ? "Business / Event / Product Name *" : "Company / Brand / Profile Name *"} style={styles.input} value={formData.company} onChange={e => setFormData({ ...formData, company: e.target.value })} />
-{isReviewRequest && (
-<>
-<label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '6px', marginBottom: '6px' }}>
-What should we review? *
-</label>
-<select
-style={{ ...styles.input, appearance: 'auto', backgroundColor: '#fff' }}
-value={formData.reviewTargetType}
-onChange={e => setFormData({ ...formData, reviewTargetType: e.target.value })}
->
-{REVIEW_TARGET_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-</select>
-{isPhysicalReviewTarget ? (
-<LocationAutocomplete
-value={formData.reviewAddress}
-onChange={reviewAddress => setFormData(prev => ({ ...prev, reviewAddress }))}
-placeholder="Venue / Event Address *"
-style={styles.input}
-/>
-) : (
-<input
-placeholder="Shipping Address (for product evaluation) or Digital Access Link"
-style={styles.input}
-value={formData.reviewAddress}
-onChange={e => setFormData({ ...formData, reviewAddress: e.target.value })}
-/>
-)}
-<div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-<label style={{ flex: '1 1 160px', fontSize: '13px', fontWeight: '600' }}>
-Best Date to Visit *
-<input required type="date" style={styles.input} value={formData.preferredDate} onChange={e => setFormData({ ...formData, preferredDate: e.target.value })} />
-</label>
-<label style={{ flex: '1 1 160px', fontSize: '13px', fontWeight: '600' }}>
-Best Time to Visit *
-<input required type="time" style={styles.input} value={formData.preferredTime} onChange={e => setFormData({ ...formData, preferredTime: e.target.value })} />
-</label>
-</div>
-</>
-)}
-<input required placeholder="Country of Origin *" style={styles.input} value={formData.countryOfOrigin} onChange={e => setFormData({ ...formData, countryOfOrigin: e.target.value })} />
-<input required placeholder="Operating Country *" style={styles.input} value={formData.operatingCountry} onChange={e => setFormData({ ...formData, operatingCountry: e.target.value })} />
-{isReviewRequest ? (
-<>
-<input required type="url" placeholder="Website Link (https://...) *" style={styles.input} value={formData.websiteLink} onChange={e => setFormData({ ...formData, websiteLink: e.target.value })} />
-<input required type="url" placeholder="Social Media Link (Instagram, TikTok, etc.) *" style={styles.input} value={formData.socialLink} onChange={e => setFormData({ ...formData, socialLink: e.target.value })} />
-</>
-) : (
-<>
-<input placeholder="Website or Social Media Link" style={styles.input} value={formData.websiteOrSocial} onChange={e => setFormData({ ...formData, websiteOrSocial: e.target.value })} />
-<p style={{ fontSize: '12px', color: '#888', marginTop: '8px', marginBottom: '8px' }}>
-Or link your online storefront:
-</p>
-<div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-{[
-{ name: 'Shopify', url: 'https://www.shopify.com', color: '#5C8B3E' },
-{ name: 'Wix', url: 'https://www.wix.com', color: '#FAAD4F' },
-{ name: 'Squarespace', url: 'https://www.squarespace.com', color: '#222222' },
-{ name: 'Amazon', url: 'https://sell.amazon.com', color: '#FF9900' },
-].map(({ name, url, color }) => (
-<a
-key={name}
-href={url}
-target="_blank"
-rel="noopener noreferrer"
-style={{
-display: 'inline-flex', alignItems: 'center', gap: '5px',
-padding: '7px 14px', borderRadius: '20px',
-border: `1.5px solid ${color}`, color: color,
-fontSize: '13px', fontWeight: '600',
-textDecoration: 'none', backgroundColor: '#fff',
-}}
->
-↗ {name}
-</a>
-))}
-</div>
-</>
-)}
-</div>
-
-{/* ── 4. MARKETPLACE: PRODUCT DETAILS ─────────────────────────────── */}
-{formData.partnerCategory === "Marketplace Access" && (
-<div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-<h3 style={styles.formSectionTitle}>4. PRODUCT DETAILS</h3>
-<p style={{ fontSize: '13px', color: '#666', marginBottom: '14px' }}>
-Select all product types you wish to list (select all that apply):
-</p>
-
-{/* Multi-select product type pills */}
-<div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '22px' }}>
-{PRODUCT_TYPE_OPTIONS.map(type => {
-const selected = formData.productTypes.includes(type);
-return (
-<button
-key={type}
-type="button"
-onClick={() => toggleProductType(type)}
-style={{
-padding: '8px 16px', borderRadius: '20px',
-border: `1.5px solid ${selected ? '#1a1a1a' : '#e0e0e0'}`,
-backgroundColor: selected ? '#1a1a1a' : '#fff',
-color: selected ? '#fff' : '#1a1a1a',
-fontSize: '13px', fontWeight: '500', cursor: 'pointer',
-transition: 'all 0.2s'
-}}
->
-{selected ? '✓ ' : ''}{type}
-</button>
-);
-})}
-</div>
-
-{/* Per-product-type detail panels */}
-{formData.productTypes.map(type => (
-<div
-key={type}
-style={{
-border: '1.5px solid #d0d0d0', borderRadius: '12px',
-padding: '16px', marginBottom: '16px', backgroundColor: '#fafafa'
-}}
->
-<h4 style={{ margin: '0 0 12px 0', fontSize: '15px', fontWeight: '600' }}>
-{type}
-</h4>
-<textarea
-required
-placeholder={`Product Description for ${type} *`}
-style={{ ...styles.input, height: '80px' }}
-value={formData.productDetails[type]?.description || ''}
-onChange={e => updateProductDetail(type, 'description', e.target.value)}
-/>
-<textarea
-required
-placeholder={`Ingredients for ${type} *`}
-style={{ ...styles.input, height: '70px' }}
-value={formData.productDetails[type]?.ingredients || ''}
-onChange={e => updateProductDetail(type, 'ingredients', e.target.value)}
-/>
-<label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '10px', marginBottom: '6px' }}>
-Product Photos — up to 3 images
-</label>
-<input
-type="file"
-accept="image/*"
-multiple
-style={styles.input}
-onChange={e => handleProductPhotos(type, e)}
-/>
-{(formData.productDetails[type]?.photoPreviews || []).length > 0 && (
-<div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
-{formData.productDetails[type].photoPreviews.map((src, i) => (
-<img
-key={i} src={src} alt={`${type} photo ${i + 1}`}
-style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }}
-/>
-))}
-</div>
-)}
-</div>
-))}
-
-<textarea
-required
-placeholder="Why should we partner with you? *"
-style={{ ...styles.input, height: '100px' }}
-value={formData.whyPartner}
-onChange={e => setFormData({ ...formData, whyPartner: e.target.value })}
-/>
-</div>
-)}
-
-{/* ── 4. CREATOR: CONTENT TYPE & PITCH ────────────────────────────── */}
-{formData.partnerCategory === "Creator / Influencer Partners" && (
-<div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-<h3 style={styles.formSectionTitle}>4. CONTENT TYPE &amp; PITCH</h3>
-<p style={{ fontSize: '13px', color: '#666', marginBottom: '14px' }}>
-Select the types of content you create for The Majorities (select all that apply):
-</p>
-<div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-{[
-{ id: 'Routine Videos', title: 'Routine Videos', desc: 'Step-by-step hair and grooming routines using The Majorities products — wash day, styling, maintenance.' },
-{ id: 'Product Experience Videos', title: 'Product Experience Videos', desc: 'Honest first impressions, reviews, before-and-afters, and unboxings that showcase real results.' },
-{ id: 'Commercial Pitches', title: 'Commercial Pitches', desc: 'Scripted or ad-style short-form content — reels, spots, and brand-forward promotional videos.' }
-].map(({ id, title, desc }) => {
-const selected = formData.contentTypes.includes(id);
-return (
-<label
-key={id}
-style={{ ...cardOption, borderColor: selected ? '#1a1a1a' : '#e0e0e0', backgroundColor: selected ? '#f9f9f9' : '#fff' }}
-onClick={() => toggleContentType(id)}
->
-<input type="checkbox" checked={selected} onChange={() => toggleContentType(id)} style={{ marginTop: '3px', flexShrink: 0 }} />
-<div>
-<div style={{ fontWeight: '600', marginBottom: '3px' }}>{title}</div>
-<div style={{ fontSize: '12px', color: '#666', lineHeight: '1.5' }}>{desc}</div>
-</div>
-</label>
-);
-})}
-</div>
-<textarea
-required
-placeholder="Pitch your idea — describe your content style, audience size, and what you'd create for The Majorities *"
-style={{ ...styles.input, height: '120px' }}
-value={formData.contentPitch}
-onChange={e => setFormData({ ...formData, contentPitch: e.target.value })}
-/>
-<label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '16px', marginBottom: '6px' }}>
-Upload a Sample Video (routine, experience, or pitch)
-</label>
-<p style={{ fontSize: '12px', color: '#888', marginBottom: '8px' }}>
-Upload one video that best represents your content style. This is your audition reel.
-</p>
-<input type="file" accept="video/*" style={styles.input} onChange={handleVideoChange} />
-{videoPreview && <video src={videoPreview} style={{ maxWidth: '220px', marginTop: '10px', borderRadius: '8px' }} controls />}
-</div>
-)}
-
-{/* ── 4. COMMUNITY: EVENT DETAILS ──────────────────────────────────── */}
-{formData.partnerCategory === "Community / Venue Partners" && (
-<div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-<h3 style={styles.formSectionTitle}>4. EVENT DETAILS & BUDGET</h3>
-<p style={{ fontSize: '13px', color: '#666', marginBottom: '12px' }}>
-Local Dallas spots — run clubs, barbershops, salons, and event organizers who bring people together.
-</p>
-<textarea
-required
-placeholder="Tell us about your space or upcoming event — location, audience, and what you're organizing *"
-style={{ ...styles.input, height: '90px' }}
-value={formData.eventDetails}
-onChange={e => setFormData({ ...formData, eventDetails: e.target.value })}
-/>
-<textarea
-required
-placeholder="What role do you want The Majorities to play at your event or venue? *"
-style={{ ...styles.input, height: '80px' }}
-value={formData.majoritiesRole}
-onChange={e => setFormData({ ...formData, majoritiesRole: e.target.value })}
-/>
-<label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>
-Total Budget
-</label>
-<input
-type="number"
-placeholder="Enter your total budget"
-style={styles.input}
-value={formData.totalBudget}
-onChange={e => setFormData({ ...formData, totalBudget: e.target.value })}
-/>
-<label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '14px' }}>
-<input type="checkbox" checked={formData.bulkOrderNeeded} onChange={e => setFormData({ ...formData, bulkOrderNeeded: e.target.checked })} />
-<span>We are interested in a one-time bulk order for our event</span>
-</label>
-</div>
-)}
-
-{/* ── 4. BRAND: OPPORTUNITIES ──────────────────────────────────────── */}
-{formData.partnerCategory === "Brand & Retail Partners" && (
-<div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-<h3 style={styles.formSectionTitle}>4. BRAND OPPORTUNITIES & BUDGET</h3>
-<p style={{ fontSize: '13px', color: '#666', marginBottom: '14px' }}>Select all partnership opportunities you're interested in:</p>
-<div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-{[
-{ key: 'advertisingInterest', title: 'Advertising Campaigns', desc: 'Run paid ads and co-branded campaigns across The Majorities channels and audience network.' },
-{ key: 'wholesaleInterest', title: 'Wholesale Orders', desc: 'Purchase The Majorities products in bulk at wholesale pricing for resale through your own channels.' },
-{ key: 'sponsoredDumaInterest', title: 'Sponsored Placements in The Duma', desc: 'Verified brand visibility and native sponsored content placements inside The Duma community.' },
-{ key: 'sponsoredMarketplaceInterest', title: 'Sponsored Placements on The Marketplace', desc: 'Featured product slots and promoted listings on The Majorities Marketplace.' }
-].map(({ key, title, desc }) => {
-const selected = formData[key];
-return (
-<label key={key} style={{ ...cardOption, borderColor: selected ? '#1a1a1a' : '#e0e0e0', backgroundColor: selected ? '#f9f9f9' : '#fff' }}>
-<input type="checkbox" checked={selected} onChange={e => setFormData({ ...formData, [key]: e.target.checked })} style={{ marginTop: '3px', flexShrink: 0 }} />
-<div>
-<div style={{ fontWeight: '600', marginBottom: '3px' }}>{title}</div>
-<div style={{ fontSize: '12px', color: '#666', lineHeight: '1.5' }}>{desc}</div>
-</div>
-</label>
-);
-})}
-</div>
-<label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>
-Total Budget
-</label>
-<input
-type="number"
-placeholder="Enter your total budget"
-style={styles.input}
-value={formData.totalBudget}
-onChange={e => setFormData({ ...formData, totalBudget: e.target.value })}
-/>
-</div>
-)}
-
-{/* ── 4. REVIEW REQUEST: PLACEMENT ─────────────────────────────────── */}
-{isReviewRequest && (
-<div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-<h3 style={styles.formSectionTitle}>4. PLACEMENT</h3>
-<label style={{ ...cardOption, borderColor: formData.sponsoredDumaPlacement ? '#1a1a1a' : '#e0e0e0', backgroundColor: formData.sponsoredDumaPlacement ? '#f9f9f9' : '#fff' }}>
-<input type="checkbox" checked={formData.sponsoredDumaPlacement} onChange={e => setFormData({ ...formData, sponsoredDumaPlacement: e.target.checked })} style={{ marginTop: '3px', flexShrink: 0 }} />
-<div>
-<div style={{ fontWeight: '600', marginBottom: '3px' }}>Sponsored Placements in The Duma <span style={{ fontSize: '12px', fontWeight: '500', color: '#666' }}>(Optional Add-on)</span></div>
-<div style={{ fontSize: '12px', color: '#666', lineHeight: '1.5' }}>Boost your review to top-of-feed for local users in your city. Our team will contact you with local placement rates once your review is approved.</div>
-</div>
-</label>
-</div>
-)}
-
-{/* ── 5. MEDIA ─────────────────────────────────────────────────────── */}
-<div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-<h3 style={styles.formSectionTitle}>5. MEDIA</h3>
-{formData.partnerCategory === "Creator / Influencer Partners" ? (
-<>
-<p style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>
-Upload a profile photo or banner image to represent yourself.
-</p>
-<label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
-Photo / Banner Upload (up to 3)
-</label>
-<input type="file" accept="image/*" multiple style={styles.input} onChange={handlePhotosChange} />
-{photoPreviews.length > 0 && (
-<div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
-{photoPreviews.map((src, i) => (
-<img key={i} src={src} alt={`Preview ${i + 1}`} style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }} />
-))}
-</div>
-)}
-</>
-) : (
-<>
-<p style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>
-{isReviewRequest
-? "Upload high-res photos or promotional videos of your venue, menu, event, or product (or a promotional flyer) to help our review team."
-: "Upload photos or videos of your product, venue, or brand."}
-</p>
-<label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
-Photo Upload (up to 3)
-</label>
-<input type="file" accept="image/*" multiple style={styles.input} onChange={handlePhotosChange} />
-{photoPreviews.length > 0 && (
-<div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
-{photoPreviews.map((src, i) => (
-<img key={i} src={src} alt={`Preview ${i + 1}`} style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }} />
-))}
-</div>
-)}
-<label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>Video Upload</label>
-<input type="file" accept="video/*" style={styles.input} onChange={handleVideoChange} />
-{videoPreview && <video src={videoPreview} style={{ maxWidth: '150px', marginTop: '10px', borderRadius: '8px' }} controls />}
-</>
-)}
-</div>
-
-{/* ── 6 & 7. LOGISTICS & REVENUE — Marketplace only ───────────────── */}
-{formData.partnerCategory === "Marketplace Access" && (
-<>
-<div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-<h3 style={styles.formSectionTitle}>6. LOGISTICS</h3>
-<label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
-Fulfillment Quantity *
-</label>
-<input
-required
-placeholder="Quantity"
-type="number"
-min="200"
-style={styles.input}
-value={formData.desiredOrderQuantity}
-onChange={e => setFormData({ ...formData, desiredOrderQuantity: e.target.value })}
-/>
-<p style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>Minimum 200 units</p>
-<label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>
-Pricing for 5-gallon units (optional)
-</label>
-<input
-placeholder="Bulk 5-gallon pricing"
-style={styles.input}
-value={formData.pricing5Gallon}
-onChange={e => setFormData({ ...formData, pricing5Gallon: e.target.value })}
-/>
-</div>
-
-<div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-<h3 style={styles.formSectionTitle}>7. REVENUE AGREEMENT</h3>
-<label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
-One-time Unit Price *
-</label>
-<input
-required
-placeholder="e.g., 5"
-style={styles.input}
-value={formData.standardUnitPrice}
-onChange={e => setFormData({ ...formData, standardUnitPrice: e.target.value })}
-/>
-<label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>
-Subscription Unit Price *
-</label>
-<input
-required
-placeholder="e.g., 4"
-style={styles.input}
-value={formData.promotionalUnitPrice}
-onChange={e => setFormData({ ...formData, promotionalUnitPrice: e.target.value })}
-/>
-{MARKETPLACE_AGREEMENTS.map(({ key, label }) => (
-<label key={key} style={checkLabel}>
-<input
-type="checkbox"
-required
-checked={formData[key]}
-onChange={e => setFormData({ ...formData, [key]: e.target.checked })}
-style={{ marginTop: '4px' }}
-/>
-<span>{label}</span>
-</label>
-))}
-</div>
-</>
-)}
-
-{/* ── 6. CREATOR COMMISSION + AGREEMENTS ──────────────────────────── */}
-{formData.partnerCategory === "Creator / Influencer Partners" && (
-<div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-<h3 style={styles.formSectionTitle}>6. COMMISSION &amp; AGREEMENTS</h3>
-<div style={{ backgroundColor: '#f5f5f5', borderRadius: '10px', padding: '14px 16px', marginBottom: '14px', fontSize: '13px', lineHeight: '1.6', color: '#444' }}>
-<strong>8% Referral Commission</strong> — You earn 8% of every sale made through your unique referral link or code. Commissions are tracked and paid out on a monthly basis. No cap on earnings.
-</div>
-<label style={{ ...checkLabel, marginTop: '4px' }}>
-<input type="checkbox" required checked={formData.commission8Agreed} onChange={e => setFormData({ ...formData, commission8Agreed: e.target.checked })} style={{ marginTop: '4px' }} />
-<span>I agree to an 8% commission rate on all successful referrals *</span>
-</label>
-{MARKETPLACE_AGREEMENTS.map(({ key, label }) => (
-<label key={key} style={checkLabel}>
-<input type="checkbox" required checked={formData[key]} onChange={e => setFormData({ ...formData, [key]: e.target.checked })} style={{ marginTop: '4px' }} />
-<span>{label}</span>
-</label>
-))}
-</div>
-)}
-
-{/* ── 6. COMMUNITY & BRAND AGREEMENTS ─────────────────────────────── */}
-{(formData.partnerCategory === "Community / Venue Partners" || formData.partnerCategory === "Brand & Retail Partners") && (
-<div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-<h3 style={styles.formSectionTitle}>6. AGREEMENTS</h3>
-{MARKETPLACE_AGREEMENTS.map(({ key, label }) => (
-<label key={key} style={checkLabel}>
-<input type="checkbox" required checked={formData[key]} onChange={e => setFormData({ ...formData, [key]: e.target.checked })} style={{ marginTop: '4px' }} />
-<span>{label}</span>
-</label>
-))}
-</div>
-)}
-
-{/* ── 6. REVIEW REQUEST AGREEMENT ──────────────────────────────────── */}
-{isReviewRequest && (
-<div style={{ borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
-<h3 style={styles.formSectionTitle}>6. AGREEMENT</h3>
-<label style={{ ...checkLabel, marginTop: '4px' }}>
-<input type="checkbox" required checked={formData.reviewTermsAgreed} onChange={e => setFormData({ ...formData, reviewTermsAgreed: e.target.checked })} style={{ marginTop: '4px' }} />
-<span>I agree to the Review Terms &amp; Media Rights Consent, granting The Majorities permission to photograph and film the venue, event, or product and to publish that coverage across The Majorities network *</span>
-</label>
-</div>
-)}
-
-{/* ── PARTNER TIER ─────────────────────────────────────────────────── */}
-<div style={{ marginBottom: '20px' }}>
-<h3 style={styles.formSectionTitle}>PARTNER TIER</h3>
-<div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
-<label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', cursor: 'pointer' }}>
-<input
-type="radio" name="tier" value="National Associate"
-checked={formData.tier === "National Associate"}
-onChange={e => setFormData({ ...formData, tier: e.target.value })}
-/>
-National Associate
-</label>
-<label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', cursor: canApplyPremium ? 'pointer' : 'not-allowed', opacity: canApplyPremium ? 1 : 0.5 }}>
-<input
-type="radio" name="tier" value="Premium Partner"
-checked={formData.tier === "Premium Partner"}
-disabled={!canApplyPremium}
-onChange={e => setFormData({ ...formData, tier: e.target.value })}
-/>
-Premium Partner {!canApplyPremium && <span style={{ fontSize: '11px', color: '#aaa' }}>(Supreme Lizard King rank+ only)</span>}
-</label>
-</div>
-</div>
-
-{/* ── SUBMISSION ─────────────────────────────────────────────────── */}
-{!authToken ? (
-<div style={{ marginTop: '30px', padding: '24px', border: '1.5px solid #e0e0e0', borderRadius: '12px', textAlign: 'center', backgroundColor: '#fafafa' }}>
-<h4 style={{ marginBottom: '8px', fontSize: '16px' }}>Ready to Apply?</h4>
-<p style={{ marginBottom: '20px', color: '#666', fontSize: '14px' }}>You must have a registered account to submit a partnership application.</p>
-<div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-<Link
-to="/login"
-style={{ ...styles.authButton, textDecoration: 'none', display: 'inline-block', padding: '12px 28px', width: 'auto' }}
->
-Log In
-</Link>
-<Link
-to="/signup"
-style={{
-...styles.authButton,
-textDecoration: 'none', display: 'inline-block', padding: '12px 28px', width: 'auto',
-backgroundColor: '#fff', color: '#1a1a1a', border: '1.5px solid #1a1a1a'
-}}
->
-Create Account
-</Link>
-</div>
-</div>
-) : (
-<button type="submit" disabled={submitting} style={{ ...styles.authButton, marginTop: '20px', opacity: submitting ? 0.6 : 1, cursor: submitting ? 'wait' : 'pointer' }}>
-{submitting ? "Submitting..." : isReviewRequest ? "Submit Review Request" : "Submit Partnership Application"}
-</button>
-)}
-</form>
-</div>
-);
+      {visited.map(key => (
+        <div key={key} style={{ display: key === active ? 'block' : 'none' }}>
+          <PartnerWizard
+            track={TRACKS[key].track}
+            authToken={authToken}
+            canApplyPremium={canApplyPremium}
+            submitting={submitting}
+            serverError={key === active ? errorMsg : ''}
+            onSubmit={(fd, meta) => sendApplication(fd, TRACKS[key].track.category, meta)}
+          />
+        </div>
+      ))}
+    </div>
+  );
 };

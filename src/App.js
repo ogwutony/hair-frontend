@@ -34,6 +34,7 @@ import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
 import { PerspectiveDetailPage } from './pages/PerspectiveDetailPage';
 import { MessagesPage } from './pages/MessagesPage';
+import { WholesalePage } from './pages/WholesalePage';
 import { AdminModerationPage } from './pages/AdminModerationPage';
 import { fetchInbox, countUnreadThreads } from './utils/messages';
 import { TermsGate } from './components/TermsGate';
@@ -149,6 +150,8 @@ export default function App() {
   const [userEmail, setUserEmail] = useState(storedAuth.email);
   const [authToken, setAuthToken] = useState(storedAuth.token);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  // Only drives the header's Wholesale tab; the backend is what actually enforces wholesale access.
+  const [wholesaleApproved, setWholesaleApproved] = useState(false);
   const [rankTitle, setRankTitle] = useState("Comrade");
   const [rankScore, setRankScore] = useState(1);
   const [tokens, setTokens] = useState(0);
@@ -182,6 +185,17 @@ export default function App() {
     }
   }, []);
 
+  // Wholesale tab: ask the backend whether this account has wholesale access (also runs after login)
+  useEffect(() => {
+    if (!authToken) { setWholesaleApproved(false); return undefined; }
+    let cancelled = false;
+    fetch(`${BACKEND_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${authToken}` } })
+      .then(r => r.json())
+      .then(data => { if (!cancelled) setWholesaleApproved(!!data.wholesaleApproved); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [authToken]);
+
   // Unread direct-message badge in the header
   useEffect(() => {
     if (!authToken) { setUnreadMessages(0); return undefined; }
@@ -198,7 +212,7 @@ export default function App() {
 
   const handleLogout = () => {
     clearModerationData();
-    setisLoggedIn(false); setUserEmail(""); setAuthToken(""); setRankTitle("Comrade"); setRankScore(1); setUserAvatar("");
+    setisLoggedIn(false); setUserEmail(""); setAuthToken(""); setRankTitle("Comrade"); setRankScore(1); setUserAvatar(""); setWholesaleApproved(false);
     localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); localStorage.removeItem("rankTitle"); localStorage.removeItem("rankScore"); localStorage.removeItem("userAvatar");
     sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); sessionStorage.removeItem("rankTitle"); sessionStorage.removeItem("rankScore"); sessionStorage.removeItem("userAvatar");
   };
@@ -265,7 +279,7 @@ export default function App() {
       <CartProvider>
       <ScrollToTop />
       <div style={styles.pageWrapper} className="ms-page">
-        <MobileHeader isLoggedIn={isLoggedIn} onLogout={handleLogout} unreadMessages={unreadMessages} rankTitle={rankTitle} />
+        <MobileHeader isLoggedIn={isLoggedIn} onLogout={handleLogout} unreadMessages={unreadMessages} rankTitle={rankTitle} wholesaleApproved={wholesaleApproved} />
         <Routes>
           <Route path="/" element={<LandingPage saveSetToProfile={saveSetToProfile} onAddPoints={addPoints} savedSets={savedSets} />} />
           <Route path="/login" element={<LoginPage onLogin={handleLoginSuccess} />} />
@@ -277,7 +291,8 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           <Route path="/recommend" element={<RecommendPage addDumaItem={addDumaItem} onAddPoints={addPoints} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
-          <Route path="/partner" element={<PartnerPage addDumaItem={addDumaItem} onAddPoints={addPoints} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
+          <Route path="/partner" element={<PartnerPage addDumaItem={addDumaItem} onAddPoints={addPoints} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} onWholesaleApproved={() => setWholesaleApproved(true)} />} />
+          <Route path="/wholesale" element={<WholesalePage authToken={authToken} />} />
           <Route path="/culture" element={isLoggedIn ? <CultureLabPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
           <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} following={following} onFollowUser={followUser} />} />
           <Route path="/duma/:id" element={<PerspectiveDetailPage authToken={authToken} />} />

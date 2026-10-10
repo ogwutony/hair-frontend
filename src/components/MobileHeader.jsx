@@ -48,7 +48,7 @@ function PromoBar() {
   );
 }
 
-export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle }) {
+export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle, wholesaleApproved = false }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { lines, count, subtotal, changeQty, wishlist, cartOpen, setCartOpen } = useCart();
   const navigate = useNavigate();
@@ -73,6 +73,7 @@ export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle }
         ['Home', () => go('/')],
         ['Recommend', () => go('/recommend')],
         ['Partner', () => go('/partner')],
+        ...(wholesaleApproved ? [['Wholesale', () => go('/wholesale')]] : []),
         ['The Duma', () => go('/duma')],
         ['Perspectives', () => go('/perspectives')],
         ['Profile', () => go('/profile')],

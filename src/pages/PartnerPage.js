@@ -23,7 +23,7 @@ const MARKETPLACE_AGREEMENTS = [
 { key: 'ownershipTitleAgreed', label: 'I agree to the Ownership & Title Policy *' },
 ];
 
-export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, rankScore, authToken, userAvatar }) => {
+export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, rankScore, authToken, userAvatar, onWholesaleApproved }) => {
 const navigate = useNavigate();
 
 const [formData, setFormData] = useState({
@@ -344,6 +344,12 @@ hasPhoto: formData.photoFiles.length > 0,
 hasVideo: !!formData.videoFile
 });
 setSubmitted(true);
+
+// Brand & Retail applications unlock wholesale access immediately (the server grants it) — go straight there
+if (formData.partnerCategory === "Brand & Retail Partners" && data.wholesaleApproved) {
+if (onWholesaleApproved) onWholesaleApproved();
+navigate('/wholesale', { state: { fromApplication: true } });
+}
 } catch (err) {
 setErrorMsg("We couldn't reach the server, so your application was not sent. Please check your connection and try again.");
 } finally {

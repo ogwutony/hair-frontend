@@ -92,7 +92,10 @@ style={{ width: '100%', height: '120px', objectFit: 'contain', borderRadius: '10
 
 <div style={styles.itemName}>{item.name}</div>
 <div style={{ fontSize: '11px', color: '#555', marginTop: '8px', lineHeight: '1.5' }}>
-<div>One-time {formatCurrency(pricing.oneTime)} <span style={{ color: '#777' }}>· 1 box per month</span></div>
+<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
+<span>One-time {formatCurrency(pricing.oneTime)} <span style={{ color: '#777' }}>· 1 box per month</span></span>
+<span style={{ fontWeight: 600, color: '#1f7a3d', whiteSpace: 'nowrap' }}>Free Shipping</span>
+</div>
 <div>Subscribe {formatCurrency(getCustomSetBottleSubscriptionPrice(item.name))} <span style={{ color: '#777' }}>· 1 box per month</span></div>
 </div>
 </div>

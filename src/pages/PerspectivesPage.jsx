@@ -9,6 +9,7 @@ import { BACKEND_URL, POINTS } from '../utils/constants';
 import { normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
 import { ContentActions } from '../components/ContentActions';
+import { AddressLink } from '../components/AddressLink';
 import { GuestSubmissionPrompt } from '../components/GuestSubmissionPrompt';
 import { Helmet } from 'react-helmet-async';
 import { useModeration } from '../utils/moderation';
@@ -375,7 +376,7 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
               )}
               {item.location && (
                 <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
-                  📍 {item.location}
+                  <AddressLink address={item.location} showPin />
                 </div>
               )}
               <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>

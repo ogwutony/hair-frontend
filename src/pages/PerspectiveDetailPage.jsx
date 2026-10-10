@@ -6,6 +6,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { CredentialHeader } from '../components/CredentialHeader';
 import { GuestSubmissionPrompt } from '../components/GuestSubmissionPrompt';
+import { AddressLink } from '../components/AddressLink';
 import { BACKEND_URL } from '../utils/constants';
 import { getRankTitle, normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
@@ -73,7 +74,7 @@ export const PerspectiveDetailPage = ({ authToken }) => {
       {posted && !Number.isNaN(posted.getTime()) && (
         <p style={{ color: '#888', fontSize: '13px', margin: '0 0 12px' }}>
           <time dateTime={posted.toISOString()}>{posted.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
-          {item.location ? ` · ${item.location}` : ''}
+          {item.location ? <> · <AddressLink address={item.location} style={{ textDecoration: 'underline' }} /></> : null}
         </p>
       )}
       {item.submittedBy && (

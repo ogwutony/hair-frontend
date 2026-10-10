@@ -3,6 +3,7 @@ import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { BUSINESS } from '../utils/business';
+import { AddressLink } from '../components/AddressLink';
 
 const page = { maxWidth: '860px', margin: '0 auto', padding: '60px 30px', fontFamily: 'Inter, sans-serif', color: '#222', lineHeight: 1.8 };
 const h2 = { fontSize: '18px', fontWeight: '700', marginTop: '36px', marginBottom: '10px' };
@@ -21,9 +22,11 @@ export const ContactPage = () => (
     <address style={{ fontStyle: 'normal', border: '1px solid #eee', borderRadius: '16px', padding: '24px', marginTop: '24px' }}>
       <strong style={{ fontSize: '18px' }}>{BUSINESS.legalName}</strong><br />
       <span style={{ color: '#555' }}>doing business as {BUSINESS.dba}</span><br /><br />
-      {BUSINESS.streetAddress}<br />
-      {BUSINESS.city}, {BUSINESS.region} {BUSINESS.postalCode}<br />
-      United States<br /><br />
+      <AddressLink address={`${BUSINESS.streetAddress}, ${BUSINESS.city}, ${BUSINESS.region} ${BUSINESS.postalCode}, USA`} style={{ color: '#1f4f99' }}>
+        {BUSINESS.streetAddress}<br />
+        {BUSINESS.city}, {BUSINESS.region} {BUSINESS.postalCode}<br />
+        United States
+      </AddressLink><br /><br />
       Email: <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a><br />
       Phone: <a href={`tel:${BUSINESS.phone}`}>{BUSINESS.phoneDisplay}</a>
     </address>

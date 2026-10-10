@@ -12,7 +12,7 @@ const DEFAULT_DESC = 'Join The Majorities community. Discover premium, clean-bea
 
 // Members-only or utility screens: served normally, but kept out of search
 const NOINDEX = [/^\/login$/, /^\/signup$/, /^\/forgot-password$/, /^\/reset-password\//, /^\/profile$/, /^\/messages$/, /^\/culture$/,
-  /^\/orders$/, /^\/admin(\/|$)/, /^\/auth\//, /^\/oauth\//, /^\/model$/];
+  /^\/orders$/, /^\/admin(\/|$)/, /^\/auth\//, /^\/oauth\//, /^\/model$/, /^\/wholesale$/];
 
 const wrap = (inner) => `<div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:Inter,-apple-system,sans-serif;color:#222;line-height:1.6">${inner}</div>`;
 

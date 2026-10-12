@@ -17,6 +17,15 @@ export const OAuthCallbackPage = ({ onLogin, provider }) => {
     const code = queryParams.get("code");
     const error = queryParams.get("error") || hashParams.get("error");
 
+    // Sign-in started in The Majorities iOS/Android app: hand the result back to the app
+    // (it verifies `state` and signs in itself) instead of signing in on the website.
+    const returnedState = hashParams.get("state") || queryParams.get("state") || "";
+    if (/^mobile-[a-f0-9]{32}$/.test(returnedState) && (provider === "google" || provider === "instagram")) {
+      setStatus("Returning to The Majorities app…");
+      window.location.replace(`majorities://oauth/${provider}${location.search}${location.hash}`);
+      return;
+    }
+
     if (error) { setStatus(provider + " sign-in was cancelled."); setTimeout(() => navigate("/login"), 2500); return; }
     if (provider === "google") {
       // Token flow returns access_token in the hash; reject if state doesn't match the one we sent

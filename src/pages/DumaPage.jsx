@@ -18,6 +18,14 @@ import { EzoicAd, DUMA_AD_PLACEHOLDER_START, DUMA_AD_EVERY_N_POSTS, DUMA_AD_MAX_
 
 const EMPTY_LIST = []; // stable default so effects keyed on it don't re-run every render
 
+// Vote counts under either name: the backend stores yay/nay(/abstain); newer responses also send yes/no
+const voteCount = (item, key) => {
+const v = (item && item.votes) || {};
+if (key === 'yes') return v.yes ?? v.yay ?? 0;
+if (key === 'no') return v.no ?? v.nay ?? 0;
+return v.abstain ?? 0;
+};
+
 export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints, userAvatar, following = EMPTY_LIST, onFollowUser }) => {
 const isMobile = useIsMobile();
 const [dumaItems, setDumaItems] = useState(items);
@@ -49,7 +57,7 @@ const getRecommendationImage = (item) => item.imageUrl || PRODUCT_IMAGE_BY_NAME[
 const getItemId = (itemOrId) => String(typeof itemOrId === 'object' ? itemOrId?._id || itemOrId?.id || '' : itemOrId || '');
 
 const isFeaturedContributor = (item) =>
-item.featuredOnInstagram || item.socialEngagement >= 100 || (item.votes?.yes || 0) >= 10;
+item.featuredOnInstagram || item.socialEngagement >= 100 || voteCount(item, 'yes') >= 10;
 
 const sharePost = async (item, platform) => {
 const shareText = `${item.prompt || 'A perspective from The Majorities'}\n${item.response || item.reason || item.desc || ''}\n#TheMajorities`;
@@ -128,6 +136,20 @@ alert("Failed to boost listing.");
 setBoostingId(null);
 };
 
+useEffect(() => {
+if (!authToken) { setUserVotes({}); return undefined; }
+let cancelled = false;
+fetch(`${BACKEND_URL}/api/duma/votes/mine`, { headers: { Authorization: 'Bearer ' + authToken } })
+.then(r => (r.ok ? r.json() : null))
+.then(data => {
+if (cancelled || !data || typeof data.votes !== 'object') return;
+setUserVotes(prev => ({ ...data.votes, ...prev }));
+setShowScores(prev => ({ ...Object.fromEntries(Object.keys(data.votes).map(id => [id, true])), ...prev }));
+})
+.catch(() => {});
+return () => { cancelled = true; };
+}, [authToken]);
+
 const handleVote = async (itemId, voteType) => {
 const normalizedItemId = getItemId(itemId);
 if (!authToken) return alert("Please log in to vote.");
@@ -138,13 +160,10 @@ setShowScores(prev => ({ ...prev, [normalizedItemId]: true }));
 setShowComments(prev => ({ ...prev, [normalizedItemId]: true }));
 setDumaItems(prev => prev.map(item => {
 if (getItemId(item) !== normalizedItemId) return item;
-const existingVotes = item.votes || { yes: 0, no: 0, abstain: 0 };
+const counts = { yes: voteCount(item, 'yes'), no: voteCount(item, 'no'), abstain: voteCount(item, 'abstain') };
 return {
 ...item,
-votes: {
-...existingVotes,
-[voteType]: (existingVotes[voteType] || 0) + 1
-}
+votes: { ...(item.votes || {}), ...counts, [voteType]: counts[voteType] + 1 }
 };
 }));
 try {
@@ -159,6 +178,14 @@ if (data.votes) {
 setDumaItems(prev => prev.map(item => getItemId(item) === normalizedItemId ? { ...item, votes: data.votes } : item));
 }
 if (voteType === 'yes' && onAddPoints) onAddPoints(10);
+return;
+}
+if (response.status === 409) {
+const data = await response.json().catch(() => ({}));
+setUserVotes(prev => ({ ...prev, [normalizedItemId]: data.yourVote || voteType }));
+if (data.votes) {
+setDumaItems(prev => prev.map(item => getItemId(item) === normalizedItemId ? { ...item, votes: data.votes } : item));
+}
 return;
 }
 throw new Error('Vote request failed');
@@ -377,7 +404,7 @@ onError={(e) => {
 <div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
 <p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>Vote Results:</p>
 <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
-Yes: {item.votes?.yes || 0} | No: {item.votes?.no || 0} | Abstain: {item.votes?.abstain || 0}
+Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCount(item, 'abstain')}
 </p>
 </div>
 )}
@@ -462,7 +489,7 @@ e.currentTarget.src = '/logo192.png';
 <div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
 <p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>Vote Results:</p>
 <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
-Yes: {item.votes?.yes || 0} | No: {item.votes?.no || 0} | Abstain: {item.votes?.abstain || 0}
+Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCount(item, 'abstain')}
 </p>
 </div>
 )}
@@ -612,7 +639,7 @@ partnerItems.map(item => (
 <div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
 <p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>Vote Results:</p>
 <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
-Yes: {item.votes?.yes || 0} | No: {item.votes?.no || 0} | Abstain: {item.votes?.abstain || 0}
+Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCount(item, 'abstain')}
 </p>
 </div>
 )}

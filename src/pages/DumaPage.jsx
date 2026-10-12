@@ -12,6 +12,7 @@ import { styles } from '../utils/styles';
 import { ContentActions } from '../components/ContentActions';
 import { AddressLink } from '../components/AddressLink';
 import { EditDumaPostModal } from '../components/EditDumaPostModal';
+import { ImageLightbox, sizedImageUrl } from '../components/ImageLightbox';
 import { useModeration } from '../utils/moderation';
 import { EzoicAd, DUMA_AD_PLACEHOLDER_START, DUMA_AD_EVERY_N_POSTS, DUMA_AD_MAX_SLOTS } from '../components/EzoicAd';
 
@@ -21,6 +22,11 @@ export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, on
 const isMobile = useIsMobile();
 const [dumaItems, setDumaItems] = useState(items);
 const [editingItem, setEditingItem] = useState(null);
+const [lightbox, setLightbox] = useState(null); // { photos, index }
+const openLightbox = (mediaList, url) => {
+const photos = mediaList.filter(u => !(/\.(mp4|mov|webm)$/i.test(u) || u.includes('/video/upload/')));
+setLightbox({ photos, index: Math.max(0, photos.indexOf(url)) });
+};
 const handlePostEdited = (updated) => {
 const id = getItemId(updated) || getItemId(editingItem);
 setDumaItems(prev => prev.map(it => (getItemId(it) === id ? { ...it, ...updated } : it)));
@@ -285,19 +291,10 @@ return (
 {isFeaturedContributor(item) && <span style={{ background: '#f4d35e', color: '#222', borderRadius: '999px', padding: '4px 8px', fontSize: '10px', fontWeight: '800' }}>★ Featured on The Duma</span>}
 <RankBadge rankTitle={verifiedRank} />
 <CredentialExtras rankScore={item.rankScore || null} socialLinks={item.submitterSocialLinks || null} />
-{authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
-<>
-<button onClick={() => setEditingItem(item)} style={{ border: '1px solid #222', color: '#222', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
-Edit
-</button>
-<button onClick={() => handleDeletePost(itemId)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
-Trash
-</button>
-</>
-)}
+<ContentActions variant="menu" contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} onEdit={() => setEditingItem(item)} onDelete={() => handleDeletePost(item._id || item.id)} />
 </div>
 </div>
-<ContentActions variant="bar" style={{ marginBottom: '12px' }} contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} isFollowing={!!item.submittedBy && following.includes(item.submittedBy)} onFollow={onFollowUser} />
+<ContentActions variant="bar" style={{ marginBottom: '12px' }} contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} isFollowing={!!item.submittedBy && following.includes(item.submittedBy)} onFollow={onFollowUser} showModeration={false} />
 
 {item.submittedBy && (
 <CredentialHeader
@@ -341,12 +338,23 @@ return (
 {/\.(mp4|mov|webm)$/i.test(url) || url.includes('/video/upload/') ? (
 <video
 src={normalizeMediaVideoUrl(url)}
-poster={url.includes('cloudinary.com') ? url.replace(/\.(mp4|mov|webm|m4v)$/i, '.jpg') : undefined}
+poster={url.includes('cloudinary.com') ? sizedImageUrl(url.replace(/\.(mp4|mov|webm|m4v)$/i, '.jpg'), 1080) : undefined}
 style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000', objectFit: 'contain' }}
 controls playsInline preload="metadata"
 />
 ) : (
-<img src={url} alt={`Attachment ${idx + 1}`} style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover' }} onError={(e) => {
+<img
+src={sizedImageUrl(url, 1080)}
+alt={`Attachment ${idx + 1}`}
+title="Double-click to enlarge"
+tabIndex={0}
+loading="lazy"
+onDoubleClick={() => openLightbox(mediaList, url)}
+onKeyDown={(e) => { if (e.key === 'Enter') openLightbox(mediaList, url); }}
+style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover', cursor: 'zoom-in' }}
+onError={(e) => {
+ // Resized copy failed: try the original once, then the placeholder
+ if (!e.currentTarget.dataset.triedOriginal) { e.currentTarget.dataset.triedOriginal = '1'; e.currentTarget.src = url; return; }
  e.currentTarget.onerror = null;
  e.currentTarget.src = '/logo192.png';
  }} />
@@ -418,19 +426,10 @@ recommendationItems.map(item => (
 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '8px' }}>
 {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
 <CredentialExtras rankScore={null} socialLinks={item.submitterSocialLinks || null} />
-{authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
-<>
-<button onClick={() => setEditingItem(item)} style={{ border: '1px solid #222', color: '#222', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
-Edit
-</button>
-<button onClick={() => handleDeletePost(item._id || item.id)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
-Trash
-</button>
-</>
-)}
+<ContentActions variant="menu" contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} onEdit={() => setEditingItem(item)} onDelete={() => handleDeletePost(item._id || item.id)} />
 </div>
 </div>
-<ContentActions variant="bar" style={{ marginBottom: '12px' }} contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} isFollowing={!!item.submittedBy && following.includes(item.submittedBy)} onFollow={onFollowUser} />
+<ContentActions variant="bar" style={{ marginBottom: '12px' }} contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} isFollowing={!!item.submittedBy && following.includes(item.submittedBy)} onFollow={onFollowUser} showModeration={false} />
 {item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={null} showRank={!item.submitterRank} profileLink={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`} />}
 {item.location && (
 <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
@@ -516,14 +515,10 @@ partnerItems.map(item => (
 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '8px' }}>
 {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
 <CredentialExtras rankScore={null} socialLinks={item.submitterSocialLinks || null} />
-{authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
-<button onClick={() => handleDeletePost(item._id || item.id)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
-Trash
-</button>
-)}
+<ContentActions variant="menu" contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} onDelete={() => handleDeletePost(item._id || item.id)} />
 </div>
 </div>
-<ContentActions variant="bar" style={{ marginBottom: '12px' }} contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} isFollowing={!!item.submittedBy && following.includes(item.submittedBy)} onFollow={onFollowUser} />
+<ContentActions variant="bar" style={{ marginBottom: '12px' }} contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} isFollowing={!!item.submittedBy && following.includes(item.submittedBy)} onFollow={onFollowUser} showModeration={false} />
 {item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={null} showRank={!item.submitterRank} profileLink={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`} />}
 {item.location && (
 <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
@@ -698,6 +693,12 @@ Visit listing
 )}
 </div>
 )}
+<ImageLightbox
+photos={lightbox ? lightbox.photos : []}
+index={lightbox ? lightbox.index : null}
+onIndexChange={(i) => setLightbox(prev => (prev ? { ...prev, index: i } : prev))}
+onClose={() => setLightbox(null)}
+/>
 {editingItem && (
 <EditDumaPostModal item={editingItem} authToken={authToken} onClose={() => setEditingItem(null)} onSaved={handlePostEdited} />
 )}

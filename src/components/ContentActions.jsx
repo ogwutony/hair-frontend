@@ -1,6 +1,7 @@
 // src/components/ContentActions.jsx
-// "•••" menu on other people's posts, listings and profiles: report the content
-// or block the person who posted it.
+// "•••" menu on posts, listings and profiles. On other people's content: report the content
+// or block the person who posted it. On your own content (when onEdit/onDelete are given):
+// edit or delete it.
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +18,19 @@ const menuBtn = {
   fontWeight: 700,
   cursor: 'pointer',
   lineHeight: 1,
+};
+
+const menuPanel = {
+  position: 'absolute',
+  right: 0,
+  top: 'calc(100% + 6px)',
+  background: '#fff',
+  border: '1px solid #e5e5e5',
+  borderRadius: '10px',
+  boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+  zIndex: 50,
+  minWidth: '170px',
+  overflow: 'hidden',
 };
 
 const menuItem = {
@@ -44,6 +58,9 @@ export const ContentActions = ({
   variant = 'menu',      // 'menu' = "•••" dropdown, 'bar' = row of buttons (Direct Message, Follow, Report, Block)
   isFollowing = false,
   onFollow,              // bar only: called with the author's email when "Follow" is tapped
+  showModeration = true, // bar only: false hides Report/Block (when a "•••" menu already offers them)
+  onEdit,                // menu only, your own content: shows "Edit"
+  onDelete,              // menu only, your own content: shows "Delete"
 }) => {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -68,9 +85,30 @@ export const ContentActions = ({
   // Sample/placeholder posts (not saved on the server) can't be reported.
   if (contentType !== 'user' && !/^[a-f0-9]{24}$/i.test(String(contentId || ''))) return null;
 
-  // Never offer report/block on your own content.
+  // Never offer report/block on your own content — offer edit/delete instead when available.
   if (authorEmail && userEmail && authorEmail.trim().toLowerCase() === userEmail.trim().toLowerCase()) {
-    return null;
+    if (variant !== 'menu' || (!onEdit && !onDelete)) return null;
+    return (
+      <div ref={wrapRef} style={{ position: 'relative', display: 'inline-block', ...style }}>
+        <button type="button" aria-label="Edit or delete your post" aria-haspopup="menu" aria-expanded={menuOpen} title="Edit or delete" style={menuBtn} onClick={() => setMenuOpen((v) => !v)}>
+          •••
+        </button>
+        {menuOpen && (
+          <div role="menu" style={menuPanel}>
+            {onEdit && (
+              <button type="button" role="menuitem" style={menuItem} onClick={() => { setMenuOpen(false); onEdit(); }}>
+                ✏️ Edit
+              </button>
+            )}
+            {onDelete && (
+              <button type="button" role="menuitem" style={{ ...menuItem, color: '#c0392b' }} onClick={() => { setMenuOpen(false); onDelete(); }}>
+                🗑 Delete
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
   }
 
   const who = authorName || authorEmail || 'this user';
@@ -193,8 +231,10 @@ export const ContentActions = ({
             {isFollowing ? '✓ Following' : '+ Add User'}
           </button>
         )}
-        <button type="button" style={{ ...barBtn, color: '#b7791f', borderColor: '#f0d9a8' }} onClick={openReport}>🚩 Report</button>
-        {authorEmail && (
+        {showModeration && (
+          <button type="button" style={{ ...barBtn, color: '#b7791f', borderColor: '#f0d9a8' }} onClick={openReport}>🚩 Report</button>
+        )}
+        {showModeration && authorEmail && (
           <button type="button" style={{ ...barBtn, color: '#c0392b', borderColor: '#f5c6cb' }} onClick={handleBlock}>⛔ Block</button>
         )}
         {reportOpen && reportDialog}
@@ -204,26 +244,12 @@ export const ContentActions = ({
 
   return (
     <div ref={wrapRef} style={{ position: 'relative', display: 'inline-block', ...style }}>
-      <button type="button" aria-label="Report or block" title="Report or block" style={menuBtn} onClick={() => setMenuOpen((v) => !v)}>
+      <button type="button" aria-label="Report or block" aria-haspopup="menu" aria-expanded={menuOpen} title="Report or block" style={menuBtn} onClick={() => setMenuOpen((v) => !v)}>
         •••
       </button>
 
       {menuOpen && (
-        <div
-          role="menu"
-          style={{
-            position: 'absolute',
-            right: 0,
-            top: 'calc(100% + 6px)',
-            background: '#fff',
-            border: '1px solid #e5e5e5',
-            borderRadius: '10px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-            zIndex: 50,
-            minWidth: '170px',
-            overflow: 'hidden',
-          }}
-        >
+        <div role="menu" style={menuPanel}>
           <button type="button" role="menuitem" style={menuItem} onClick={openReport}>
             🚩 Report
           </button>

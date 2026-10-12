@@ -224,6 +224,20 @@ export default function App() {
     if (url) { storage.setItem("userAvatar", url); } else { storage.removeItem("userAvatar"); }
   }, []);
 
+  // Profile picture for the header, straight from the account (not only after visiting the Profile page)
+  useEffect(() => {
+    if (!authToken) return undefined;
+    let cancelled = false;
+    fetch(`${BACKEND_URL}/api/profile`, { headers: { Authorization: `Bearer ${authToken}` } })
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        const serverAvatar = data && (data.avatarUrl || data.profilePictureUrl || data.avatar);
+        if (!cancelled && serverAvatar) handleAvatarUpdate(serverAvatar);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [authToken, handleAvatarUpdate]);
+
   const saveSetToProfile = (items) => { const newSet = { items, date: new Date().toLocaleDateString() }; const updatedSets = [newSet, ...savedSets]; setSavedSets(updatedSets); localStorage.setItem("savedSets", JSON.stringify(updatedSets)); };
   const addDumaItem = (item) => setDumaItems(prev => [item, ...prev]);
 

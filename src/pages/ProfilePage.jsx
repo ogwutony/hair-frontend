@@ -102,9 +102,11 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
       setBackendRankScore(resolvedScore);
       setBackendRankTitle(getRankTitle(resolvedScore));
       setIsFeaturedContributor(Boolean(data.featuredOnInstagram) || (data.socialEngagement || 0) >= 100);
-      if (data.avatar) {
-        setAvatarUrl(data.avatar);
-        if (onAvatarUpdate) onAvatarUpdate(data.avatar);
+      // The backend returns avatarUrl (profilePictureUrl as fallback); "avatar" is the legacy name
+      const serverAvatar = data.avatarUrl || data.profilePictureUrl || data.avatar;
+      if (serverAvatar) {
+        setAvatarUrl(serverAvatar);
+        if (onAvatarUpdate) onAvatarUpdate(serverAvatar);
       }
       if (data.displayName) setDisplayName(data.displayName);
       if (data.location) setUserLocation(data.location);

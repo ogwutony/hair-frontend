@@ -11,6 +11,7 @@ import { getRankTitle, normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
 import { ContentActions } from '../components/ContentActions';
 import { AddressLink } from '../components/AddressLink';
+import { EditDumaPostModal } from '../components/EditDumaPostModal';
 import { useModeration } from '../utils/moderation';
 import { EzoicAd, DUMA_AD_PLACEHOLDER_START, DUMA_AD_EVERY_N_POSTS, DUMA_AD_MAX_SLOTS } from '../components/EzoicAd';
 
@@ -19,6 +20,12 @@ const EMPTY_LIST = []; // stable default so effects keyed on it don't re-run eve
 export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints, userAvatar, following = EMPTY_LIST, onFollowUser }) => {
 const isMobile = useIsMobile();
 const [dumaItems, setDumaItems] = useState(items);
+const [editingItem, setEditingItem] = useState(null);
+const handlePostEdited = (updated) => {
+const id = getItemId(updated) || getItemId(editingItem);
+setDumaItems(prev => prev.map(it => (getItemId(it) === id ? { ...it, ...updated } : it)));
+setEditingItem(null);
+};
 const { isHiddenItem } = useModeration();
 const [userVotes, setUserVotes] = useState({});
 const [showScores, setShowScores] = useState({});
@@ -279,9 +286,14 @@ return (
 <RankBadge rankTitle={verifiedRank} />
 <CredentialExtras rankScore={item.rankScore || null} socialLinks={item.submitterSocialLinks || null} />
 {authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
+<>
+<button onClick={() => setEditingItem(item)} style={{ border: '1px solid #222', color: '#222', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+Edit
+</button>
 <button onClick={() => handleDeletePost(itemId)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
 Trash
 </button>
+</>
 )}
 </div>
 </div>
@@ -407,9 +419,14 @@ recommendationItems.map(item => (
 {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
 <CredentialExtras rankScore={null} socialLinks={item.submitterSocialLinks || null} />
 {authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (
+<>
+<button onClick={() => setEditingItem(item)} style={{ border: '1px solid #222', color: '#222', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+Edit
+</button>
 <button onClick={() => handleDeletePost(item._id || item.id)} style={{ border: '1px solid #e74c3c', color: '#e74c3c', background: '#fff', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
 Trash
 </button>
+</>
 )}
 </div>
 </div>
@@ -420,7 +437,7 @@ Trash
 <AddressLink address={item.location} showPin />
 </div>
 )}
-<h3 style={{ marginTop: '8px', marginBottom: '6px' }}>{item.name || item.product} by {item.company}</h3>
+<h3 style={{ marginTop: '8px', marginBottom: '6px' }}>{item.name || item.product}{(item.brand || item.company) ? ` by ${item.brand || item.company}` : ''}</h3>
 {getRecommendationImage(item) && (
 <img
 src={getRecommendationImage(item)}
@@ -680,6 +697,9 @@ Visit listing
 })
 )}
 </div>
+)}
+{editingItem && (
+<EditDumaPostModal item={editingItem} authToken={authToken} onClose={() => setEditingItem(null)} onSaved={handlePostEdited} />
 )}
 </div>
 );

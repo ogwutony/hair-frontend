@@ -4,6 +4,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { initPixels } from './utils/pixels';
 
 const GOOGLE_TAG_ID = process.env.REACT_APP_GOOGLE_TAG_ID?.trim();
 
@@ -19,8 +20,13 @@ if (GOOGLE_TAG_ID) {
   document.head.prepend(googleTagScript);
 
   window.gtag('js', new Date());
-  window.gtag('config', GOOGLE_TAG_ID);
+  window.gtag('config', GOOGLE_TAG_ID, {
+    // Keep one session across the site and Shopify checkout
+    linker: { domains: ['themajorities.com', 'c0bqfe-z2.myshopify.com'], decorate_forms: true },
+  });
 }
+
+initPixels();
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

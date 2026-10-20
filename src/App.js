@@ -9,6 +9,7 @@ import { styles } from './utils/styles';
 
 // Shared components
 import { ScrollToTop } from './components/ScrollToTop';
+import { PixelRouteTracker } from './components/PixelRouteTracker';
 
 // Pages
 import { LandingPage } from './pages/LandingPage';
@@ -292,6 +293,7 @@ export default function App() {
     <Router>
       <CartProvider>
       <ScrollToTop />
+      <PixelRouteTracker />
       <div style={styles.pageWrapper} className="ms-page">
         <MobileHeader isLoggedIn={isLoggedIn} onLogout={handleLogout} unreadMessages={unreadMessages} rankTitle={rankTitle} wholesaleApproved={wholesaleApproved} />
         <Routes>

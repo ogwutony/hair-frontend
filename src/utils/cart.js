@@ -1,9 +1,12 @@
 // src/utils/cart.js
 // Shop cart + wishlist shared by the mobile header and the mobile shop.
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { SHOP_DOMAIN } from './constants';
 import { SHOP_ITEM_BY_ID } from './shopCatalog';
 import { trackEvent } from '../components/AdMonetization';
+import { trackAddToCart, trackInitiateCheckout } from './pixels';
+import { goToShopifyCheckout } from './shopifyCheckout';
+
+const priceOf = (item, mode) => (mode === 'subscription' ? item.pricing.subscription : item.pricing.oneTime);
 
 const CART_KEY = 'shopCart_v1';
 const WISH_KEY = 'shopWishlist_v1';
@@ -41,6 +44,7 @@ export function CartProvider({ children }) {
     });
     const item = SHOP_ITEM_BY_ID[id];
     trackEvent('add_to_cart', { placement: 'mobile_shop', item: item?.name, purchaseType: mode });
+    if (item) trackAddToCart({ id: item.variantId, name: item.name, price: priceOf(item, mode), quantity: 1 });
   }, []);
 
   const changeQty = useCallback((id, mode, delta) => {
@@ -58,8 +62,7 @@ export function CartProvider({ children }) {
   const count = lines.reduce((n, l) => n + l.qty, 0);
   const subtotal = lines.reduce((sum, l) => {
     const item = SHOP_ITEM_BY_ID[l.id];
-    const price = l.mode === 'subscription' ? item.pricing.subscription : item.pricing.oneTime;
-    return sum + price * l.qty;
+    return sum + priceOf(item, l.mode) * l.qty;
   }, 0);
 
   const value = useMemo(
@@ -83,29 +86,17 @@ export function checkoutCart(lines, subtotal) {
     purchaseType: lines.some((l) => l.mode === 'subscription') ? 'mixed_or_subscription' : 'one_time',
   });
 
-  if (lines.every((l) => l.mode === 'one-time')) {
-    const permalink = lines.map((l) => `${SHOP_ITEM_BY_ID[l.id].variantId}:${l.qty}`).join(',');
-    window.location.href = `https://${SHOP_DOMAIN}/cart/${permalink}?checkout[shipping_address][country]=US`;
-    return;
-  }
-
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = `https://${SHOP_DOMAIN}/cart/add`;
-  const field = (name, val) => {
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = name;
-    input.value = String(val);
-    form.appendChild(input);
-  };
-  lines.forEach((l, i) => {
+  trackInitiateCheckout(lines.map((l) => {
     const item = SHOP_ITEM_BY_ID[l.id];
-    field(`items[${i}][id]`, item.variantId);
-    field(`items[${i}][quantity]`, l.qty);
-    if (l.mode === 'subscription') field(`items[${i}][selling_plan]`, item.sellingPlanId);
-  });
-  field('return_to', '/checkout');
-  document.body.appendChild(form);
-  form.submit();
+    return { id: item.variantId, name: item.name, price: priceOf(item, l.mode), quantity: l.qty };
+  }));
+
+  goToShopifyCheckout(lines.map((l) => {
+    const item = SHOP_ITEM_BY_ID[l.id];
+    return {
+      variantId: item.variantId,
+      quantity: l.qty,
+      sellingPlanId: l.mode === 'subscription' ? item.sellingPlanId : undefined,
+    };
+  }));
 }

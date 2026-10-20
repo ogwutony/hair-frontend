@@ -1,7 +1,8 @@
 // src/utils/helpers.js
 // Rank system utilities, commerce helpers, and media/social URL helpers
 
-import { RANK_TIERS, PRODUCT_VARIANT_MAP, SHOP_DOMAIN, LORD_POST_MILESTONE, CUSTOM_SET_SUBSCRIPTION } from './constants';
+import { RANK_TIERS, PRODUCT_VARIANT_MAP, LORD_POST_MILESTONE, CUSTOM_SET_SUBSCRIPTION } from './constants';
+import { goToShopifyCheckout } from './shopifyCheckout';
 
 // --- Rank System ---
 
@@ -165,48 +166,33 @@ export const calculateSetTotals = (items = []) => items.reduce((totals, item) =>
 export const submitShopifyCheckout = (items, purchaseType = "one-time") => {
   if (!items.length) return;
 
+  const counts = {};
+  items.forEach((item) => { counts[item.name] = (counts[item.name] || 0) + 1; });
+  const names = Object.keys(counts);
+
   if (purchaseType === "one-time") {
-    const lineItems = items
-      .map((item) => `${getProductCommerceConfig(item.name).merchandiseId}:1`)
-      .join(",");
-    window.location.href =
-      `https://${SHOP_DOMAIN}/cart/${lineItems}` +
-      `?checkout[shipping_address][country]=US`;
+    goToShopifyCheckout(names.map((name) => ({
+      variantId: getProductCommerceConfig(name).merchandiseId,
+      quantity: counts[name],
+    })));
     return;
   }
 
   if (isCustomSetSubscriptionReady()) {
-    // POST to /cart/add so each line carries the custom-set selling plan
-    const counts = {};
-    items.forEach((item) => { counts[item.name] = (counts[item.name] || 0) + 1; });
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = `https://${SHOP_DOMAIN}/cart/add`;
-    const field = (name, value) => {
-      const input = document.createElement("input");
-      input.type = "hidden";
-      input.name = name;
-      input.value = String(value);
-      form.appendChild(input);
-    };
-    Object.entries(counts).forEach(([name, qty], i) => {
-      field(`items[${i}][id]`, CUSTOM_SET_SUBSCRIPTION.variantIds[name]);
-      field(`items[${i}][quantity]`, qty);
-      field(`items[${i}][selling_plan]`, CUSTOM_SET_SUBSCRIPTION.sellingPlanId);
-    });
-    field("return_to", "/checkout");
-    document.body.appendChild(form);
-    form.submit();
+    // Each line carries the custom-set selling plan
+    goToShopifyCheckout(names.map((name) => ({
+      variantId: CUSTOM_SET_SUBSCRIPTION.variantIds[name],
+      quantity: counts[name],
+      sellingPlanId: CUSTOM_SET_SUBSCRIPTION.sellingPlanId,
+    })));
     return;
   }
 
-  const subscriptionLineItems = items
-    .map((item) => `${getProductCommerceConfig(item.name).merchandiseId}:1`)
-    .join(",");
-  const sellingPlanId = getProductCommerceConfig(items[0].name).sellingPlanId;
-  window.location.href =
-    `https://${SHOP_DOMAIN}/cart/${subscriptionLineItems}` +
-    `?selling_plan=${sellingPlanId}&checkout[shipping_address][country]=US`;
+  goToShopifyCheckout(names.map((name) => ({
+    variantId: getProductCommerceConfig(name).merchandiseId,
+    quantity: counts[name],
+    sellingPlanId: getProductCommerceConfig(names[0]).sellingPlanId,
+  })));
 };
 
 // --- Social / Media URL Helpers ---

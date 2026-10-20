@@ -8,6 +8,7 @@ import { calculateSetTotals, formatCurrency } from '../utils/helpers';
 import { PRODUCT_VARIANT_MAP } from '../utils/constants';
 import { Icon } from '../components/MobileHeader';
 import '../mobileShop.css';
+import { trackViewContent } from '../utils/pixels';
 
 const FILTERS = {
   all: { label: 'Shop all', match: () => true },
@@ -67,6 +68,12 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
 
   useEffect(() => () => clearTimeout(toastTimer.current), []);
 
+  useEffect(() => {
+    if (!quickId) return;
+    const item = SHOP_ITEM_BY_ID[quickId];
+    if (item) trackViewContent({ id: item.variantId, name: item.name, price: item.pricing.subscription });
+  }, [quickId]);
+
   const add = (id) => {
     addToCart(id, modeOf(id));
     const short = SHOP_ITEM_BY_ID[id].name.replace('The Majorities ', '');
@@ -107,8 +114,8 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
       <section className="ms-intro">
         <h1>Skin and hair care for every one of us.</h1>
         <p>
-          Start with a 3-bottle or 6-bottle bundle, or pick the individual essentials you need.
-          Choose auto-delivery to subscribe and save on every order.
+          Subscribe for just $14.99 a bottle, delivered on your schedule.
+          Start with a 3-bottle or 6-bottle bundle, or pick the individual essentials you need. Pause or cancel anytime.
         </p>
       </section>
 

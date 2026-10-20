@@ -7,6 +7,7 @@ import { productsData, PRODUCT_IMAGE_BY_NAME } from '../utils/constants';
 import { calculateSetTotals, formatCurrency, getCustomSetBottleSubscriptionPrice, getProductCommerceConfig, submitShopifyCheckout } from '../utils/helpers';
 import { styles } from '../utils/styles';
 import { MobileShop } from './MobileShop';
+import { trackInitiateCheckout } from '../utils/pixels';
 
 export function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
 const [selection, setSelection] = useState([]);
@@ -55,6 +56,7 @@ purchaseType: "one_time",
 itemCount: selectedItems.length,
 checkoutValue: setTotals.oneTime
 });
+trackInitiateCheckout(selectedItems.map((item) => ({ id: getProductCommerceConfig(item.name).merchandiseId, name: item.name, price: Number((setTotals.oneTime / selectedItems.length).toFixed(2)), quantity: 1 })));
 submitShopifyCheckout(selectedItems, "one-time");
 };
 
@@ -66,6 +68,7 @@ purchaseType: "subscription",
 itemCount: selectedItems.length,
 checkoutValue: setTotals.subscription
 });
+trackInitiateCheckout(selectedItems.map((item) => ({ id: getProductCommerceConfig(item.name).merchandiseId, name: item.name, price: Number((setTotals.subscription / selectedItems.length).toFixed(2)), quantity: 1 })));
 submitShopifyCheckout(selectedItems, "subscription");
 };
 

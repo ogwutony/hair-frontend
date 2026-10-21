@@ -4,8 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { SHOP_ITEMS, SHOP_ITEM_BY_ID } from '../utils/shopCatalog';
 import { useCart } from '../utils/cart';
-import { calculateSetTotals, formatCurrency } from '../utils/helpers';
-import { PRODUCT_VARIANT_MAP } from '../utils/constants';
+import { formatCurrency } from '../utils/helpers';
 import { Icon } from '../components/MobileHeader';
 import '../mobileShop.css';
 import { trackViewContent } from '../utils/pixels';
@@ -141,7 +140,7 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
               <button type="button" className="ms-build-inner" onClick={onBuildSet}>
                 <span className="ms-build-count">{setCount}/6</span>
                 <span className="ms-name">Build Your 6-Bottle Custom Set</span>
-                <span className="ms-muted">Mix and match any of The Majorities Solutions for {formatCurrency(calculateSetTotals(Array(6).fill({ name: Object.keys(PRODUCT_VARIANT_MAP)[0] })).subscription)}/month subscription.</span>
+                <span className="ms-muted">Mix and match any of The Majorities Solutions for $54.99/month subscription.</span>
                 <span className="ms-btn">Subscribe &amp; save</span>
               </button>
             </article>

@@ -1,7 +1,7 @@
 // src/components/CredentialHeader.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { getRankColor, getDumaPostCount, withLordPrefix, safeSocialUrl, normalizeMediaVideoUrl } from '../utils/helpers';
+import { getRankColor, getDumaPostCount, withLordPrefix, normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
 
 const SnapchatIcon = () => (
@@ -114,24 +114,6 @@ export const CredentialExtras = ({ rankScore, socialLinks }) => (
     )}
     {socialLinks && (
       <>
-        {socialLinks.instagram ? (
-          <a
-            href={safeSocialUrl(socialLinks.instagram)}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ textDecoration: 'none', fontSize: '15px' }}
-            title="Instagram"
-          >{"📷"}</a>
-        ) : null}
-        {socialLinks.tiktok ? (
-          <a
-            href={safeSocialUrl(socialLinks.tiktok)}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ textDecoration: 'none', fontSize: '15px' }}
-            title="TikTok"
-          >{"🎵"}</a>
-        ) : null}
         {socialLinks.snapchat ? (
           <a
             href={safeSocialUrl(socialLinks.snapchat)}

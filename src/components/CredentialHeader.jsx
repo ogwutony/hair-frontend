@@ -1,7 +1,7 @@
 // src/components/CredentialHeader.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { getRankColor, getDumaPostCount, withLordPrefix, normalizeMediaVideoUrl } from '../utils/helpers';
+import { getRankColor, getDumaPostCount, withLordPrefix, safeSocialUrl, normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
 
 const SnapchatIcon = () => (

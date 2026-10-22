@@ -109,6 +109,29 @@ const upload = multer({
   }
 });
 
+const commentImageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5242880, files: 5 },
+  fileFilter: (req, file, cb) => {
+    if (['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPEG, PNG, and WebP images are allowed'));
+    }
+  }
+});
+const parseCommentImages = (req, res, next) => {
+  commentImageUpload.array('images', 5)(req, res, error => {
+    if (!error) return next();
+    const message = error.code === 'LIMIT_FILE_SIZE'
+      ? 'Each image must be 5 MB or smaller'
+      : error.code === 'LIMIT_FILE_COUNT' || error.code === 'LIMIT_UNEXPECTED_FILE'
+        ? 'You can attach up to 5 images'
+        : 'Only JPEG, PNG, and WebP images are allowed';
+    return res.status(400).json({ error: message });
+  });
+};
+
 // --- DATABASE ---
 const MONGODB_URI = process.env.MONGODB_URI;
 if (MONGODB_URI) {
@@ -310,6 +333,7 @@ const DumaItem = mongoose.model('DumaItem', new mongoose.Schema({
     no: { type: Number, default: 0 },
     abstain: { type: Number, default: 0 }
   },
+  comments:   { type: [{ author: String, text: String, imageUrls: { type: [String], default: [] }, createdAt: { type: Date, default: Date.now } }], default: [] },
   createdAt:  { type: Date, default: Date.now }
 }));
 
@@ -787,6 +811,33 @@ app.post('/api/duma/:id/vote', engagementLimiter, authMiddleware, async (req, re
     res.json({ success: true, votes: item.votes });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/posts/:postId/comments', engagementLimiter, authMiddleware, parseCommentImages, async (req, res) => {
+  try {
+    const text = typeof req.body.text === 'string' ? req.body.text.trim() : '';
+    const files = req.files || [];
+    if (text.length > 2000) return res.status(400).json({ error: 'Comments must be 2,000 characters or fewer' });
+    if (!text && files.length === 0) return res.status(400).json({ error: 'A comment or image is required' });
+    if (!mongoose.Types.ObjectId.isValid(req.params.postId)) return res.status(404).json({ error: 'Post not found' });
+
+    const item = await DumaItem.findById(req.params.postId);
+    if (!item) return res.status(404).json({ error: 'Post not found' });
+
+    const imageUrls = await Promise.all(files.map(file => new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { resource_type: 'image', folder: 'majority-hair/comments', transformation: [{ quality: 'auto', fetch_format: 'auto' }] },
+        (error, result) => { if (error) reject(error); else resolve(result.secure_url); }
+      );
+      stream.end(file.buffer);
+    })));
+    item.comments.push({ author: req.user.email, text, imageUrls, createdAt: new Date() });
+    await item.save();
+    res.status(201).json({ success: true, comment: item.comments[item.comments.length - 1] });
+  } catch (err) {
+    console.error('Comment submission failed:', err.message);
+    res.status(500).json({ error: 'Failed to post comment' });
   }
 });
 

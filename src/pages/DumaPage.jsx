@@ -26,6 +26,41 @@ if (key === 'no') return v.no ?? v.nay ?? 0;
 return v.abstain ?? 0;
 };
 
+const CommentImagePicker = ({ files, onChange, disabled }) => {
+const [previewUrls, setPreviewUrls] = useState([]);
+
+useEffect(() => {
+const urls = files.map(file => URL.createObjectURL(file));
+setPreviewUrls(urls);
+return () => urls.forEach(url => URL.revokeObjectURL(url));
+}, [files]);
+
+const addFiles = (event) => {
+const addedFiles = Array.from(event.target.files || []);
+event.target.value = '';
+if (files.length + addedFiles.length > 5) {
+window.alert('You can attach up to 5 images.');
+}
+onChange([...files, ...addedFiles].slice(0, 5));
+};
+
+return (
+<div>
+<input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={disabled} aria-label="Attach images" onChange={addFiles} />
+{previewUrls.length > 0 && (
+<div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+{previewUrls.map((url, index) => (
+<div key={`${files[index]?.name}-${index}`} style={{ position: 'relative' }}>
+<img src={url} alt={`Comment attachment ${index + 1} preview`} style={{ width: '72px', height: '72px', objectFit: 'cover', borderRadius: '6px' }} />
+<button type="button" aria-label={`Remove image ${index + 1}`} disabled={disabled} onClick={() => onChange(files.filter((_, fileIndex) => fileIndex !== index))} style={{ position: 'absolute', top: '2px', right: '2px', border: 'none', borderRadius: '50%', background: '#222', color: '#fff', width: '22px', height: '22px', cursor: 'pointer' }}>×</button>
+</div>
+))}
+</div>
+)}
+</div>
+);
+};
+
 export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints, userAvatar, following = EMPTY_LIST, onFollowUser }) => {
 const isMobile = useIsMobile();
 const [dumaItems, setDumaItems] = useState(items);
@@ -43,9 +78,10 @@ setEditingItem(null);
 const { isHiddenItem } = useModeration();
 const [userVotes, setUserVotes] = useState({});
 const [showScores, setShowScores] = useState({});
-const [showComments, setShowComments] = useState({});
 const [comments, setComments] = useState({});
 const [commentText, setCommentText] = useState({});
+const [commentImages, setCommentImages] = useState({});
+const [commentSubmitting, setCommentSubmitting] = useState({});
 const [activeSection, setActiveSection] = useState("Culture");
 const [marketplaceListings, setMarketplaceListings] = useState([]);
 const [boostingId, setBoostingId] = useState(null);
@@ -157,7 +193,6 @@ if (userVotes[normalizedItemId]) return;
 
 setUserVotes(prev => ({ ...prev, [normalizedItemId]: voteType }));
 setShowScores(prev => ({ ...prev, [normalizedItemId]: true }));
-setShowComments(prev => ({ ...prev, [normalizedItemId]: true }));
 setDumaItems(prev => prev.map(item => {
 if (getItemId(item) !== normalizedItemId) return item;
 const counts = { yes: voteCount(item, 'yes'), no: voteCount(item, 'no'), abstain: voteCount(item, 'abstain') };
@@ -201,11 +236,6 @@ const next = { ...prev };
 delete next[normalizedItemId];
 return next;
 });
-setShowComments(prev => {
-const next = { ...prev };
-delete next[normalizedItemId];
-return next;
-});
 setDumaItems(prev => prev.map(item => {
 if (getItemId(item) !== normalizedItemId) return item;
 const existingVotes = item.votes || { yes: 0, no: 0, abstain: 0 };
@@ -239,13 +269,76 @@ alert("Failed to delete post.");
 }
 };
 
-const handleCommentSubmit = (itemId) => {
-if (!commentText[itemId]?.trim()) return;
+const handleCommentSubmit = async (item, itemId) => {
+const text = (commentText[itemId] || '').trim();
+const images = commentImages[itemId] || EMPTY_LIST;
+if (!authToken || !userEmail || (!text && images.length === 0) || commentSubmitting[itemId]) return;
+
+const formData = new FormData();
+formData.append('text', text);
+images.forEach(image => formData.append('images', image));
+setCommentSubmitting(prev => ({ ...prev, [itemId]: true }));
+try {
+const response = await fetch(`${BACKEND_URL}/api/posts/${encodeURIComponent(itemId)}/comments`, {
+method: 'POST',
+headers: { Authorization: 'Bearer ' + authToken },
+body: formData
+});
+const data = await response.json().catch(() => ({}));
+if (!response.ok) throw new Error(data.error || 'Failed to post comment.');
+if (!data.comment) throw new Error('The comment response was invalid.');
+
 setComments(prev => ({
 ...prev,
-[itemId]: [...(prev[itemId] || []), { author: userEmail, text: commentText[itemId], timestamp: new Date().toLocaleString() }]
+[itemId]: [...(prev[itemId] || item.comments || []), data.comment]
 }));
 setCommentText(prev => ({ ...prev, [itemId]: '' }));
+setCommentImages(prev => ({ ...prev, [itemId]: [] }));
+} catch (error) {
+window.alert(error.message || 'Failed to post comment.');
+} finally {
+setCommentSubmitting(prev => ({ ...prev, [itemId]: false }));
+}
+};
+
+const renderCommentSection = (item, itemId) => {
+const itemComments = comments[itemId] || item.comments || [];
+const images = commentImages[itemId] || [];
+const text = commentText[itemId] || '';
+const isSubmitting = !!commentSubmitting[itemId];
+
+return (
+<div style={{ borderTop: '2px solid #eee', paddingTop: '12px', marginTop: '14px' }}>
+<h4 style={{ fontSize: '13px', color: '#555', margin: '0 0 12px', fontWeight: '700' }}>Comments ({itemComments.length})</h4>
+{itemComments.map((comment, index) => (
+<div key={comment._id || index} style={{ backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', marginBottom: '8px', borderLeft: '3px solid #3498db' }}>
+<p style={{ fontSize: '11px', fontWeight: '600', color: '#222', margin: '0 0 4px' }}>{comment.author}</p>
+{comment.text && <p style={{ fontSize: '12px', color: '#666', margin: '0 0 4px', whiteSpace: 'pre-wrap' }}>{comment.text}</p>}
+{comment.imageUrls?.length > 0 && (
+<div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', margin: '6px 0' }}>
+{comment.imageUrls.map((url, imageIndex) => <img key={url + imageIndex} src={url} alt={`Comment attachment ${imageIndex + 1}`} loading="lazy" style={{ maxWidth: '180px', maxHeight: '180px', objectFit: 'cover', borderRadius: '6px' }} />)}
+</div>
+)}
+<p style={{ fontSize: '10px', color: '#aaa', margin: 0 }}>{comment.createdAt ? new Date(comment.createdAt).toLocaleString() : comment.timestamp}</p>
+</div>
+))}
+{authToken && userEmail ? (
+<div>
+<div style={{ display: 'flex', gap: '8px' }}>
+<input type="text" aria-label="Comment text" placeholder="Add a comment..." style={{ flex: 1, minWidth: 0, padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px' }} value={text} disabled={isSubmitting} onChange={event => setCommentText(prev => ({ ...prev, [itemId]: event.target.value }))} />
+<button type="button" disabled={isSubmitting || (!text.trim() && images.length === 0)} onClick={() => handleCommentSubmit(item, itemId)} style={{ padding: '8px 16px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '6px', cursor: isSubmitting ? 'wait' : 'pointer', fontSize: '12px', fontWeight: '600', opacity: isSubmitting || (!text.trim() && images.length === 0) ? 0.6 : 1 }}>{isSubmitting ? 'Posting…' : 'Post'}</button>
+</div>
+<div style={{ marginTop: '8px' }}>
+<CommentImagePicker files={images} disabled={isSubmitting} onChange={nextImages => setCommentImages(prev => ({ ...prev, [itemId]: nextImages }))} />
+</div>
+</div>
+) : (
+<p style={{ margin: '10px 0 0', fontSize: '12px', color: '#666' }}>
+<Link to="/login" style={{ color: '#1f4f99', fontWeight: 600 }}>Log in</Link> or <Link to="/signup" style={{ color: '#1f4f99', fontWeight: 600 }}>register</Link> to post a comment.
+</p>
+)}
+</div>
+);
 };
 
 // Hide posts you reported and posts from people you blocked
@@ -318,10 +411,9 @@ return (
 {isFeaturedContributor(item) && <span style={{ background: '#f4d35e', color: '#222', borderRadius: '999px', padding: '4px 8px', fontSize: '10px', fontWeight: '800' }}>★ Featured on The Duma</span>}
 <RankBadge rankTitle={verifiedRank} />
 <CredentialExtras rankScore={item.rankScore || null} socialLinks={item.submitterSocialLinks || null} />
-<ContentActions variant="menu" contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} onEdit={() => setEditingItem(item)} onDelete={() => handleDeletePost(item._id || item.id)} />
+<ContentActions variant="menu" contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} onEdit={() => setEditingItem(item)} onDelete={() => handleDeletePost(item._id || item.id)} showMessage onAddUser={item.submittedBy && !following.includes(item.submittedBy) ? onFollowUser : undefined} />
 </div>
 </div>
-<ContentActions variant="bar" style={{ marginBottom: '12px' }} contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} isFollowing={!!item.submittedBy && following.includes(item.submittedBy)} onFollow={onFollowUser} showModeration={false} />
 
 {item.submittedBy && (
 <CredentialHeader
@@ -409,28 +501,9 @@ Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCoun
 </div>
 )}
 
-{showComments[itemId] && (
-<div style={{ borderTop: '2px solid #eee', paddingTop: '12px' }}>
-<h4 style={{ fontSize: '13px', color: '#555', marginBottom: '12px', fontWeight: '700' }}>Comments:</h4>
-{comments[itemId]?.length > 0 && (
-<div style={{ marginBottom: '12px' }}>
-{comments[itemId].map((comment, idx) => (
-<div key={idx} style={{ backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', marginBottom: '8px', borderLeft: '3px solid #3498db' }}>
-<p style={{ fontSize: '11px', fontWeight: '600', color: '#222', margin: '0 0 4px 0' }}>{comment.author}</p>
-<p style={{ fontSize: '12px', color: '#666', margin: '0 0 4px 0' }}>{comment.text}</p>
-<p style={{ fontSize: '10px', color: '#aaa', margin: 0 }}>{comment.timestamp}</p>
-</div>
-))}
 </div>
 )}
-<div style={{ display: 'flex', gap: '8px' }}>
-<input type="text" placeholder="Add a comment..." style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px' }} value={commentText[itemId] || ''} onChange={(e) => setCommentText(prev => ({ ...prev, [itemId]: e.target.value }))} />
-<button onClick={() => handleCommentSubmit(itemId)} style={{ padding: '8px 16px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Post</button>
-</div>
-</div>
-)}
-</div>
-)}
+{renderCommentSection(item, itemId)}
 </div>
 {showAdAfter && <EzoicAd placeholderId={DUMA_AD_PLACEHOLDER_START + adSlotIndex} />}
 </React.Fragment>
@@ -453,10 +526,9 @@ recommendationItems.map(item => (
 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '8px' }}>
 {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
 <CredentialExtras rankScore={null} socialLinks={item.submitterSocialLinks || null} />
-<ContentActions variant="menu" contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} onEdit={() => setEditingItem(item)} onDelete={() => handleDeletePost(item._id || item.id)} />
+<ContentActions variant="menu" contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} onEdit={() => setEditingItem(item)} onDelete={() => handleDeletePost(item._id || item.id)} showMessage onAddUser={item.submittedBy && !following.includes(item.submittedBy) ? onFollowUser : undefined} />
 </div>
 </div>
-<ContentActions variant="bar" style={{ marginBottom: '12px' }} contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} isFollowing={!!item.submittedBy && following.includes(item.submittedBy)} onFollow={onFollowUser} showModeration={false} />
 {item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={null} showRank={!item.submitterRank} profileLink={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`} />}
 {item.location && (
 <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
@@ -494,30 +566,9 @@ Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCoun
 </div>
 )}
 
-{showComments[item.id || item._id] && (
-<div style={{ borderTop: '2px solid #eee', paddingTop: '12px' }}>
-<h4 style={{ fontSize: '13px', color: '#555', marginBottom: '12px', fontWeight: '700' }}>Comments:</h4>
-
-{comments[item.id || item._id]?.length > 0 && (
-<div style={{ marginBottom: '12px' }}>
-{comments[item.id || item._id].map((comment, idx) => (
-<div key={idx} style={{ backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', marginBottom: '8px', borderLeft: '3px solid #3498db' }}>
-<p style={{ fontSize: '11px', fontWeight: '600', color: '#222', margin: '0 0 4px 0' }}>{comment.author}</p>
-<p style={{ fontSize: '12px', color: '#666', margin: '0 0 4px 0' }}>{comment.text}</p>
-<p style={{ fontSize: '10px', color: '#aaa', margin: 0 }}>{comment.timestamp}</p>
-</div>
-))}
 </div>
 )}
-
-<div style={{ display: 'flex', gap: '8px' }}>
-<input type="text" placeholder="Add a comment..." style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px' }} value={commentText[item.id || item._id] || ''} onChange={(e) => setCommentText(prev => ({ ...prev, [item.id || item._id]: e.target.value }))} />
-<button onClick={() => handleCommentSubmit(item.id || item._id)} style={{ padding: '8px 16px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Post</button>
-</div>
-</div>
-)}
-</div>
-)}
+{renderCommentSection(item, item.id || item._id)}
 </div>
 ))
 )}
@@ -542,10 +593,9 @@ partnerItems.map(item => (
 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '8px' }}>
 {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
 <CredentialExtras rankScore={null} socialLinks={item.submitterSocialLinks || null} />
-<ContentActions variant="menu" contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} onDelete={() => handleDeletePost(item._id || item.id)} />
+<ContentActions variant="menu" contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} onDelete={() => handleDeletePost(item._id || item.id)} showMessage onAddUser={item.submittedBy && !following.includes(item.submittedBy) ? onFollowUser : undefined} />
 </div>
 </div>
-<ContentActions variant="bar" style={{ marginBottom: '12px' }} contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} isFollowing={!!item.submittedBy && following.includes(item.submittedBy)} onFollow={onFollowUser} showModeration={false} />
 {item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={item.submitterRank || 'Comrade'} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={null} showRank={!item.submitterRank} profileLink={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`} />}
 {item.location && (
 <div style={{ fontSize: '11px', color: '#555', backgroundColor: '#f0f0f0', padding: '4px 8px', borderRadius: '4px', display: 'inline-flex', marginBottom: '10px', alignItems: 'center', gap: '4px' }}>
@@ -644,30 +694,9 @@ Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCoun
 </div>
 )}
 
-{showComments[item.id || item._id] && (
-<div style={{ borderTop: '2px solid #eee', paddingTop: '12px' }}>
-<h4 style={{ fontSize: '13px', color: '#555', marginBottom: '12px', fontWeight: '700' }}>Comments:</h4>
-
-{comments[item.id || item._id]?.length > 0 && (
-<div style={{ marginBottom: '12px' }}>
-{comments[item.id || item._id].map((comment, idx) => (
-<div key={idx} style={{ backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', marginBottom: '8px', borderLeft: '3px solid #3498db' }}>
-<p style={{ fontSize: '11px', fontWeight: '600', color: '#222', margin: '0 0 4px 0' }}>{comment.author}</p>
-<p style={{ fontSize: '12px', color: '#666', margin: '0 0 4px 0' }}>{comment.text}</p>
-<p style={{ fontSize: '10px', color: '#aaa', margin: 0 }}>{comment.timestamp}</p>
-</div>
-))}
 </div>
 )}
-
-<div style={{ display: 'flex', gap: '8px' }}>
-<input type="text" placeholder="Add a comment..." style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px' }} value={commentText[item.id || item._id] || ''} onChange={(e) => setCommentText(prev => ({ ...prev, [item.id || item._id]: e.target.value }))} />
-<button onClick={() => handleCommentSubmit(item.id || item._id)} style={{ padding: '8px 16px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Post</button>
-</div>
-</div>
-)}
-</div>
-)}
+{renderCommentSection(item, item.id || item._id)}
 </div>
 ))
 )}

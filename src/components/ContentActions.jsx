@@ -61,6 +61,8 @@ export const ContentActions = ({
   showModeration = true, // bar only: false hides Report/Block (when a "•••" menu already offers them)
   onEdit,                // menu only, your own content: shows "Edit"
   onDelete,              // menu only, your own content: shows "Delete"
+  showMessage = false,   // menu only: adds "Direct Message" to the "•••" menu
+  onAddUser,             // menu only: adds "+ Add User" to the "•••" menu (called with the author's email)
 }) => {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -250,6 +252,16 @@ export const ContentActions = ({
 
       {menuOpen && (
         <div role="menu" style={menuPanel}>
+          {showMessage && authorEmail && (
+            <button type="button" role="menuitem" style={menuItem} onClick={() => { setMenuOpen(false); navigate(messageLink(authorEmail, authorName)); }}>
+              ✉️ Direct Message
+            </button>
+          )}
+          {onAddUser && authorEmail && (
+            <button type="button" role="menuitem" style={menuItem} onClick={() => { setMenuOpen(false); onAddUser(authorEmail); }}>
+              + Add User
+            </button>
+          )}
           <button type="button" role="menuitem" style={menuItem} onClick={openReport}>
             🚩 Report
           </button>

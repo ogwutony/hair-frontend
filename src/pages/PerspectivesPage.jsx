@@ -254,21 +254,7 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
             <div style={{ fontSize: '12px', color: '#888' }}>Perspectives</div>
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-            {authToken && (
-              <>
-                <button onClick={() => navigate(messageLink(viewedPerson, getCleanDisplayName(viewedPerson)))}
-                  style={{ border: 'none', background: '#222', color: '#fff', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 700, padding: '9px 16px' }}>
-                  ✉️ Direct Message
-                </button>
-                {!following.includes(viewedPerson) && (
-                  <button onClick={() => onFollowUser?.(viewedPerson)}
-                    style={{ border: '1px solid #ddd', background: '#fff', color: '#222', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, padding: '9px 14px' }}>
-                    + Add User
-                  </button>
-                )}
-              </>
-            )}
-            <ContentActions contentId={viewedPerson} contentType="user" authorEmail={viewedPerson} authorName={getCleanDisplayName(viewedPerson)} authToken={authToken} userEmail={userEmail} />
+            <ContentActions contentId={viewedPerson} contentType="user" authorEmail={viewedPerson} authorName={getCleanDisplayName(viewedPerson)} authToken={authToken} userEmail={userEmail} showMessage onAddUser={!following.includes(viewedPerson) ? onFollowUser : undefined} />
           </div>
         </div>
       )}

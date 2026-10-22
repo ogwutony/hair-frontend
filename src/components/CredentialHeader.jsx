@@ -114,24 +114,6 @@ export const CredentialExtras = ({ rankScore, socialLinks }) => (
     )}
     {socialLinks && (
       <>
-        {socialLinks.instagram ? (
-          <a
-            href={safeSocialUrl(socialLinks.instagram)}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ textDecoration: 'none', fontSize: '15px' }}
-            title="Instagram"
-          >{"📷"}</a>
-        ) : null}
-        {socialLinks.tiktok ? (
-          <a
-            href={safeSocialUrl(socialLinks.tiktok)}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ textDecoration: 'none', fontSize: '15px' }}
-            title="TikTok"
-          >{"🎵"}</a>
-        ) : null}
         {socialLinks.snapchat ? (
           <a
             href={safeSocialUrl(socialLinks.snapchat)}

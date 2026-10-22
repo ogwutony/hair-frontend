@@ -27,13 +27,7 @@ return v.abstain ?? 0;
 };
 
 const CommentImagePicker = ({ files, onChange, disabled }) => {
-const [previewUrls, setPreviewUrls] = useState([]);
-
-useEffect(() => {
-const urls = files.map(file => URL.createObjectURL(file));
-setPreviewUrls(urls);
-return () => urls.forEach(url => URL.revokeObjectURL(url));
-}, [files]);
+const inputRef = useRef(null);
 
 const addFiles = (event) => {
 const addedFiles = Array.from(event.target.files || []);
@@ -45,10 +39,28 @@ onChange([...files, ...addedFiles].slice(0, 5));
 };
 
 return (
-<div>
-<input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={disabled} aria-label="Attach images" onChange={addFiles} />
+<>
+<input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={disabled} aria-label="Attach images" onChange={addFiles} style={{ display: 'none' }} />
+<button type="button" aria-label="Attach images" title="Attach images" disabled={disabled} onClick={() => inputRef.current?.click()} style={{ flexShrink: 0, width: '38px', height: '38px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#fff', border: '1px solid #ddd', borderRadius: '8px', color: '#555', cursor: disabled ? 'not-allowed' : 'pointer', fontSize: '18px' }}>
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.82-2.83l8.49-8.48" /></svg>
+</button>
+</>
+);
+};
+
+const CommentImagePreviews = ({ files, onChange, disabled }) => {
+const [previewUrls, setPreviewUrls] = useState([]);
+
+useEffect(() => {
+const urls = files.map(file => URL.createObjectURL(file));
+setPreviewUrls(urls);
+return () => urls.forEach(url => URL.revokeObjectURL(url));
+}, [files]);
+
+return (
+<>
 {previewUrls.length > 0 && (
-<div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+<div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '10px' }}>
 {previewUrls.map((url, index) => (
 <div key={`${files[index]?.name}-${index}`} style={{ position: 'relative' }}>
 <img src={url} alt={`Comment attachment ${index + 1} preview`} style={{ width: '72px', height: '72px', objectFit: 'cover', borderRadius: '6px' }} />
@@ -57,7 +69,7 @@ return (
 ))}
 </div>
 )}
-</div>
+</>
 );
 };
 
@@ -79,6 +91,7 @@ const { isHiddenItem } = useModeration();
 const [userVotes, setUserVotes] = useState({});
 const [showScores, setShowScores] = useState({});
 const [comments, setComments] = useState({});
+const [expandedComments, setExpandedComments] = useState({});
 const [commentText, setCommentText] = useState({});
 const [commentImages, setCommentImages] = useState({});
 const [commentSubmitting, setCommentSubmitting] = useState({});
@@ -306,10 +319,14 @@ const itemComments = comments[itemId] || item.comments || [];
 const images = commentImages[itemId] || [];
 const text = commentText[itemId] || '';
 const isSubmitting = !!commentSubmitting[itemId];
+const isExpanded = !!expandedComments[itemId];
 
 return (
-<div style={{ borderTop: '2px solid #eee', paddingTop: '12px', marginTop: '14px' }}>
-<h4 style={{ fontSize: '13px', color: '#555', margin: '0 0 12px', fontWeight: '700' }}>Comments ({itemComments.length})</h4>
+<div style={{ borderTop: '1px solid #eee', paddingTop: '14px', marginTop: '18px' }}>
+<button type="button" aria-expanded={isExpanded} onClick={() => setExpandedComments(prev => ({ ...prev, [itemId]: !prev[itemId] }))} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '8px 0', border: 'none', background: 'transparent', color: '#333', cursor: 'pointer', textAlign: 'left', fontSize: '14px', fontWeight: '700' }}>
+<span>Comments ({itemComments.length})</span><span aria-hidden="true" style={{ color: '#777', fontSize: '12px' }}>{isExpanded ? '−' : '+'}</span>
+</button>
+{isExpanded && <>
 {itemComments.map((comment, index) => (
 <div key={comment._id || index} style={{ backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', marginBottom: '8px', borderLeft: '3px solid #3498db' }}>
 <p style={{ fontSize: '11px', fontWeight: '600', color: '#222', margin: '0 0 4px' }}>{comment.author}</p>
@@ -323,23 +340,39 @@ return (
 </div>
 ))}
 {authToken && userEmail ? (
-<div>
-<div style={{ display: 'flex', gap: '8px' }}>
-<input type="text" aria-label="Comment text" placeholder="Add a comment..." style={{ flex: 1, minWidth: 0, padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px' }} value={text} disabled={isSubmitting} onChange={event => setCommentText(prev => ({ ...prev, [itemId]: event.target.value }))} />
-<button type="button" disabled={isSubmitting || (!text.trim() && images.length === 0)} onClick={() => handleCommentSubmit(item, itemId)} style={{ padding: '8px 16px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '6px', cursor: isSubmitting ? 'wait' : 'pointer', fontSize: '12px', fontWeight: '600', opacity: isSubmitting || (!text.trim() && images.length === 0) ? 0.6 : 1 }}>{isSubmitting ? 'Posting…' : 'Post'}</button>
-</div>
-<div style={{ marginTop: '8px' }}>
+<div style={{ marginTop: '8px', paddingBottom: '18px' }}>
+<div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+<input type="text" aria-label="Comment text" placeholder="Add a comment..." style={{ flex: 1, minWidth: 0, padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px' }} value={text} disabled={isSubmitting} onChange={event => setCommentText(prev => ({ ...prev, [itemId]: event.target.value }))} />
 <CommentImagePicker files={images} disabled={isSubmitting} onChange={nextImages => setCommentImages(prev => ({ ...prev, [itemId]: nextImages }))} />
+<button type="button" disabled={isSubmitting || (!text.trim() && images.length === 0)} onClick={() => handleCommentSubmit(item, itemId)} style={{ padding: '10px 16px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: isSubmitting ? 'wait' : 'pointer', fontSize: '12px', fontWeight: '600', opacity: isSubmitting || (!text.trim() && images.length === 0) ? 0.6 : 1 }}>{isSubmitting ? 'Posting…' : 'Post'}</button>
 </div>
+<CommentImagePreviews files={images} disabled={isSubmitting} onChange={nextImages => setCommentImages(prev => ({ ...prev, [itemId]: nextImages }))} />
 </div>
 ) : (
 <p style={{ margin: '10px 0 0', fontSize: '12px', color: '#666' }}>
 <Link to="/login" style={{ color: '#1f4f99', fontWeight: 600 }}>Log in</Link> or <Link to="/signup" style={{ color: '#1f4f99', fontWeight: 600 }}>register</Link> to post a comment.
 </p>
 )}
+</>}
 </div>
 );
 };
+
+const renderVoteControls = (item, itemId) => authToken && (
+<div>
+<div style={{ display: 'flex', gap: '8px', marginBottom: '14px', padding: '8px', background: '#f7f7f7', border: '1px solid #eee', borderRadius: '10px' }}>
+<button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'yes')} style={{ ...styles.voteBtn, flex: 1, minWidth: 0, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[itemId] === 'yes' ? 1 : 0.7 }}>Yes</button>
+<button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'no')} style={{ ...styles.voteBtn, flex: 1, minWidth: 0, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[itemId] === 'no' ? 1 : 0.7 }}>No</button>
+<button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'abstain')} style={{ ...styles.voteBtn, flex: 1, minWidth: 0, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[itemId] === 'abstain' ? 1 : 0.7 }}>Abstain</button>
+</div>
+{showScores[itemId] && (
+<div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
+<p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>Vote Results:</p>
+<p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCount(item, 'abstain')}</p>
+</div>
+)}
+</div>
+);
 
 // Hide posts you reported and posts from people you blocked
 const visibleItems = dumaItems.filter(item => !isHiddenItem(item));
@@ -347,6 +380,7 @@ const culturalItems = visibleItems.filter(item => item.section === "Cultural" ||
 const recommendationItems = visibleItems.filter(item => item.type === "Product Recommendation" || item.type === "Recommendation");
 const partnerItems = visibleItems.filter(item => item.type === "Partner");
 const marketplaceItems = marketplaceListings.filter(item => !isHiddenItem(item));
+const dumaPostCardStyle = { backgroundColor: '#fff', border: '1px solid #e8e8e8', borderRadius: '16px', padding: isMobile ? '16px' : '24px', marginBottom: isMobile ? '18px' : '24px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)' };
 
 return (
 <div style={{ padding: isMobile ? '25px 16px' : '40px 60px', maxWidth: '1100px', margin: '0 auto', flex: '1 1 auto', minWidth: 0 }}>
@@ -404,7 +438,7 @@ const verifiedRank = item.rankScore ? getRankTitle(item.rankScore) : (item.submi
 
 return (
 <React.Fragment key={itemId}>
-<div style={styles.dumaCard}>
+<div style={dumaPostCardStyle}>
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '12px' }}>
 <span style={styles.typeTag}>Perspective</span>
 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '8px' }}>
@@ -486,21 +520,7 @@ onError={(e) => {
 
 {authToken && (
 <div>
-<div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-<button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[itemId] === 'yes' ? 1 : 0.7 }}>Yes</button>
-<button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[itemId] === 'no' ? 1 : 0.7 }}>No</button>
-<button disabled={!!userVotes[itemId]} onClick={() => handleVote(itemId, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[itemId] === 'abstain' ? 1 : 0.7 }}>Abstain</button>
-</div>
-
-{showScores[itemId] && (
-<div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
-<p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>Vote Results:</p>
-<p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
-Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCount(item, 'abstain')}
-</p>
-</div>
-)}
-
+{renderVoteControls(item, itemId)}
 </div>
 )}
 {renderCommentSection(item, itemId)}
@@ -520,7 +540,7 @@ Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCoun
 <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No product recommendations yet. Be the first to recommend a product!</div>
 ) : (
 recommendationItems.map(item => (
-<div key={item.id || item._id} style={styles.dumaCard}>
+<div key={item.id || item._id} style={dumaPostCardStyle}>
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '12px' }}>
 <span style={styles.typeTag}>{item.type}</span>
 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '8px' }}>
@@ -551,21 +571,7 @@ e.currentTarget.src = '/logo192.png';
 
 {authToken && (
 <div>
-<div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-<button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[item.id || item._id] === 'yes' ? 1 : 0.7 }}>Yes</button>
-<button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[item.id || item._id] === 'no' ? 1 : 0.7 }}>No</button>
-<button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[item.id || item._id] === 'abstain' ? 1 : 0.7 }}>Abstain</button>
-</div>
-
-{showScores[item.id || item._id] && (
-<div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
-<p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>Vote Results:</p>
-<p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
-Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCount(item, 'abstain')}
-</p>
-</div>
-)}
-
+{renderVoteControls(item, item.id || item._id)}
 </div>
 )}
 {renderCommentSection(item, item.id || item._id)}
@@ -587,7 +593,7 @@ Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCoun
 <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No partner applications yet. Be the first to submit a partnership!</div>
 ) : (
 partnerItems.map(item => (
-<div key={item.id || item._id} style={styles.dumaCard}>
+<div key={item.id || item._id} style={dumaPostCardStyle}>
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '12px' }}>
 <span style={styles.typeTag}>{item.type}</span>
 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '8px' }}>
@@ -679,21 +685,7 @@ partnerItems.map(item => (
 
 {authToken && (
 <div>
-<div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-<button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'yes')} style={{ ...styles.voteBtn, borderColor: '#27ae60', color: '#27ae60', opacity: userVotes[item.id || item._id] === 'yes' ? 1 : 0.7 }}>Yes</button>
-<button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'no')} style={{ ...styles.voteBtn, borderColor: '#e74c3c', color: '#e74c3c', opacity: userVotes[item.id || item._id] === 'no' ? 1 : 0.7 }}>No</button>
-<button disabled={!!userVotes[item.id || item._id]} onClick={() => handleVote(item._id || item.id, 'abstain')} style={{ ...styles.voteBtn, borderColor: '#95a5a6', color: '#95a5a6', opacity: userVotes[item.id || item._id] === 'abstain' ? 1 : 0.7 }}>Abstain</button>
-</div>
-
-{showScores[item.id || item._id] && (
-<div style={{ backgroundColor: '#f0f8ff', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #3498db' }}>
-<p style={{ fontSize: '12px', fontWeight: '600', color: '#2980b9', margin: '0' }}>Vote Results:</p>
-<p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
-Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCount(item, 'abstain')}
-</p>
-</div>
-)}
-
+{renderVoteControls(item, item.id || item._id)}
 </div>
 )}
 {renderCommentSection(item, item.id || item._id)}

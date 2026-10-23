@@ -18,7 +18,7 @@ export const BANNER_ITEMS = [
   },
   {
     id: 2,
-    text: 'MADE IN DALLAS, TX, USA — THE MAJORITIES: a company built of the people, by the people, and for the people',
+    text: 'The Majorities: a company built of the people, by the people, and for the people made in Dallas, TX, USA',
     tag: 'OUR MISSION',
     cta: 'Our Story',
     link: '/about',

@@ -133,10 +133,10 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
       {isWishlist && items.length === 0 ? (
         <p className="ms-empty">Tap the heart on any product to save it here. <Link to="/">Shop all</Link></p>
       ) : (
-        <main className={`ms-grid${view === 'list' ? ' list' : ''}`} id="shop">
+        <main className={`ms-grid${view === 'list' ? ' list' : ''}`} id="subscribe">
           {bundles.map(card)}
           {showBuildCard && (
-            <article className="ms-card ms-build">
+            <article className="ms-card ms-build" id="custom-set">
               <button type="button" className="ms-build-inner" onClick={onBuildSet}>
                 <span className="ms-build-count">{setCount}/6</span>
                 <span className="ms-name">Build Your 6-Bottle Custom Set</span>

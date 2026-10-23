@@ -6,6 +6,8 @@ import { SHOP_ITEMS, SHOP_ITEM_BY_ID } from '../utils/shopCatalog';
 import { useCart } from '../utils/cart';
 import { formatCurrency } from '../utils/helpers';
 import { Icon } from '../components/MobileHeader';
+import { AnnouncementBanner } from '../components/AnnouncementBanner';
+import { WaitlistModal } from '../components/WaitlistModal';
 import '../mobileShop.css';
 import { trackViewContent } from '../utils/pixels';
 
@@ -43,6 +45,7 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
   const [modes, setModes] = useState({});
   const [quickId, setQuickId] = useState(null);
   const [toast, setToast] = useState('');
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
   const faqRef = useRef(null);
   const toastTimer = useRef(null);
 
@@ -110,13 +113,8 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
 
   return (
     <div className="ms-shop">
-      <section className="ms-intro">
-        <h1>Skin and hair care for every one of us.</h1>
-        <p>
-          Subscribe for just $14.99 a bottle, delivered on your schedule.
-          Start with a 3-bottle or 6-bottle bundle, or pick the individual essentials you need. Pause or cancel anytime.
-        </p>
-      </section>
+      <AnnouncementBanner onOpenWaitlist={() => setWaitlistOpen(true)} />
+      <WaitlistModal isOpen={waitlistOpen} onClose={() => setWaitlistOpen(false)} />
 
       <div className="ms-toolbar">
         <span>{title} · {items.length} {items.length === 1 ? 'product' : 'products'}</span>

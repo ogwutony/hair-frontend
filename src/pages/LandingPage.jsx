@@ -1,6 +1,6 @@
 // src/pages/LandingPage.jsx
 import React, { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { trackEvent } from '../components/AdMonetization';
 import { productsData, PRODUCT_IMAGE_BY_NAME } from '../utils/constants';
@@ -10,7 +10,6 @@ import { MobileShop } from './MobileShop';
 import { trackInitiateCheckout } from '../utils/pixels';
 
 export function LandingPage({ saveSetToProfile, onAddPoints, savedSets }) {
-const location = useLocation();
 const [selection, setSelection] = useState([]);
 const [focusedItem, setFocusedItem] = useState(null);
 // The shop grid is the default view; the custom 6-bottle builder opens from its card
@@ -27,12 +26,6 @@ debounceTimer = setTimeout(() => setIsMobile(window.innerWidth <= MOBILE_BREAKPO
 window.addEventListener('resize', handleResize);
 return () => { clearTimeout(debounceTimer); window.removeEventListener('resize', handleResize); };
 }, []);
-
-useEffect(() => {
-if (!location.hash) return;
-const target = document.getElementById(location.hash.slice(1));
-if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}, [location.hash]);
 
 const handleSelect = (item) => {
 setFocusedItem(item);

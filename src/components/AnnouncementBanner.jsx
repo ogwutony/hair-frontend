@@ -7,7 +7,7 @@ export const BANNER_ITEMS = [
     text: 'BUILD YOUR 6-BOTTLE CUSTOM SET — Mix and match any bottles for $54.99',
     tag: 'CUSTOM BUNDLE',
     cta: 'Build Yours',
-    link: '/#custom-set',
+    link: '#custom-set',
   },
   {
     id: 2,
@@ -25,20 +25,21 @@ export const BANNER_ITEMS = [
   },
   {
     id: 4,
-    text: 'Subscribe & Save: Get daily essentials delivered for $14.99/bottle',
+    text: 'Skin & hair care for every one of us. Subscribe for $14.99/bottle — 3 or 6-bottle bundles, delivered on your schedule. Pause or cancel anytime.',
     tag: 'SUBSCRIBE',
-    cta: 'Shop All',
-    link: '/#subscribe',
+    cta: 'Shop Essentials',
+    link: '#subscribe',
   },
 ];
 
-const ROTATE_MS = 5000;
+const ROTATE_MS = 6000;
 
+// Featured banner at the top of the shop. All slides share one grid cell so the
+// banner keeps the height of the tallest slide and nothing jumps while rotating.
 export function AnnouncementBanner({ onOpenWaitlist }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const count = BANNER_ITEMS.length;
-  const current = BANNER_ITEMS[index];
 
   useEffect(() => {
     if (paused) return undefined;
@@ -46,49 +47,63 @@ export function AnnouncementBanner({ onOpenWaitlist }) {
     return () => clearInterval(timer);
   }, [paused, count]);
 
-  const scrollToHash = () => {
-    // Re-clicking the same hash link doesn't re-trigger the route's scroll effect
-    const id = current.link.split('#')[1];
-    if (id && window.location.pathname === '/') document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  const scrollTo = (hash) => {
+    document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const renderCta = (item) => {
+    const label = <>{item.cta} <span aria-hidden="true">→</span></>;
+    if (item.action === 'openWaitlist') {
+      return <button type="button" className="ms-btn ms-feature-cta" onClick={onOpenWaitlist}>{label}</button>;
+    }
+    if (item.link.startsWith('#')) {
+      return <button type="button" className="ms-btn ms-feature-cta" onClick={() => scrollTo(item.link)}>{label}</button>;
+    }
+    return <Link to={item.link} className="ms-btn ms-feature-cta">{label}</Link>;
   };
 
   return (
-    <div
-      className="ms-promo"
+    <section
+      className="ms-feature"
+      aria-roledescription="carousel"
+      aria-label="Featured"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
     >
-      <div className="ms-promo-dots">
+      <h1 className="ms-sr-only">Skin and hair care for every one of us.</h1>
+      <div className="ms-feature-slides">
         {BANNER_ITEMS.map((item, i) => (
-          <button
+          <div
             key={item.id}
-            type="button"
-            className={i === index ? 'active' : ''}
-            onClick={() => setIndex(i)}
-            aria-label={`Go to slide ${i + 1}`}
-            aria-current={i === index}
-          />
+            className={`ms-feature-slide${i === index ? ' active' : ''}`}
+            aria-hidden={i !== index}
+          >
+            <span className="ms-feature-tag">{item.tag}</span>
+            <p className="ms-feature-text">{item.text}</p>
+            {renderCta(item)}
+          </div>
         ))}
       </div>
-      <div className="ms-promo-body">
-        <span className="ms-promo-tag">{current.tag}</span>
-        <span className="ms-promo-text">{current.text}</span>
-        {current.action === 'openWaitlist' ? (
-          <button type="button" className="ms-promo-cta" onClick={onOpenWaitlist}>
-            {current.cta} <span aria-hidden="true">→</span>
-          </button>
-        ) : (
-          <Link to={current.link} className="ms-promo-cta" onClick={scrollToHash}>
-            {current.cta} <span aria-hidden="true">→</span>
-          </Link>
-        )}
+      <div className="ms-feature-nav">
+        <div className="ms-feature-dots">
+          {BANNER_ITEMS.map((item, i) => (
+            <button
+              key={item.id}
+              type="button"
+              className={i === index ? 'active' : ''}
+              onClick={() => setIndex(i)}
+              aria-label={`Go to slide ${i + 1}`}
+              aria-current={i === index}
+            />
+          ))}
+        </div>
+        <div className="ms-feature-arrows">
+          <button type="button" onClick={() => setIndex((i) => (i - 1 + count) % count)} aria-label="Previous slide">&#8249;</button>
+          <button type="button" onClick={() => setIndex((i) => (i + 1) % count)} aria-label="Next slide">&#8250;</button>
+        </div>
       </div>
-      <div className="ms-promo-arrows">
-        <button type="button" onClick={() => setIndex((i) => (i - 1 + count) % count)} aria-label="Previous slide">&#8249;</button>
-        <button type="button" onClick={() => setIndex((i) => (i + 1) % count)} aria-label="Next slide">&#8250;</button>
-      </div>
-    </div>
+    </section>
   );
 }

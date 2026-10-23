@@ -6,8 +6,6 @@ import { useCart, checkoutCart } from '../utils/cart';
 import { SHOP_ITEM_BY_ID } from '../utils/shopCatalog';
 import { formatCurrency } from '../utils/helpers';
 import { RankBadge } from './RankBadge';
-import { WaitlistModal } from './WaitlistModal';
-import { AnnouncementBanner } from './AnnouncementBanner';
 import '../mobileShop.css';
 
 const Icon = {
@@ -19,9 +17,39 @@ const Icon = {
 };
 export { Icon };
 
+// Messages that rotate in the black promo bar at the top of every page.
+const PROMO_MESSAGES = [
+  'Subscribe & Save Every Time | Pre-Orders Ship Oct 31, 2026',
+  'Free Shipping on All Retail Orders',
+  'Build Your Custom 6-Pack & Save',
+];
+const PROMO_INTERVAL_MS = 4000;
+
+function PromoBar() {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIndex((i) => (i + 1) % PROMO_MESSAGES.length);
+    }, PROMO_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, []);
+
+  // All messages share one grid cell, so the bar is always as tall as the longest
+  // message (no layout jump when one wraps on a phone) and only the active one shows.
+  return (
+    <div className="ms-promo">
+      <div className="ms-promo-track">
+        {PROMO_MESSAGES.map((msg, i) => (
+          <span key={msg} className={`ms-promo-msg${i === index ? ' active' : ''}`} aria-hidden={i !== index}>{msg}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle, wholesaleApproved = false }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [waitlistOpen, setWaitlistOpen] = useState(false);
   const { lines, count, subtotal, changeQty, wishlist, cartOpen, setCartOpen } = useCart();
   const navigate = useNavigate();
   const anyOpen = menuOpen || cartOpen;
@@ -63,8 +91,7 @@ export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle, 
 
   return (
     <>
-      <AnnouncementBanner onOpenWaitlist={() => setWaitlistOpen(true)} />
-      <WaitlistModal isOpen={waitlistOpen} onClose={() => setWaitlistOpen(false)} />
+      <PromoBar />
       <header className="ms-header">
         <button type="button" className="ms-ib" aria-label="Open menu" onClick={() => setMenuOpen(true)}>{Icon.menu}</button>
         <Link to="/" className="ms-logo">The Majorities</Link>

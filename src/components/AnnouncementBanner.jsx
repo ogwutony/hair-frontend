@@ -3,6 +3,13 @@ import { Link } from 'react-router-dom';
 
 export const BANNER_ITEMS = [
   {
+    id: 3,
+    text: 'Join the Waitlist: Secure access to orders at launch',
+    tag: 'WAITLIST',
+    cta: 'Get On List',
+    action: 'openWaitlist',
+  },
+  {
     id: 1,
     text: 'BUILD YOUR 6-BOTTLE CUSTOM SET — Mix and match any bottles for $54.99',
     tag: 'CUSTOM BUNDLE',
@@ -11,17 +18,10 @@ export const BANNER_ITEMS = [
   },
   {
     id: 2,
-    text: 'THE MAJORITIES: Made in Dallas, TX USA • A company of the people, by the people, for the people',
+    text: 'MADE IN DALLAS, TX, USA — THE MAJORITIES: a company built of the people, by the people, and for the people',
     tag: 'OUR MISSION',
     cta: 'Our Story',
     link: '/about',
-  },
-  {
-    id: 3,
-    text: 'Pre-Orders Open: Join the VIP waitlist for early drop access & special perks',
-    tag: 'WAITLIST',
-    cta: 'Get On List',
-    action: 'openWaitlist',
   },
   {
     id: 4,

@@ -6,9 +6,11 @@ const renderBanner = (props) => render(<MemoryRouter><AnnouncementBanner {...pro
 
 test('navigates through slides and links Our Story to /about', () => {
   renderBanner({ onOpenWaitlist: jest.fn() });
-  expect(screen.getByRole('button', { name: /build yours/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /get on list/i })).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole('button', { name: /next slide/i }));
+  fireEvent.click(screen.getByRole('button', { name: /next slide/i }));
+  expect(screen.getByText(/MADE IN DALLAS, TX, USA/i)).toBeInTheDocument();
   expect(screen.getByRole('link', { name: /our story/i })).toHaveAttribute('href', '/about');
 });
 
@@ -16,7 +18,7 @@ test('waitlist slide CTA opens the waitlist', () => {
   const onOpenWaitlist = jest.fn();
   renderBanner({ onOpenWaitlist });
 
-  fireEvent.click(screen.getByRole('button', { name: /go to slide 3/i }));
+  fireEvent.click(screen.getByRole('button', { name: /go to slide 1/i }));
   fireEvent.click(screen.getByRole('button', { name: /get on list/i }));
   expect(onOpenWaitlist).toHaveBeenCalledTimes(1);
 });

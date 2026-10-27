@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { SUPPORT_EMAIL, TERMS_VERSION, hasAcceptedTerms, markTermsAccepted, syncBlockedFromServer } from '../utils/moderation';
+import { SUPPORT_EMAIL, TERMS_VERSION, consumeTermsPreAccepted, hasAcceptedTerms, markTermsAccepted, syncBlockedFromServer } from '../utils/moderation';
 
 const RULES = [
   ['Zero tolerance', 'No hateful, harassing, threatening, sexually explicit, violent, illegal or spam content, and no scams or impersonation. Accounts that break these rules are suspended or removed.'],
@@ -25,6 +25,12 @@ export const TermsGate = ({ userEmail, authToken, onDecline }) => {
       return;
     }
     syncBlockedFromServer(authToken);
+    // Already agreed on the Sign Up / Log In screen a moment ago
+    if (!hasAcceptedTerms(userEmail) && consumeTermsPreAccepted()) {
+      markTermsAccepted(userEmail, authToken);
+      setVisible(false);
+      return;
+    }
     setVisible(!hasAcceptedTerms(userEmail));
   }, [userEmail, authToken]);
 

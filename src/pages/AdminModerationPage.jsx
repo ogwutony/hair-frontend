@@ -3,6 +3,8 @@
 //   GET  /api/admin/reports?status=open|resolved
 //   POST /api/admin/reports/:id/resolve   { action }
 //   POST /api/admin/duma/:id/hide | /unhide
+//   POST /api/admin/users/ban | /unban   { email, reason }
+// Apple Guideline 1.2: act on every report within 24 hours — remove the content and eject the user.
 import React, { useCallback, useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { BACKEND_URL } from '../utils/constants';
@@ -70,6 +72,24 @@ export const AdminModerationPage = ({ authToken }) => {
     if (ok) setReports((prev) => prev.filter((r) => r._id !== report._id));
   };
 
+  const removeAndBan = async (report) => {
+    if (!window.confirm(`Remove this ${report.contentType} and ban ${report.reportedUser || 'the user'}? All of their posts and comments will be removed.`)) return;
+    await resolve(report, 'remove_and_ban');
+  };
+
+  const [banEmail, setBanEmail] = useState('');
+  const banByEmail = async (unban = false) => {
+    const email = banEmail.trim().toLowerCase();
+    if (!email) return;
+    if (!unban && !window.confirm(`Ban ${email} and remove all of their content?`)) return;
+    const ok = await act(email,
+      () => call(`/api/admin/users/${unban ? 'unban' : 'ban'}`, { method: 'POST', body: JSON.stringify({ email, reason: 'Admin action' }) }),
+      unban ? `${email} unbanned.` : `${email} banned and their content removed.`);
+    if (ok) setBanEmail('');
+  };
+
+  const isOverdue = (r) => r.status !== 'resolved' && r.createdAt && Date.now() - new Date(r.createdAt).getTime() > 20 * 3600000;
+
   const hideAndResolve = async (report) => {
     if (await setHidden(report.contentId, true)) await resolve(report, 'post hidden');
   };
@@ -83,7 +103,13 @@ export const AdminModerationPage = ({ authToken }) => {
     <div style={{ padding: '30px 16px', maxWidth: '900px', margin: '0 auto' }}>
       <Helmet><title>Moderation | The Majorities</title><meta name="robots" content="noindex" /></Helmet>
       <h2 style={{ marginBottom: '6px' }}>Moderation</h2>
-      <p style={{ color: '#666', fontSize: '14px', marginTop: 0 }}>Review reported Duma posts. Posts reported by 3 different people are hidden automatically.</p>
+      <p style={{ color: '#666', fontSize: '14px', marginTop: 0 }}>Review reported posts, comments, messages and users within 24 hours. Posts and comments reported by 3 different people are hidden automatically.</p>
+      <div style={{ ...card, display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <strong style={{ fontSize: '13px' }}>Eject a user:</strong>
+        <input type="email" placeholder="user@email.com" value={banEmail} onChange={(e) => setBanEmail(e.target.value)} style={{ flex: '1 1 200px', padding: '8px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '13px' }} />
+        <button type="button" disabled={!!busyId} onClick={() => banByEmail(false)} style={{ ...btn, background: '#c0392b', color: '#fff', border: 'none' }}>Ban &amp; remove content</button>
+        <button type="button" disabled={!!busyId} onClick={() => banByEmail(true)} style={btn}>Unban</button>
+      </div>
 
       <div style={{ display: 'flex', gap: '10px', margin: '20px 0', flexWrap: 'wrap' }}>
         {['open', 'resolved'].map((s) => (
@@ -102,12 +128,12 @@ export const AdminModerationPage = ({ authToken }) => {
       ) : reports.map((r) => (
         <div key={r._id} style={card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
-            <strong>{r.reason}</strong>
+            <strong>{r.reason}{isOverdue(r) && <span style={{ marginLeft: '8px', background: '#c0392b', color: '#fff', borderRadius: '999px', padding: '2px 8px', fontSize: '11px' }}>Due within 24h</span>}</strong>
             <span style={{ fontSize: '12px', color: '#888' }}>{r.createdAt ? new Date(r.createdAt).toLocaleString() : ''}</span>
           </div>
           {r.details && <p style={{ fontSize: '13px', color: '#444', margin: '0 0 8px' }}>{r.details}</p>}
           <div style={{ fontSize: '12px', color: '#555', lineHeight: 1.7, wordBreak: 'break-all' }}>
-            <div>Type: {r.contentType} · Post ID: <code>{r.contentId || '—'}</code>{countByPost[r.contentId] > 1 ? ` · ${countByPost[r.contentId]} reports in this list` : ''}</div>
+            <div>Type: {r.contentType} · ID: <code>{r.contentId || '—'}</code>{countByPost[r.contentId] > 1 ? ` · ${countByPost[r.contentId]} reports in this list` : ''}</div>
             <div>Posted by: {r.reportedUser || '—'}</div>
             <div>Reported by: {r.reporterEmail || '—'}</div>
             {r.status === 'resolved' && <div>Resolved: {r.action || 'reviewed'}{r.resolvedAt ? ` · ${new Date(r.resolvedAt).toLocaleString()}` : ''}</div>}
@@ -121,6 +147,15 @@ export const AdminModerationPage = ({ authToken }) => {
                 <button type="button" disabled={busyId} onClick={() => setHidden(r.contentId, true)} style={btn}>Hide post</button>
                 <button type="button" disabled={busyId} onClick={() => setHidden(r.contentId, false)} style={btn}>Unhide post</button>
               </>
+            )}
+            {r.status !== 'resolved' && r.reportedUser && (
+              <button type="button" disabled={busyId} onClick={() => removeAndBan(r)} style={{ ...btn, background: '#7b1d12', color: '#fff', border: 'none' }}>Remove &amp; ban user</button>
+            )}
+            {r.status !== 'resolved' && ['comment', 'message'].includes(r.contentType) && (
+              <button type="button" disabled={busyId} onClick={() => resolve(r, 'remove_content')} style={btn}>Remove {r.contentType} &amp; resolve</button>
+            )}
+            {r.status !== 'resolved' && r.reportedUser && (
+              <button type="button" disabled={busyId} onClick={() => resolve(r, 'ban_user')} style={btn}>Ban user only</button>
             )}
             {r.status !== 'resolved' && (
               <button type="button" disabled={busyId} onClick={() => resolve(r, 'no action')} style={btn}>Dismiss (no action)</button>

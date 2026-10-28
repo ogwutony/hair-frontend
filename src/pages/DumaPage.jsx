@@ -406,8 +406,7 @@ return (
 <React.Fragment key={itemId}>
 <div style={styles.dumaCard}>
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '12px' }}>
-<span style={styles.typeTag}>Perspective</span>
-<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '8px' }}>
+<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '8px', marginLeft: 'auto' }}>
 {isFeaturedContributor(item) && <span style={{ background: '#f4d35e', color: '#222', borderRadius: '999px', padding: '4px 8px', fontSize: '10px', fontWeight: '800' }}>★ Featured on The Duma</span>}
 <RankBadge rankTitle={verifiedRank} />
 <CredentialExtras rankScore={item.rankScore || null} socialLinks={item.submitterSocialLinks || null} />

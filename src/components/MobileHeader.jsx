@@ -48,7 +48,10 @@ function PromoBar() {
   );
 }
 
-export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle, wholesaleApproved = false }) {
+// The Wholesale menu item always shows and sends visitors to the wholesale Shopify store.
+const WHOLESALE_URL = 'https://c0bqfe-z2.myshopify.com/';
+
+export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { lines, count, subtotal, changeQty, wishlist, cartOpen, setCartOpen } = useCart();
   const navigate = useNavigate();
@@ -66,6 +69,7 @@ export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle, 
   const closeAll = () => { setMenuOpen(false); setCartOpen(false); };
   const go = (to) => { closeAll(); navigate(to); };
   const logout = () => { closeAll(); onLogout(); };
+  const goWholesale = () => { closeAll(); window.location.href = WHOLESALE_URL; };
 
   // Same items in the mobile drawer and the desktop nav bar
   const navItems = isLoggedIn
@@ -73,7 +77,7 @@ export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle, 
         ['Home', () => go('/')],
         ['Recommend', () => go('/recommend')],
         ['Partner', () => go('/partner')],
-        ...(wholesaleApproved ? [['Wholesale', () => go('/wholesale')]] : []),
+        ['Wholesale', goWholesale],
         ['The Duma', () => go('/duma')],
         ['Perspectives', () => go('/perspectives')],
         ['Profile', () => go('/profile')],
@@ -84,6 +88,7 @@ export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle, 
         ['Shop', () => go('/')],
         ['Recommend', () => go('/recommend')],
         ['Partner', () => go('/partner')],
+        ['Wholesale', goWholesale],
         ['The Duma', () => go('/duma')],
         ['Sign Up', () => go('/signup')],
         ['Login', () => go('/login')],

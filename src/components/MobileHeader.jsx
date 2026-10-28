@@ -49,7 +49,7 @@ function PromoBar() {
 }
 
 // The Wholesale menu item always shows and sends visitors to the wholesale Shopify store.
-const WHOLESALE_URL = 'https://c0bqfe-z2.myshopify.com/';
+const WHOLESALE_URL = 'https://c0bqfe-z2.myshopify.com/collections/wholesale';
 
 export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle }) {
   const [menuOpen, setMenuOpen] = useState(false);

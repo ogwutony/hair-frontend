@@ -318,8 +318,7 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
           filteredItems.filter(item => !isHiddenItem(item)).map(item => (
             <div key={item.id || item._id} style={styles.dumaCard}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                <span style={styles.typeTag}>Perspective</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
                   {item.submitterRank && <RankBadge rankTitle={item.submitterRank} />}
                   <ContentActions contentId={String(item._id || item.id || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} />
                   {authToken && userEmail && item.submittedBy && item.submittedBy.toLowerCase() === userEmail.toLowerCase() && (

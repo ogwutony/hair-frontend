@@ -69,7 +69,6 @@ export const PerspectiveDetailPage = ({ authToken }) => {
         <meta property="og:description" content={clip(body, 155)} />
       </Helmet>
       <p style={{ fontSize: '13px', marginTop: 0 }}><Link to="/duma" style={{ color: '#1f4f99' }}>← The Duma</Link></p>
-      <span style={styles.typeTag}>Perspective</span>
       <h1 style={{ fontSize: '28px', lineHeight: 1.3, margin: '14px 0 10px' }}>{title}</h1>
       {posted && !Number.isNaN(posted.getTime()) && (
         <p style={{ color: '#888', fontSize: '13px', margin: '0 0 12px' }}>

@@ -308,6 +308,12 @@ const Order = mongoose.model('Order', new mongoose.Schema({
   createdAt:             { type: Date, default: Date.now }
 }));
 
+const WaitlistEntry = mongoose.model('WaitlistEntry', new mongoose.Schema({
+  email:      { type: String, required: true, unique: true, lowercase: true, trim: true },
+  preference: { type: String, default: 'general' },
+  createdAt:  { type: Date, default: Date.now }
+}));
+
 // Duma (formerly Legislature) submissions
 const DumaItem = mongoose.model('DumaItem', new mongoose.Schema({
   type:       { type: String, required: true }, // "Recommendation" | "Partner"
@@ -489,6 +495,38 @@ app.get('/api/models/health', async (req, res) => {
 });
 
 // Generate personalized hair care recommendation
+const waitlistLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests. Please try again shortly.' }
+});
+
+app.post('/api/waitlist', waitlistLimiter, async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const preference = String(req.body?.preference || 'general').slice(0, 50);
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid email address.' });
+    }
+
+    if (await WaitlistEntry.exists({ email })) {
+      return res.status(200).json({ success: true, message: 'You are already registered on the waitlist!' });
+    }
+
+    await WaitlistEntry.create({ email, preference });
+    return res.status(201).json({ success: true, message: 'Successfully added to the waitlist.' });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(200).json({ success: true, message: 'You are already registered on the waitlist!' });
+    }
+    console.error('Waitlist submission error:', error);
+    return res.status(500).json({ success: false, message: 'Server error processing your request. Please try again later.' });
+  }
+});
+
 app.post('/api/models/recommend', authMiddleware, async (req, res) => {
   try {
     const { hairType, concerns, preferredIngredients, budget } = req.body;

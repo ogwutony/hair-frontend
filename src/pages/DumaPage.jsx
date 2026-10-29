@@ -75,7 +75,7 @@ const id = getItemId(updated) || getItemId(editingItem);
 setDumaItems(prev => prev.map(it => (getItemId(it) === id ? { ...it, ...updated } : it)));
 setEditingItem(null);
 };
-const { isHiddenItem } = useModeration();
+const { isHiddenItem, isBlocked, hidden: hiddenIds } = useModeration();
 const [userVotes, setUserVotes] = useState({});
 const [showScores, setShowScores] = useState({});
 const [comments, setComments] = useState({});
@@ -301,8 +301,25 @@ setCommentSubmitting(prev => ({ ...prev, [itemId]: false }));
 }
 };
 
+const handleDeleteComment = async (itemId, commentId) => {
+if (!commentId || !window.confirm('Delete this comment?')) return;
+try {
+const res = await fetch(`${BACKEND_URL}/api/posts/${encodeURIComponent(itemId)}/comments/${encodeURIComponent(commentId)}`, { method: 'DELETE', headers: { Authorization: 'Bearer ' + authToken } });
+const data = await res.json().catch(() => ({}));
+if (!res.ok) throw new Error(data.error || 'Failed to delete comment.');
+setComments(prev => {
+const item = dumaItems.find(i => getItemId(i) === itemId);
+const list = prev[itemId] || item?.comments || [];
+return { ...prev, [itemId]: list.filter(c => c._id !== commentId) };
+});
+} catch (error) {
+window.alert(error.message || 'Failed to delete comment.');
+}
+};
+
 const renderCommentSection = (item, itemId) => {
-const itemComments = comments[itemId] || item.comments || [];
+// Hide comments you reported and comments from people you blocked
+const itemComments = (comments[itemId] || item.comments || []).filter(c => !isBlocked(c.author) && !hiddenIds.includes(String(c._id || '')));
 const images = commentImages[itemId] || [];
 const text = commentText[itemId] || '';
 const isSubmitting = !!commentSubmitting[itemId];
@@ -312,7 +329,10 @@ return (
 <h4 style={{ fontSize: '13px', color: '#555', margin: '0 0 12px', fontWeight: '700' }}>Comments ({itemComments.length})</h4>
 {itemComments.map((comment, index) => (
 <div key={comment._id || index} style={{ backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '6px', marginBottom: '8px', borderLeft: '3px solid #3498db' }}>
-<p style={{ fontSize: '11px', fontWeight: '600', color: '#222', margin: '0 0 4px' }}>{comment.author}</p>
+<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+<p style={{ fontSize: '11px', fontWeight: '600', color: '#222', margin: '0 0 4px' }}>{comment.authorDisplayName || comment.author}</p>
+<ContentActions variant="menu" contentId={String(comment._id || '')} contentType="comment" authorEmail={comment.author} authorName={comment.authorDisplayName} authToken={authToken} userEmail={userEmail} onDelete={() => handleDeleteComment(itemId, comment._id)} />
+</div>
 {comment.text && <p style={{ fontSize: '12px', color: '#666', margin: '0 0 4px', whiteSpace: 'pre-wrap' }}>{comment.text}</p>}
 {comment.imageUrls?.length > 0 && (
 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', margin: '6px 0' }}>

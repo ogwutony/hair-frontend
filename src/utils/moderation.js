@@ -134,6 +134,21 @@ export function hasAcceptedTerms(email) {
   }
 }
 
+// Agreed on the Sign Up / Log In screen, before the account exists or the OAuth redirect happens.
+const PRE_ACCEPT_KEY = 'terms_pre_accepted';
+export function setTermsPreAccepted() {
+  try { localStorage.setItem(PRE_ACCEPT_KEY, TERMS_VERSION); } catch { /* ignore */ }
+}
+export function consumeTermsPreAccepted() {
+  try {
+    const ok = localStorage.getItem(PRE_ACCEPT_KEY) === TERMS_VERSION;
+    localStorage.removeItem(PRE_ACCEPT_KEY);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function markTermsAccepted(email, token) {
   try {
     if (email) localStorage.setItem(termsKey(email), 'true');

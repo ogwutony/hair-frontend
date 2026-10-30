@@ -801,12 +801,12 @@ Fulfillment Quantity *
 required
 placeholder="Quantity"
 type="number"
-min="200"
+min="150"
 style={styles.input}
 value={formData.desiredOrderQuantity}
 onChange={e => setFormData({ ...formData, desiredOrderQuantity: e.target.value })}
 />
-<p style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>Minimum 200 units</p>
+<p style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>Minimum 150 units</p>
 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginTop: '14px', marginBottom: '8px' }}>
 Pricing for 5-gallon units (optional)
 </label>

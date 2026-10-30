@@ -276,6 +276,9 @@ export const POINTS = {
   PROFILE_PICTURE_UPLOAD: 50,        // per picture added
   DUMA_POST: 100,                    // standard Duma post
   DUMA_PROMPT_POST: 150,             // Duma post tied to a prompt
+  DUMA_PHOTO: 25,                    // per picture attached to a Duma post
+  DUMA_VIDEO: 50,                    // per video attached to a Duma post
+  DUMA_YES_RECEIVED: 10,             // per "yes" vote a post receives (awarded server-side to the author)
   FOLLOWER_GAINED: 50,               // per follower gained (awarded server-side to the followed user)
   FOLLOW_USER: 50,                   // per user followed
   RECOMMENDATION: 120,               // per recommendation
@@ -285,6 +288,11 @@ export const POINTS = {
   PARTNER_APPLY: 300,                // all other partnership applications
   PARTNER_APPROVAL: 300,             // all other partnership approvals (server-side)
 };
+
+// Duma post points: base post (or prompt post) + per-photo + per-video bonuses
+export const getDumaPostPoints = (slots = [], hasPrompt = false) =>
+  (hasPrompt ? POINTS.DUMA_PROMPT_POST : POINTS.DUMA_POST) +
+  slots.reduce((sum, s) => sum + (!s ? 0 : s.type === 'video' ? POINTS.DUMA_VIDEO : POINTS.DUMA_PHOTO), 0);
 
 export const INFLUENCER_PARTNER_CATEGORY = "Creator / Influencer Partners";
 

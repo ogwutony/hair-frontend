@@ -646,7 +646,7 @@ partnerItems.map(item => (
 <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '12px', borderLeft: '4px solid #27ae60' }}>
 <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Business Logistics:</h4>
 <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-<strong>MOQ:</strong> 200 units (3.4 oz)
+<strong>MOQ:</strong> 150 units (3.4 oz)
 </p>
 {item.desiredOrderQuantity && (
 <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>

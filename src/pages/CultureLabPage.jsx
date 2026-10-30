@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { CredentialHeader } from '../components/CredentialHeader';
 import { LocationAutocomplete } from '../components/LocationAutocomplete';
 import { RankBadge } from '../components/RankBadge';
-import { BACKEND_URL, POINTS } from '../utils/constants';
+import { BACKEND_URL, POINTS, getDumaPostPoints } from '../utils/constants';
 import { markPromptCompleted, incrementDumaPostCount, safeSocialUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
 
@@ -157,7 +157,7 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
           submitterAvatarSlots: userAvatarSlots, votes: { yes: 0 }
         });
       }
-      const pointsEarned = activePrompt ? POINTS.DUMA_PROMPT_POST : POINTS.DUMA_POST;
+      const pointsEarned = getDumaPostPoints(filledDumaSlots, !!activePrompt);
       if (onAddPoints) onAddPoints(pointsEarned);
       if (userEmail) incrementDumaPostCount(userEmail);
       if (userEmail && activePrompt?.id) markPromptCompleted(userEmail, activePrompt.id);
@@ -239,7 +239,7 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
           ))}
         </div>
         <button type="submit" style={styles.authButton}>
-          {postSubmitStatus === "uploading" ? "Publishing..." : `Submit to the Duma (+${POINTS.DUMA_POST} points)`}
+          {postSubmitStatus === "uploading" ? "Publishing..." : `Submit to the Duma (+${getDumaPostPoints(dumaSlots, selectedPromptIndex !== null)} points)`}
         </button>
       </form>
       <section style={{ marginTop: '50px' }}>

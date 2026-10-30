@@ -212,7 +212,6 @@ const data = await response.json();
 if (data.votes) {
 setDumaItems(prev => prev.map(item => getItemId(item) === normalizedItemId ? { ...item, votes: data.votes } : item));
 }
-if (voteType === 'yes' && onAddPoints) onAddPoints(10);
 return;
 }
 if (response.status === 409) {

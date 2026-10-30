@@ -101,7 +101,7 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
           <Price item={item} mode={modeOf(item.id)} />
           <span className="ms-free-ship">Free shipping</span>
         </div>
-        <div className="ms-ship">Ships Oct 31</div>
+        <div className="ms-ship">Ships Nov 3</div>
         <ModeToggle mode={modeOf(item.id)} onChange={(m) => setMode(item.id, m)} />
         <button type="button" className="ms-btn ms-add" onClick={() => add(item.id)}>Add to cart</button>
       </div>
@@ -151,7 +151,7 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
         <h2>FAQ</h2>
         <details>
           <summary>When will my order ship?</summary>
-          <p>All products are on pre-order and ship October 31.</p>
+          <p>All products are on pre-order and ship November 3.</p>
         </details>
         <details>
           <summary>How does subscribe and save work?</summary>
@@ -181,7 +181,7 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
               ))}
             </div>
             <h2>{quick.name}</h2>
-            <div className="ms-ship">Pre-order · Ships Oct 31</div>
+            <div className="ms-ship">Pre-order · Ships Nov 3</div>
             <div className="ms-desc">{quick.summary ? <p>{quick.summary}</p> : quick.desc}</div>
             {quick.includes && <p className="ms-includes"><strong>Includes:</strong> {quick.includes}</p>}
             <button type="button" className="ms-opt" aria-pressed={modeOf(quick.id) === 'subscription'} onClick={() => setMode(quick.id, 'subscription')}>

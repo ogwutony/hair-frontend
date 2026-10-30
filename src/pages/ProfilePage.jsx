@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LocationAutocomplete } from '../components/LocationAutocomplete';
 import { RankBadge } from '../components/RankBadge';
 import { SocialInputRow } from '../components/SocialInputRow';
-import { BACKEND_URL, SOCIAL_FIELDS, POINTS } from '../utils/constants';
+import { BACKEND_URL, SOCIAL_FIELDS, POINTS, getDumaPostPoints } from '../utils/constants';
 import { getNextRankTitle, getPointsToNextRank, getRankProgress, getRankTitle, getRankDescription, markPromptCompleted, incrementDumaPostCount, claimAvatarSlotReward, normalizeMediaVideoUrl } from '../utils/helpers';
 import { RANK_TIERS } from '../utils/constants';
 import { styles } from '../utils/styles';
@@ -516,7 +516,7 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
         });
       }
 
-      const pointsEarned = activePrompt ? POINTS.DUMA_PROMPT_POST : POINTS.DUMA_POST;
+      const pointsEarned = getDumaPostPoints(filledDumaSlots, !!activePrompt);
       if (onAddPoints) onAddPoints(pointsEarned);
       if (userEmail) incrementDumaPostCount(userEmail);
       if (userEmail && activePrompt?.id) markPromptCompleted(userEmail, activePrompt.id);
@@ -804,7 +804,7 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
       <section style={{ marginBottom: '50px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '4px', fontWeight: '600' }}>Post About Anything</h2>
         <p style={{ color: '#888', fontSize: '12px', marginBottom: '20px' }}>
-          Share your thoughts or photos/videos directly to the Duma (+{POINTS.DUMA_POST} points). Address a product prompt below to earn {POINTS.DUMA_PROMPT_POST} points!
+          Share your thoughts or photos/videos directly to the Duma (+{POINTS.DUMA_POST} points). Address a product prompt below to earn {POINTS.DUMA_PROMPT_POST} points! Earn +{POINTS.DUMA_PHOTO} per photo, +{POINTS.DUMA_VIDEO} per video, and +{POINTS.DUMA_YES_RECEIVED} for every "Yes" vote your post receives.
         </p>
         <p style={{ color: '#2d6a4f', fontSize: '12px', fontWeight: '700', marginTop: '-12px', marginBottom: '20px' }}>Share your take here and on Instagram with #TheMajorities.</p>
 

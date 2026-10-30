@@ -19,7 +19,7 @@ export { Icon };
 
 // Messages that rotate in the black promo bar at the top of every page.
 const PROMO_MESSAGES = [
-  'Subscribe & Save Every Time | Pre-Orders Ship Oct 31, 2026',
+  'Subscribe & Save Every Time | Pre-Orders Ship Nov 3, 2026',
   'Free Shipping on All Retail Orders',
   'Build Your Custom 6-Pack & Save',
 ];
@@ -161,7 +161,7 @@ export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle }
               })}
             </ul>
             <div className="ms-subtotal"><span>Subtotal</span><strong>{formatCurrency(subtotal)}</strong></div>
-            <p className="ms-muted">Pre-orders ship October 31. Shipping and taxes are calculated at checkout.</p>
+            <p className="ms-muted">Pre-orders ship November 3. Shipping and taxes are calculated at checkout.</p>
             <button type="button" className="ms-btn" onClick={() => checkoutCart(lines, subtotal)}>Checkout</button>
           </>
         )}

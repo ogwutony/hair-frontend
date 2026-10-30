@@ -1,15 +1,15 @@
 // src/components/TermsGate.jsx
 // Shown once per account (and again whenever TERMS_VERSION changes) after login.
-// Members must agree to the Community Guidelines, which state there is zero
-// tolerance for objectionable content or abusive users.
+// Members must agree to the Community Guidelines (EULA).
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SUPPORT_EMAIL, TERMS_VERSION, consumeTermsPreAccepted, hasAcceptedTerms, markTermsAccepted, syncBlockedFromServer } from '../utils/moderation';
 
 const RULES = [
-  ['Zero tolerance', 'No hateful, harassing, threatening, sexually explicit, violent, illegal or spam content, and no scams or impersonation. Accounts that break these rules are suspended or removed.'],
-  ['Report and block', 'Every post, listing and profile has a "•••" menu to report it or block the person. Our team reviews reports within 24 hours and removes content that breaks these rules.'],
+  ['Respectful Content', 'We ask that all members avoid posting offensive, inappropriate, or abusive content.'],
+  ['Report Issues', 'If you see something that violates these principles, you can flag it directly by tapping the ••• menu on any post, comment, or profile. Our team reviews reported items promptly.'],
+  ['Account Guidelines', 'To help maintain a positive community, content or accounts that repeatedly disrupt the experience for others may be removed or restricted at our discretion.'],
   ['Your content', 'You are responsible for what you post. You can delete your posts at any time, and you can permanently delete your account from your Profile.'],
   ['Points', 'Points and rank titles are earned by taking part in the community. They cannot be bought and have no cash value.'],
   ['Marketplace', 'Listings are created by community members. Purchases made through a listing\'s link happen outside The Majorities, between you and the seller.'],
@@ -73,7 +73,7 @@ export const TermsGate = ({ userEmail, authToken, onDecline }) => {
         <div style={{ padding: '16px 24px 22px', borderTop: '1px solid #eee' }}>
           <label style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', fontSize: '13px', cursor: 'pointer', marginBottom: '14px' }}>
             <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ marginTop: '2px' }} />
-            I agree to the Terms of Service and Community Guidelines, including zero tolerance for objectionable content and abusive users.
+            I agree to the Terms of Service and Community Guidelines, including the Respectful Content, Report Issues and Account Guidelines.
           </label>
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
             <button

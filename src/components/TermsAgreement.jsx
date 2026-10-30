@@ -1,13 +1,15 @@
 // src/components/TermsAgreement.jsx
 // Required EULA / Terms of Use checkbox shown on Sign Up and Log In, before any account is created
-// or signed in (App Store Guideline 1.2). The text states zero tolerance for objectionable content
-// and abusive users. Parent pages disable every sign-up / log-in button until it is checked.
+// or signed in (App Store Guideline 1.2). Covers respectful content, reporting and account guidelines. Parent pages disable every sign-up / log-in button until it is checked.
 
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-export const ZERO_TOLERANCE_TEXT =
-  'There is zero tolerance for objectionable, inappropriate or abusive content and users. Any user posting such content will be removed from the platform immediately.';
+export const EULA_POINTS = [
+  ['Respectful Content', 'We ask that all members avoid posting offensive, inappropriate, or abusive content.'],
+  ['Report Issues', 'If you see something that violates these principles, you can flag it directly by tapping the ••• menu on any post, comment, or profile. Our team reviews reported items promptly.'],
+  ['Account Guidelines', 'To help maintain a positive community, content or accounts that repeatedly disrupt the experience for others may be removed or restricted at our discretion.'],
+];
 
 export const TermsAgreement = ({ checked, onChange, highlight = false }) => (
   <div
@@ -20,10 +22,12 @@ export const TermsAgreement = ({ checked, onChange, highlight = false }) => (
       margin: '0 0 16px',
     }}
   >
-    <p style={{ margin: '0 0 8px', fontSize: '12px', color: '#444', lineHeight: 1.5 }}>
-      <strong>Terms of Use (EULA).</strong> {ZERO_TOLERANCE_TEXT} Every post, comment and profile has a “•••” menu to
-      report it or block the person. We review reports within 24 hours.
-    </p>
+    <p style={{ margin: '0 0 4px', fontSize: '12px', color: '#444', fontWeight: 700 }}>Terms of Use (EULA)</p>
+    <ul style={{ margin: '0 0 8px', paddingLeft: '18px', fontSize: '12px', color: '#444', lineHeight: 1.5 }}>
+      {EULA_POINTS.map(([title, body]) => (
+        <li key={title}><strong>{title}:</strong> {body}</li>
+      ))}
+    </ul>
     <label style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', fontSize: '13px', cursor: 'pointer', color: '#222' }}>
       <input
         type="checkbox"

@@ -78,18 +78,17 @@ export const SignupPage = ({ onLogin }) => {
 
         {error && <div role="alert" style={{ background: '#fff0f0', color: '#c00', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '16px', textAlign: 'left' }}>{error}</div>}
 
-        <TermsAgreement checked={agreed} onChange={(v) => { setAgreed(v); if (v) { setTermsNudge(false); setError(""); } }} highlight={termsNudge} />
 
-        <button type="button" onClick={handleGoogle} style={{ ...styles.socialButton, backgroundColor: '#fff', color: '#222', border: '1px solid #ddd' }}>
-          <GoogleIcon />
-          Sign up with Google
-        </button>
         <div onClickCapture={guardClick}>
           <AppleSignInButton
             onSuccess={(data) => { if (onLogin) onLogin(data.email, data.token, true, data.rank_title, data.rank_score); navigate("/profile"); }}
             onError={setError}
           />
         </div>
+        <button type="button" onClick={handleGoogle} style={{ ...styles.socialButton, backgroundColor: '#fff', color: '#222', border: '1px solid #ddd' }}>
+          <GoogleIcon />
+          Sign up with Google
+        </button>
 
         <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0' }}>
           <div style={{ flex: 1, height: '1px', backgroundColor: '#e0e0e0' }} />
@@ -106,6 +105,8 @@ export const SignupPage = ({ onLogin }) => {
           </button>
         </form>
 
+        <Link to="/forgot-password" style={{ display: 'block', marginTop: '12px', fontSize: '13px', color: '#666', textDecoration: 'none', textAlign: 'center' }}>Forgot password?</Link>
+        <TermsAgreement checked={agreed} onChange={(v) => { setAgreed(v); if (v) { setTermsNudge(false); setError(""); } }} highlight={termsNudge} margin="20px 0 0" />
         <p style={{ fontSize: '13px', color: '#666', marginTop: '14px', textAlign: 'center' }}>
           Already have an account? <Link to="/login">Log in</Link>
         </p>

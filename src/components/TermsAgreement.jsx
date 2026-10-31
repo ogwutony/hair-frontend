@@ -2,7 +2,7 @@
 // Required EULA / Terms of Use checkbox shown on Sign Up and Log In, before any account is created
 // or signed in (App Store Guideline 1.2). Covers respectful content, reporting and account guidelines. Parent pages disable every sign-up / log-in button until it is checked.
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 export const EULA_POINTS = [
@@ -11,15 +11,22 @@ export const EULA_POINTS = [
   ['Account Guidelines', 'To help maintain a positive community, content or accounts that repeatedly disrupt the experience for others may be removed or restricted at our discretion.'],
 ];
 
-export const TermsAgreement = ({ checked, onChange, highlight = false }) => (
+export const TermsAgreement = ({ checked, onChange, highlight = false, margin = '0 0 16px' }) => {
+  const boxRef = useRef(null);
+  useEffect(() => {
+    if (highlight) boxRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+  }, [highlight]);
+  return (
   <div
+    ref={boxRef}
+    id="terms-agreement"
     style={{
       textAlign: 'left',
       border: `1px solid ${highlight ? '#c0392b' : '#e5e5e5'}`,
       background: highlight ? '#fff6f5' : '#fafafa',
       borderRadius: '10px',
       padding: '12px 14px',
-      margin: '0 0 16px',
+      margin,
     }}
   >
     <p style={{ margin: '0 0 4px', fontSize: '12px', color: '#444', fontWeight: 700 }}>Terms of Use (EULA)</p>
@@ -42,4 +49,5 @@ export const TermsAgreement = ({ checked, onChange, highlight = false }) => (
       </span>
     </label>
   </div>
-);
+  );
+};

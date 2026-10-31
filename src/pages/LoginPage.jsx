@@ -68,7 +68,6 @@ export const LoginPage = ({ onLogin }) => {
         <h1 style={{ fontSize: '22px', fontWeight: '700', marginBottom: '4px', letterSpacing: '-0.5px' }}>The Majorities</h1>
         <p style={{ fontSize: '13px', color: '#888', marginBottom: '24px' }}>Sign in to your account — new here? <Link to="/signup">Create one</Link></p>
         {socialError && <div style={{ background: '#fff0f0', color: '#c00', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '16px', textAlign: 'left' }}>{socialError}</div>}
-        <TermsAgreement checked={agreed} onChange={(v) => { setAgreed(v); if (v) { setTermsNudge(false); setSocialError(""); } }} highlight={termsNudge} />
         <div onClickCapture={guardClick}>
           <AppleSignInButton
             onSuccess={(data) => { onLogin(data.email, data.token, true, data.rank_title, data.rank_score); navigate("/profile"); }}
@@ -98,6 +97,7 @@ export const LoginPage = ({ onLogin }) => {
         <Link to="/forgot-password" style={{ display: 'block', marginTop: '12px', fontSize: '13px', color: '#666', textDecoration: 'none', textAlign: 'center' }}>
           Forgot password?
         </Link>
+        <TermsAgreement checked={agreed} onChange={(v) => { setAgreed(v); if (v) { setTermsNudge(false); setSocialError(""); } }} highlight={termsNudge} margin="20px 0 0" />
       </div>
     </div>
   );

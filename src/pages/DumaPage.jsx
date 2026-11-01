@@ -466,7 +466,7 @@ if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && suggestions.length
 event.preventDefault(); setSearchOpen(true); setActiveSuggestion(index => (index + (event.key === 'ArrowDown' ? 1 : suggestions.length - 1) + suggestions.length) % suggestions.length);
 }
 if (event.key === 'Enter') { event.preventDefault(); if (searchOpen && suggestions[activeSuggestion]) chooseSuggestion(suggestions[activeSuggestion]); else setSearchOpen(false); }
-}} style={{ width:'100%', boxSizing:'border-box', minHeight:44, padding:'10px 12px', border:'1px solid #aaa', borderRadius:8, fontSize:16 }} />
+}} style={{ width:'100%', boxSizing:'border-box', height:36, padding:'6px 12px', border:'1px solid #aaa', borderRadius:8, fontSize:16 }} />
 {searchOpen && suggestions.length > 0 && <ul id="duma-search-suggestions" role="listbox" aria-label="Search suggestions" style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:20, margin:'4px 0 0', padding:4, listStyle:'none', background:'#fff', border:'1px solid #ddd', borderRadius:8, boxShadow:'0 4px 12px #0002' }}>
 {suggestions.map((value, index) => <li key={value} id={`duma-suggestion-${index}`} role="option" aria-selected={index === activeSuggestion} onMouseDown={event => event.preventDefault()} onClick={() => chooseSuggestion(value)} style={{ padding:'12px', cursor:'pointer', overflowWrap:'anywhere', background:index === activeSuggestion ? '#eee' : '#fff' }}>{value}</li>)}
 </ul>}

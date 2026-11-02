@@ -14,7 +14,7 @@ test('navigates through slides and links Our Story to /about', () => {
   renderBanner({ onOpenWaitlist: jest.fn() });
   fireEvent.click(screen.getByRole('button', { name: /next slide/i }));
   fireEvent.click(screen.getByRole('button', { name: /next slide/i }));
-  expect(screen.getByText(/MADE IN DALLAS, TX, USA/i)).toBeInTheDocument();
+  expect(screen.getByText(/^The Majorities is a company built of the people, by the people, and for the people$/i)).toBeInTheDocument();
   expect(screen.getByRole('link', { name: /our story/i })).toHaveAttribute('href', '/about');
 });
 

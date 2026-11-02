@@ -138,7 +138,7 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
               <button type="button" className="ms-build-inner" onClick={onBuildSet}>
                 <span className="ms-build-count">{setCount}/6</span>
                 <span className="ms-name">Build Your 6-Bottle Custom Set</span>
-                <span className="ms-muted">Mix and match any of The Majorities Solutions for $54.99/month subscription.</span>
+                <span className="ms-muted">Mix and match any of The Majorities Solutions for $54.96/month subscription.</span>
                 <span className="ms-btn">Subscribe &amp; save</span>
               </button>
             </article>

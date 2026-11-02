@@ -11,7 +11,7 @@ export const BANNER_ITEMS = [
   },
   {
     id: 1,
-    text: 'BUILD YOUR 6-BOTTLE CUSTOM SET — Mix and match any bottles for $54.99',
+    text: 'BUILD YOUR 6-BOTTLE CUSTOM SET — Mix and match any bottles for $54.96',
     tag: 'CUSTOM BUNDLE',
     cta: 'Build Yours',
     link: '#custom-set',
@@ -25,7 +25,7 @@ export const BANNER_ITEMS = [
   },
   {
     id: 4,
-    text: 'Skin & hair care for every one of us. Subscribe for $14.99/bottle — 3 or 6-bottle bundles, delivered on your schedule. Pause or cancel anytime.',
+    text: 'Skin & hair care for every one of us. Subscribe for $15.99/bottle — 3 or 6-bottle bundles, delivered on your schedule. Pause or cancel anytime.',
     tag: 'SUBSCRIBE',
     cta: 'Shop Essentials',
     link: '#subscribe',

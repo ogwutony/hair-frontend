@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 export const BANNER_ITEMS = [
   {
     id: 4,
-    text: 'Skin & hair care for every one of us. Subscribe for $14.99/bottle — 3 or 6-bottle bundles, delivered on your schedule. Pause or cancel anytime.',
+    text: 'Skin & hair care for every one of us. Subscribe for $14.99/bottle',
     tag: 'SUBSCRIBE',
     cta: 'Shop Essentials',
     link: '#subscribe',

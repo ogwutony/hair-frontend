@@ -25,7 +25,7 @@ test('subscribe slide shows the updated copy and scrolls to the product grid', (
   renderBanner({ onOpenWaitlist: jest.fn() });
 
   fireEvent.click(screen.getByRole('button', { name: /go to slide 1/i }));
-  expect(screen.getByText(/Pause or cancel anytime/i)).toBeInTheDocument();
+  expect(screen.getByText(/^Skin & hair care for every one of us\. Subscribe for \$14\.99\/bottle$/i)).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: /shop essentials/i }));
   expect(scrollIntoView).toHaveBeenCalled();
   document.getElementById('subscribe').remove();

@@ -6,6 +6,10 @@
 
 const META_PIXEL_ID = (process.env.REACT_APP_META_PIXEL_ID || '2960067337680276').trim();
 const TIKTOK_PIXEL_ID = (process.env.REACT_APP_TIKTOK_PIXEL_ID || 'D9JPSLRC77UCU52DR75G').trim();
+const PINTEREST_TAG_ID = (process.env.REACT_APP_PINTEREST_TAG_ID || '2612947123029').trim();
+// Snapchat and X load only once their IDs are set as Vercel environment variables.
+const SNAP_PIXEL_ID = (process.env.REACT_APP_SNAP_PIXEL_ID || '').trim();
+const X_PIXEL_ID = (process.env.REACT_APP_X_PIXEL_ID || '').trim();
 
 let initialized = false;
 
@@ -35,16 +39,64 @@ function loadTikTok() {
   /* eslint-enable */
 }
 
+function loadScript(src) {
+  const s = document.createElement('script');
+  s.async = true;
+  s.src = src;
+  document.head.appendChild(s);
+}
+
+function loadPinterest() {
+  if (!PINTEREST_TAG_ID || window.pintrk) return;
+  const pintrk = function pintrk(...args) { pintrk.queue.push(args); };
+  pintrk.queue = [];
+  pintrk.version = '3.0';
+  window.pintrk = pintrk;
+  loadScript('https://s.pinimg.com/ct/core.js');
+  window.pintrk('load', PINTEREST_TAG_ID);
+  window.pintrk('page');
+}
+
+function loadSnap() {
+  if (!SNAP_PIXEL_ID || window.snaptr) return;
+  const snaptr = function snaptr(...args) {
+    if (snaptr.handleRequest) snaptr.handleRequest(...args);
+    else snaptr.queue.push(args);
+  };
+  snaptr.queue = [];
+  window.snaptr = snaptr;
+  loadScript('https://sc-static.net/scevent.min.js');
+  window.snaptr('init', SNAP_PIXEL_ID);
+}
+
+function loadX() {
+  if (!X_PIXEL_ID || window.twq) return;
+  const twq = function twq(...args) {
+    if (twq.exe) twq.exe(...args);
+    else twq.queue.push(args);
+  };
+  twq.version = '1.1';
+  twq.queue = [];
+  window.twq = twq;
+  loadScript('https://static.ads-twitter.com/uwt.js');
+  window.twq('config', X_PIXEL_ID);
+}
+
 export function initPixels() {
   if (initialized || typeof window === 'undefined') return;
   initialized = true;
   safe(loadMeta);
   safe(loadTikTok);
+  safe(loadPinterest);
+  safe(loadSnap);
+  safe(loadX);
 }
 
 const fb = (...args) => safe(() => window.fbq && window.fbq(...args));
 const tt = (...args) => safe(() => window.ttq && window.ttq[args[0]](...args.slice(1)));
 const ga = (...args) => safe(() => window.gtag && window.gtag(...args));
+const pin = (...args) => safe(() => window.pintrk && window.pintrk('track', ...args));
+const snap = (...args) => safe(() => window.snaptr && window.snaptr('track', ...args));
 
 // items: [{ id, name, price, quantity }]
 const toMeta = (items) => ({
@@ -70,6 +122,8 @@ const toGa = (items) => ({
 export function trackPageView() {
   fb('track', 'PageView');
   tt('page');
+  pin('pagevisit');
+  snap('PAGE_VIEW');
 }
 
 export function trackViewContent(item) {
@@ -77,6 +131,7 @@ export function trackViewContent(item) {
   fb('track', 'ViewContent', toMeta(items));
   tt('track', 'ViewContent', toTikTok(items));
   ga('event', 'view_item', toGa(items));
+  snap('VIEW_CONTENT', { item_ids: items.map((i) => String(i.id)), currency: 'USD', price: item.price });
 }
 
 export function trackAddToCart(item) {
@@ -84,6 +139,8 @@ export function trackAddToCart(item) {
   fb('track', 'AddToCart', toMeta(items));
   tt('track', 'AddToCart', toTikTok(items));
   ga('event', 'add_to_cart', toGa(items));
+  pin('addtocart', { value: item.price * (item.quantity || 1), order_quantity: item.quantity || 1, currency: 'USD' });
+  snap('ADD_CART', { item_ids: [String(item.id)], currency: 'USD', price: item.price });
 }
 
 export function trackInitiateCheckout(items) {
@@ -91,4 +148,5 @@ export function trackInitiateCheckout(items) {
   fb('track', 'InitiateCheckout', toMeta(items));
   tt('track', 'InitiateCheckout', toTikTok(items));
   ga('event', 'begin_checkout', toGa(items));
+  snap('START_CHECKOUT', { item_ids: items.map((i) => String(i.id)), currency: 'USD' });
 }

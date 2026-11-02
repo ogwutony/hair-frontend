@@ -16,6 +16,34 @@ import { ImageLightbox, sizedImageUrl } from '../components/ImageLightbox';
 import { useModeration } from '../utils/moderation';
 import { EzoicAd, DUMA_AD_PLACEHOLDER_START, DUMA_AD_EVERY_N_POSTS, DUMA_AD_MAX_SLOTS } from '../components/EzoicAd';
 
+// Only index public post content and location tags, never private partner fields.
+const searchValues = (item) => [
+  item.title, item.prompt, item.response, item.reason, item.desc, item.description,
+  item.text, item.content, item.name, item.product, item.company, item.brand,
+  item.productDescription, item.submitterDisplayName, item.userName, item.username,
+  item.location, item.city, item.zip, item.zipCode, item.postalCode, item.address,
+].flatMap(value => {
+  if (typeof value === 'string' || typeof value === 'number') return [String(value)];
+  if (value && typeof value === 'object') return Object.values(value).filter(part => typeof part === 'string' || typeof part === 'number').map(String);
+  return [];
+});
+const normalizeSearch = (value) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+const matchesSearch = (item, query) => {
+  const text = normalizeSearch(searchValues(item).join(' '));
+  return normalizeSearch(query).split(/\s+/).every(term => text.includes(term));
+};
+const searchSuggestions = (items, query) => {
+  const normalized = normalizeSearch(query);
+  if (!normalized) return [];
+  const seen = new Set();
+  return items.flatMap(searchValues).filter(value => {
+    const key = normalizeSearch(value);
+    if (!key || seen.has(key) || !normalized.split(/\s+/).every(term => key.includes(term))) return false;
+    seen.add(key);
+    return true;
+  }).sort((a, b) => Number(normalizeSearch(b).startsWith(normalized)) - Number(normalizeSearch(a).startsWith(normalized))).slice(0, 6);
+};
+
 const EMPTY_LIST = []; // stable default so effects keyed on it don't re-run every render
 
 // Vote counts under either name: the backend stores yay/nay(/abstain); newer responses also send yes/no
@@ -82,6 +110,10 @@ const [comments, setComments] = useState({});
 const [commentText, setCommentText] = useState({});
 const [commentImages, setCommentImages] = useState({});
 const [commentSubmitting, setCommentSubmitting] = useState({});
+const [searchQuery, setSearchQuery] = useState('');
+const [searchOpen, setSearchOpen] = useState(false);
+const [activeSuggestion, setActiveSuggestion] = useState(-1);
+const searchRef = useRef(null);
 const [activeSection, setActiveSection] = useState("Culture");
 const [marketplaceListings, setMarketplaceListings] = useState([]);
 const [boostingId, setBoostingId] = useState(null);
@@ -361,12 +393,26 @@ return (
 );
 };
 
-// Hide posts you reported and posts from people you blocked
+// Apply moderation and access rules before generating results or suggestions.
 const visibleItems = dumaItems.filter(item => !isHiddenItem(item));
-const culturalItems = visibleItems.filter(item => item.section === "Cultural" || item.category === "Culture" || item.type === "Video" || item.type === "Culture");
-const recommendationItems = visibleItems.filter(item => item.type === "Product Recommendation" || item.type === "Recommendation");
-const partnerItems = visibleItems.filter(item => item.type === "Partner");
-const marketplaceItems = marketplaceListings.filter(item => !isHiddenItem(item));
+const sections = {
+Culture: visibleItems.filter(item => item.section === "Cultural" || item.category === "Culture" || item.type === "Video" || item.type === "Culture"),
+Recommendations: visibleItems.filter(item => item.type === "Product Recommendation" || item.type === "Recommendation"),
+Partners: authToken ? visibleItems.filter(item => item.type === "Partner") : [],
+Marketplace: marketplaceListings.filter(item => !isHiddenItem(item)),
+};
+const suggestions = searchSuggestions(sections[activeSection], searchQuery);
+const culturalItems = sections.Culture.filter(item => matchesSearch(item, searchQuery));
+const recommendationItems = sections.Recommendations.filter(item => matchesSearch(item, searchQuery));
+const partnerItems = sections.Partners.filter(item => matchesSearch(item, searchQuery));
+const marketplaceItems = sections.Marketplace.filter(item => matchesSearch(item, searchQuery));
+const resultCount = sections[activeSection].filter(item => matchesSearch(item, searchQuery)).length;
+const chooseSuggestion = (value) => {
+setSearchQuery(value);
+setSearchOpen(false);
+setActiveSuggestion(-1);
+searchRef.current?.focus();
+};
 
 return (
 <div style={{ padding: isMobile ? '25px 16px' : '40px 60px', maxWidth: '1100px', margin: '0 auto', flex: '1 1 auto', minWidth: 0 }}>
@@ -402,18 +448,38 @@ setSocialFeedUnavailable(false);
 </div>
 {userEmail && rankTitle && <div style={{ width: isMobile ? '100%' : 'auto' }}><CredentialHeader email={userEmail} rankTitle={getRankTitle(rankScore)} rankScore={rankScore} avatarUrl={userAvatar} /></div>}
 </div>
-<div style={{ display: 'flex', gap: '10px', marginBottom: '30px', borderBottom: '2px solid #eee', paddingBottom: '15px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', whiteSpace: 'nowrap', msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
-<button onClick={() => setActiveSection("Culture")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Culture" ? '#222' : '#f5f5f5', color: activeSection === "Culture" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', flexShrink: 0 }}>Culture ({culturalItems.length})</button>
-<button onClick={() => setActiveSection("Recommendations")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Recommendations" ? '#222' : '#f5f5f5', color: activeSection === "Recommendations" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', flexShrink: 0 }}>Recommendations ({recommendationItems.length})</button>
-<button onClick={() => setActiveSection("Partners")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Partners" ? '#222' : '#f5f5f5', color: activeSection === "Partners" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', flexShrink: 0 }}>Partners ({partnerItems.length})</button>
-<button onClick={() => setActiveSection("Marketplace")} style={{ padding: '10px 20px', backgroundColor: activeSection === "Marketplace" ? '#222' : '#f5f5f5', color: activeSection === "Marketplace" ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', flexShrink: 0 }}>Marketplace ({marketplaceItems.length})</button>
+<div className="duma-controls">
+<style>{`
+.duma-controls { display:flex; align-items:center; gap:12px; margin-bottom:20px; border-bottom:2px solid #eee; padding-bottom:15px; }
+.duma-categories { display:flex; gap:8px; overflow-x:auto; min-width:0; }
+.duma-search { position:relative; flex:1 0 220px; min-width:0; }
+.duma-controls > a { justify-content:center; white-space:nowrap; }
+@media(max-width:1100px) { .duma-controls { flex-direction:column; align-items:stretch; } .duma-search { flex:auto; width:100%; } .duma-controls > a { margin-left:0 !important; } }
+`}</style>
+<div className="duma-categories" aria-label="Duma categories">
+{Object.keys(sections).map(section => <button key={section} onClick={() => { setActiveSection(section); setSearchOpen(false); setActiveSuggestion(-1); }} style={{ padding: '10px 12px', backgroundColor: activeSection === section ? '#222' : '#f5f5f5', color: activeSection === section ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', flexShrink: 0 }}>{section} ({sections[section].length})</button>)}
+</div>
+<div className="duma-search" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setSearchOpen(false); }}>
+<input ref={searchRef} type="search" role="combobox" aria-label="Search Duma posts" aria-autocomplete="list" aria-expanded={searchOpen && suggestions.length > 0} aria-controls="duma-search-suggestions" aria-activedescendant={searchOpen && activeSuggestion >= 0 && suggestions[activeSuggestion] ? `duma-suggestion-${activeSuggestion}` : undefined} placeholder="Search by name, city, ZIP code, or address..." value={searchQuery} onFocus={() => setSearchOpen(true)} onChange={event => { setSearchQuery(event.target.value); setSearchOpen(true); setActiveSuggestion(-1); }} onKeyDown={event => {
+if (event.key === 'Escape') { setSearchOpen(false); setActiveSuggestion(-1); }
+if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && suggestions.length) {
+event.preventDefault(); setSearchOpen(true); setActiveSuggestion(index => (index + (event.key === 'ArrowDown' ? 1 : suggestions.length - 1) + suggestions.length) % suggestions.length);
+}
+if (event.key === 'Enter') { event.preventDefault(); if (searchOpen && suggestions[activeSuggestion]) chooseSuggestion(suggestions[activeSuggestion]); else setSearchOpen(false); }
+}} style={{ width:'100%', boxSizing:'border-box', height:36, padding:'6px 12px', border:'1px solid #aaa', borderRadius:8, fontSize:16 }} />
+{searchOpen && suggestions.length > 0 && <ul id="duma-search-suggestions" role="listbox" aria-label="Search suggestions" style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:20, margin:'4px 0 0', padding:4, listStyle:'none', background:'#fff', border:'1px solid #ddd', borderRadius:8, boxShadow:'0 4px 12px #0002' }}>
+{suggestions.map((value, index) => <li key={value} id={`duma-suggestion-${index}`} role="option" aria-selected={index === activeSuggestion} onMouseDown={event => event.preventDefault()} onClick={() => chooseSuggestion(value)} style={{ padding:'12px', cursor:'pointer', overflowWrap:'anywhere', background:index === activeSuggestion ? '#eee' : '#fff' }}>{value}</li>)}
+</ul>}
+</div>
 <Link to={authToken ? '/culture' : '/login'} style={{ padding: '8px 14px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', marginLeft: isMobile ? '0' : 'auto', flexShrink: 0, textDecoration: 'none', display: 'flex', alignItems: 'center' }}>{authToken ? '+ Share Your Perspective' : 'Log in to Share'}</Link>
 </div>
+
+{searchQuery.trim() && <div role="status" aria-live="polite" style={{ marginBottom:16, color:'#555' }}>{resultCount ? `${resultCount} matching ${resultCount === 1 ? 'post' : 'posts'} in ${activeSection}.` : 'No matching posts. Try another name, keyword, city, ZIP code, or address.'} <button type="button" onClick={() => { setSearchQuery(''); setSearchOpen(false); searchRef.current?.focus(); }}>Clear search</button></div>}
 
 {activeSection === "Culture" && (
 <div>
 {culturalItems.length === 0 ? (
-<div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No perspectives shared yet. Share yours and contribute to our culture section!</div>
+<div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>{searchQuery.trim() ? 'No matching posts. Try another search or clear the search.' : 'No perspectives shared yet. Share yours and contribute to our culture section!'}</div>
 ) : (
 culturalItems.map((item, index) => {
 const itemId = item._id || item.id;
@@ -603,7 +669,7 @@ Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCoun
 {activeSection === "Partners" && authToken && (
 <div>
 {partnerItems.length === 0 ? (
-<div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No partner applications yet. Be the first to submit a partnership!</div>
+<div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>{searchQuery.trim() ? 'No matching posts. Try another search or clear the search.' : 'No partner applications yet. Be the first to submit a partnership!'}</div>
 ) : (
 partnerItems.map(item => (
 <div key={item.id || item._id} style={styles.dumaCard}>
@@ -729,7 +795,7 @@ Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCoun
 </div>
 {!authToken && <GuestSubmissionPrompt message="Log in or register to sell in the Marketplace." />}
 {marketplaceItems.length === 0 ? (
-<div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No listings yet. Be the first to offer a product or service.</div>
+<div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>{searchQuery.trim() ? 'No matching posts. Try another search or clear the search.' : 'No listings yet. Be the first to offer a product or service.'}</div>
 ) : (
 marketplaceItems.map(item => {
 const isBoosted = item.boostedUntil && new Date(item.boostedUntil) > new Date();

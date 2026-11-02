@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom';
 
 export const BANNER_ITEMS = [
   {
-    id: 3,
-    text: 'Join the Waitlist: Secure access to orders at launch',
-    tag: 'WAITLIST',
-    cta: 'Get On List',
-    action: 'openWaitlist',
+    id: 4,
+    text: 'Skin & hair care for every one of us. Subscribe for $14.99/bottle',
+    tag: 'SUBSCRIBE',
+    cta: 'Shop Essentials',
+    link: '#subscribe',
   },
   {
     id: 1,
@@ -18,17 +18,10 @@ export const BANNER_ITEMS = [
   },
   {
     id: 2,
-    text: 'The Majorities: a company built of the people, by the people, and for the people made in Dallas, TX, USA',
+    text: 'The Majorities is a company built of the people, by the people, and for the people',
     tag: 'OUR MISSION',
     cta: 'Our Story',
     link: '/about',
-  },
-  {
-    id: 4,
-    text: 'Skin & hair care for every one of us. Subscribe for $14.99/bottle — 3 or 6-bottle bundles, delivered on your schedule. Pause or cancel anytime.',
-    tag: 'SUBSCRIBE',
-    cta: 'Shop Essentials',
-    link: '#subscribe',
   },
 ];
 

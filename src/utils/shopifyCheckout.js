@@ -21,13 +21,28 @@ function submitForm(action, method, fields) {
   else form.submit();
 }
 
+// The logged-in themajorities.com email, so Shopify checkout opens with it filled in and the
+// order lands on the same Shopify customer the backend linked to this account.
+function signedInEmail() {
+  try {
+    const email = localStorage.getItem('userEmail') || sessionStorage.getItem('userEmail') || '';
+    // Apple sign-in placeholders are not real inboxes
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !/@users\.themajorities\.com$/i.test(email) ? email : '';
+  } catch {
+    return '';
+  }
+}
+
 // lines: [{ variantId, quantity, sellingPlanId? }]
 export function goToShopifyCheckout(lines) {
   if (!lines.length) return;
+  const email = signedInEmail();
 
   if (!lines.some((l) => l.sellingPlanId)) {
     const permalink = lines.map((l) => `${l.variantId}:${l.quantity}`).join(',');
-    submitForm(`https://${SHOP_DOMAIN}/cart/${permalink}`, 'GET', [['checkout[shipping_address][country]', 'US']]);
+    const fields = [['checkout[shipping_address][country]', 'US']];
+    if (email) fields.push(['checkout[email]', email]);
+    submitForm(`https://${SHOP_DOMAIN}/cart/${permalink}`, 'GET', fields);
     return;
   }
 
@@ -37,6 +52,6 @@ export function goToShopifyCheckout(lines) {
     fields.push([`items[${i}][id]`, l.variantId], [`items[${i}][quantity]`, l.quantity]);
     if (l.sellingPlanId) fields.push([`items[${i}][selling_plan]`, l.sellingPlanId]);
   });
-  fields.push(['return_to', '/checkout']);
+  fields.push(['return_to', email ? `/checkout?checkout[email]=${encodeURIComponent(email)}` : '/checkout']);
   submitForm(`https://${SHOP_DOMAIN}/cart/add`, 'POST', fields);
 }

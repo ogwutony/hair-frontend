@@ -49,7 +49,7 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
   const faqRef = useRef(null);
   const toastTimer = useRef(null);
 
-  const modeOf = (id) => modes[id] || 'subscription';
+  const modeOf = (id) => modes[id] || 'one-time';
   const setMode = (id, m) => setModes((prev) => ({ ...prev, [id]: m }));
 
   const isWishlist = param === 'wishlist';
@@ -73,7 +73,7 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
   useEffect(() => {
     if (!quickId) return;
     const item = SHOP_ITEM_BY_ID[quickId];
-    if (item) trackViewContent({ id: item.variantId, name: item.name, price: item.pricing.subscription });
+    if (item) trackViewContent({ id: item.variantId, name: item.name, price: item.pricing.oneTime });
   }, [quickId]);
 
   const add = (id) => {
@@ -155,7 +155,7 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
         </details>
         <details>
           <summary>How does subscribe and save work?</summary>
-          <p>Choose Subscribe on any product to get it delivered every month at the lower subscribe price.</p>
+          <p>Every product starts as a one-time purchase. Switch to Subscribe on any product to get it delivered every month at the lower subscribe price. Pause or cancel anytime.</p>
         </details>
         <details>
           <summary>How big are the bottles?</summary>
@@ -184,13 +184,13 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
             <div className="ms-ship">Availability confirmed at checkout</div>
             <div className="ms-desc">{quick.summary ? <p>{quick.summary}</p> : quick.desc}</div>
             {quick.includes && <p className="ms-includes"><strong>Includes:</strong> {quick.includes}</p>}
-            <button type="button" className="ms-opt" aria-pressed={modeOf(quick.id) === 'subscription'} onClick={() => setMode(quick.id, 'subscription')}>
-              <span>Subscribe and save<small>Delivered every month</small></span>
-              <strong>{formatCurrency(quick.pricing.subscription)}</strong>
-            </button>
             <button type="button" className="ms-opt" aria-pressed={modeOf(quick.id) === 'one-time'} onClick={() => setMode(quick.id, 'one-time')}>
               <span>One-time purchase</span>
               <strong>{formatCurrency(quick.pricing.oneTime)}</strong>
+            </button>
+            <button type="button" className="ms-opt" aria-pressed={modeOf(quick.id) === 'subscription'} onClick={() => setMode(quick.id, 'subscription')}>
+              <span>Subscribe and save<small>Delivered every month</small></span>
+              <strong>{formatCurrency(quick.pricing.subscription)}</strong>
             </button>
             <button type="button" className="ms-btn" onClick={() => { add(quick.id); setQuickId(null); }}>Add to cart</button>
           </>

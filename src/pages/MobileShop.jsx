@@ -99,7 +99,6 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
           <Price item={item} mode={modeOf(item.id)} />
           <span className="ms-free-ship">Free shipping</span>
         </div>
-        <div className="ms-ship">Availability confirmed at checkout</div>
         <ModeToggle mode={modeOf(item.id)} onChange={(m) => setMode(item.id, m)} />
         <button type="button" className="ms-btn ms-add" onClick={() => add(item.id)}>Add to cart</button>
       </div>
@@ -178,7 +177,6 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
               ))}
             </div>
             <h2>{quick.name}</h2>
-            <div className="ms-ship">Availability confirmed at checkout</div>
             <div className="ms-desc">{quick.summary ? <p>{quick.summary}</p> : quick.desc}</div>
             {quick.includes && <p className="ms-includes"><strong>Includes:</strong> {quick.includes}</p>}
             <button type="button" className="ms-opt" aria-pressed={modeOf(quick.id) === 'one-time'} onClick={() => setMode(quick.id, 'one-time')}>

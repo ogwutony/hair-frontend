@@ -7,7 +7,6 @@ import { useCart } from '../utils/cart';
 import { formatCurrency } from '../utils/helpers';
 import { Icon } from '../components/MobileHeader';
 import { AnnouncementBanner } from '../components/AnnouncementBanner';
-import { WaitlistModal } from '../components/WaitlistModal';
 import '../mobileShop.css';
 import { trackViewContent } from '../utils/pixels';
 
@@ -45,7 +44,6 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
   const [modes, setModes] = useState({});
   const [quickId, setQuickId] = useState(null);
   const [toast, setToast] = useState('');
-  const [waitlistOpen, setWaitlistOpen] = useState(false);
   const faqRef = useRef(null);
   const toastTimer = useRef(null);
 
@@ -113,8 +111,7 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
 
   return (
     <div className="ms-shop">
-      <AnnouncementBanner onOpenWaitlist={() => setWaitlistOpen(true)} />
-      <WaitlistModal isOpen={waitlistOpen} onClose={() => setWaitlistOpen(false)} />
+      <AnnouncementBanner />
 
       <div className="ms-toolbar">
         <span>{title} · {items.length} {items.length === 1 ? 'product' : 'products'}</span>
@@ -138,7 +135,7 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
               <button type="button" className="ms-build-inner" onClick={onBuildSet}>
                 <span className="ms-build-count">{setCount}/6</span>
                 <span className="ms-name">Build Your 6-Bottle Custom Set</span>
-                <span className="ms-muted">Mix and match any of The Majorities Solutions for $54.96/month subscription.</span>
+                <span className="ms-muted">Mix and match any 6 bottles of The Majorities Solutions for $54.99/month subscription.</span>
                 <span className="ms-btn">Subscribe &amp; save</span>
               </button>
             </article>

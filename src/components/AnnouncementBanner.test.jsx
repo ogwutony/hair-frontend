@@ -5,8 +5,8 @@ import { AnnouncementBanner } from './AnnouncementBanner';
 const renderBanner = (props) => render(<MemoryRouter><AnnouncementBanner {...props} /></MemoryRouter>);
 
 test('navigates through slides and links Our Story to /about', () => {
-  renderBanner({ onOpenWaitlist: jest.fn() });
-  expect(screen.getByRole('button', { name: /get on list/i })).toBeInTheDocument();
+  renderBanner();
+  expect(screen.getByRole('button', { name: /shop now/i })).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole('button', { name: /next slide/i }));
   fireEvent.click(screen.getByRole('button', { name: /next slide/i }));
@@ -14,20 +14,25 @@ test('navigates through slides and links Our Story to /about', () => {
   expect(screen.getByRole('link', { name: /our story/i })).toHaveAttribute('href', '/about');
 });
 
-test('waitlist slide CTA opens the waitlist', () => {
-  const onOpenWaitlist = jest.fn();
-  renderBanner({ onOpenWaitlist });
+test('first slide says shop now at $54.99, with no waitlist', () => {
+  const scrollIntoView = jest.fn();
+  document.body.insertAdjacentHTML('beforeend', '<main id="subscribe"></main>');
+  document.getElementById('subscribe').scrollIntoView = scrollIntoView;
+  renderBanner();
 
-  fireEvent.click(screen.getByRole('button', { name: /go to slide 1/i }));
-  fireEvent.click(screen.getByRole('button', { name: /get on list/i }));
-  expect(onOpenWaitlist).toHaveBeenCalledTimes(1);
+  expect(screen.getByText(/any 6 bottles for \$54\.99 a month/i, { selector: '.active p' })).toBeInTheDocument();
+  expect(screen.queryByText(/waitlist/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/\$54\.96/)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /shop now/i }));
+  expect(scrollIntoView).toHaveBeenCalled();
+  document.getElementById('subscribe').remove();
 });
 
 test('subscribe slide shows the updated copy and scrolls to the product grid', () => {
   const scrollIntoView = jest.fn();
   document.body.insertAdjacentHTML('beforeend', '<main id="subscribe"></main>');
   document.getElementById('subscribe').scrollIntoView = scrollIntoView;
-  renderBanner({ onOpenWaitlist: jest.fn() });
+  renderBanner();
 
   fireEvent.click(screen.getByRole('button', { name: /go to slide 4/i }));
   expect(screen.getByText(/Pause or cancel anytime/i)).toBeInTheDocument();

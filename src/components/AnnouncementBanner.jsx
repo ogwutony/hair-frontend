@@ -4,14 +4,14 @@ import { Link } from 'react-router-dom';
 export const BANNER_ITEMS = [
   {
     id: 3,
-    text: 'Join the Waitlist: Secure access to orders at launch',
-    tag: 'WAITLIST',
-    cta: 'Get On List',
-    action: 'openWaitlist',
+    text: 'Now shipping from Dallas, TX. Subscribe & save: any 6 bottles for $54.99 a month.',
+    tag: 'SHOP NOW',
+    cta: 'Shop Now',
+    link: '#subscribe',
   },
   {
     id: 1,
-    text: 'BUILD YOUR 6-BOTTLE CUSTOM SET — Mix and match any bottles for $54.96',
+    text: 'BUILD YOUR 6-BOTTLE CUSTOM SET — Mix and match any 6 bottles for $54.99 a month',
     tag: 'CUSTOM BUNDLE',
     cta: 'Build Yours',
     link: '#custom-set',
@@ -36,7 +36,7 @@ const ROTATE_MS = 6000;
 
 // Featured banner at the top of the shop. All slides share one grid cell so the
 // banner keeps the height of the tallest slide and nothing jumps while rotating.
-export function AnnouncementBanner({ onOpenWaitlist }) {
+export function AnnouncementBanner() {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const count = BANNER_ITEMS.length;
@@ -53,9 +53,6 @@ export function AnnouncementBanner({ onOpenWaitlist }) {
 
   const renderCta = (item) => {
     const label = <>{item.cta} <span aria-hidden="true">→</span></>;
-    if (item.action === 'openWaitlist') {
-      return <button type="button" className="ms-btn ms-feature-cta" onClick={onOpenWaitlist}>{label}</button>;
-    }
     if (item.link.startsWith('#')) {
       return <button type="button" className="ms-btn ms-feature-cta" onClick={() => scrollTo(item.link)}>{label}</button>;
     }

@@ -10,7 +10,7 @@ test('navigates through slides and links Our Story to /about', () => {
 
   fireEvent.click(screen.getByRole('button', { name: /next slide/i }));
   fireEvent.click(screen.getByRole('button', { name: /next slide/i }));
-  expect(screen.getByText(/MADE IN DALLAS, TX, USA/i)).toBeInTheDocument();
+  expect(screen.getByText(/The Majorities is a Texas company/i)).toBeInTheDocument();
   expect(screen.getByRole('link', { name: /our story/i })).toHaveAttribute('href', '/about');
 });
 
@@ -35,7 +35,7 @@ test('subscribe slide shows the updated copy and scrolls to the product grid', (
   renderBanner();
 
   fireEvent.click(screen.getByRole('button', { name: /go to slide 4/i }));
-  expect(screen.getByText(/Pause or cancel anytime/i)).toBeInTheDocument();
+  expect(screen.getByText(/Subscribe & Save$/i)).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: /shop essentials/i }));
   expect(scrollIntoView).toHaveBeenCalled();
   document.getElementById('subscribe').remove();

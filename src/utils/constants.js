@@ -43,6 +43,8 @@ sellingPlanId: DEFAULT_SELLING_PLAN_ID
 // Until every variantId and the sellingPlanId are filled in, the builder keeps the regular products and prices.
 export const CUSTOM_SET_SUBSCRIPTION = {
 bottlePrice: 9.16,
+// Advertised monthly price for a full custom set (matches the ads and the product listing doc)
+setPrice: 54.99,
 sellingPlanId: "8559493298",
 variantIds: {
 "The Majorities Shampoo": "67637378875570",

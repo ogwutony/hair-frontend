@@ -155,13 +155,18 @@ export const getCustomSetBottleSubscriptionPrice = (productName) =>
     ? CUSTOM_SET_SUBSCRIPTION.bottlePrice
     : getProductCommerceConfig(productName).pricing.subscription;
 
-export const calculateSetTotals = (items = []) => items.reduce((totals, item) => {
-  const { pricing } = getProductCommerceConfig(item.name);
-  return {
-    oneTime: totals.oneTime + (pricing.oneTime || 0),
-    subscription: totals.subscription + (getCustomSetBottleSubscriptionPrice(item.name) || 0)
-  };
-}, { oneTime: 0, subscription: 0 });
+export const calculateSetTotals = (items = []) => {
+  const totals = items.reduce((sum, item) => {
+    const { pricing } = getProductCommerceConfig(item.name);
+    return {
+      oneTime: sum.oneTime + (pricing.oneTime || 0),
+      subscription: sum.subscription + (getCustomSetBottleSubscriptionPrice(item.name) || 0)
+    };
+  }, { oneTime: 0, subscription: 0 });
+  // A complete custom set subscribes at the advertised set price
+  if (items.length === 6 && isCustomSetSubscriptionReady()) totals.subscription = CUSTOM_SET_SUBSCRIPTION.setPrice;
+  return totals;
+};
 
 export const submitShopifyCheckout = (items, purchaseType = "one-time") => {
   if (!items.length) return;

@@ -3,8 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { trackEvent } from '../components/AdMonetization';
-import { productsData, PRODUCT_IMAGE_BY_NAME } from '../utils/constants';
-import { calculateSetTotals, formatCurrency, getCustomSetBottleSubscriptionPrice, getProductCommerceConfig, submitShopifyCheckout } from '../utils/helpers';
+import { productsData, PRODUCT_IMAGE_BY_NAME, CUSTOM_SET_SUBSCRIPTION } from '../utils/constants';
+import { calculateSetTotals, formatCurrency, getProductCommerceConfig, submitShopifyCheckout } from '../utils/helpers';
 import { styles } from '../utils/styles';
 import { MobileShop } from './MobileShop';
 import { trackInitiateCheckout } from '../utils/pixels';
@@ -96,7 +96,7 @@ style={{ width: '100%', height: '120px', objectFit: 'contain', borderRadius: '10
 <div style={styles.itemName}>{item.name}</div>
 <div style={{ fontSize: '11px', color: '#555', marginTop: '8px', lineHeight: '1.5' }}>
 <div>One-time {formatCurrency(pricing.oneTime)} <span style={{ color: '#777' }}>· 1 box per month</span></div>
-<div>Subscribe {formatCurrency(getCustomSetBottleSubscriptionPrice(item.name))} <span style={{ color: '#777' }}>· 1 box per month</span></div>
+<div>Subscribe in a 6-bottle set <span style={{ color: '#777' }}>· {formatCurrency(CUSTOM_SET_SUBSCRIPTION.setPrice)} / month</span></div>
 </div>
 </div>
 );
@@ -151,7 +151,7 @@ return (
 One-time {formatCurrency(getProductCommerceConfig(focusedItem.name).pricing.oneTime)} · 1 box per month
 </span>
 <span style={{ fontSize: '12px', fontWeight: '600', color: '#2d6a4f' }}>
-Subscribe {formatCurrency(getCustomSetBottleSubscriptionPrice(focusedItem.name))} · 1 box per month
+Subscribe in a 6-bottle set · {formatCurrency(CUSTOM_SET_SUBSCRIPTION.setPrice)} / month
 </span>
 </div>
 
@@ -194,7 +194,7 @@ selectedItems.forEach(item => { counts[item.name] = (counts[item.name] || 0) + 1
 return Object.entries(counts).map(([name, count]) => (
 <div key={name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '4px 0' }}>
 <p style={{ fontSize: '11px', margin: 0 }}>
-{name}{count > 1 ? ` x${count}` : ''} · {formatCurrency(getProductCommerceConfig(name).pricing.oneTime)} / {formatCurrency(getCustomSetBottleSubscriptionPrice(name))}
+{name}{count > 1 ? ` x${count}` : ''} · {formatCurrency(getProductCommerceConfig(name).pricing.oneTime)}
 </p>
 <button onClick={() => handleRemoveFromCart(name)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px', color: '#aaa', lineHeight: 1, padding: '0 4px' }} title="Remove one">×</button>
 </div>

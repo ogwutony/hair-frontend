@@ -24,7 +24,7 @@ export const SHOP_ITEMS = [
       `${SIX_BOTTLE} Back.jpg`,
     ],
     includes: 'Shampoo, Conditioner, Hair Oil, Facial Scrub, Face Toner, Moisturizing Lotion',
-    summary: 'Our complete line of hair and face essentials in one set. Six 100ml bottles cover cleansing, conditioning, sealing, exfoliating, toning, and moisturizing, at home or on the go.',
+    summary: 'The ultimate travel grooming kit. This comprehensive system combines the full face and hair lines (6 x 100ml bottles) to ensure zero compromise on your grooming standards while traveling. Net content: 20.28 fl oz (600ml).',
   },
   {
     id: 'bundle-3-face',
@@ -36,7 +36,7 @@ export const SHOP_ITEMS = [
     pricing: { oneTime: 39.99, subscription: 29.99 },
     images: [`${SHOPIFY_FILES}AmazonProductImageEdit.jpg?v=1787712759&width=900`],
     includes: 'Facial Scrub, Face Toner, Moisturizing Lotion',
-    summary: 'Three face essentials in one routine: a scrub to polish, a toner to balance, and a lotion to lock in moisture.',
+    summary: 'TSA-friendly travel skincare kit featuring a 3-step routine: Gentle Exfoliating Scrub, Refreshing Toner, and Deep Moisturizing Lotion. Designed for the modern nomad to maintain skin health on the go. Net content: 10.14 fl oz (300ml).',
   },
   {
     id: 'bundle-3-hair',
@@ -48,7 +48,7 @@ export const SHOP_ITEMS = [
     pricing: { oneTime: 39.99, subscription: 29.99 },
     images: [`${SHOPIFY_FILES}front3-1h_9b9b29de-5e7e-40c5-912c-1da60998bd4e.jpg?v=1787758308&width=900`],
     includes: 'Shampoo, Conditioner, Hair Oil',
-    summary: 'Three hair essentials in one routine: a deep-cleansing shampoo, a rich conditioner, and a lightweight finishing oil.',
+    summary: 'Complete TSA-friendly haircare system including Clarifying Shampoo, Intensive Conditioner, and Glossing Hair Oil. Delivers salon-grade results in a streamlined 100ml travel-compliant setup. Net content: 10.14 fl oz (300ml).',
   },
   ...[
     ['shampoos', 'single-shampoo', 'hair', 'Hair', '47796439744690'],

@@ -305,11 +305,11 @@ imageUrl: "/Amazon S.jpg",
 images: ["/Amazon S.jpg", "/Amazon S side.jpg", "/Amazon S Back.jpg"],
 desc: (
 <>
-<p>Reset and revive stressed hair with a salon-grade, deep-cleansing wash designed for all hair types. This high-foaming, rinse-off shampoo creates a rich, decadent lather that effortlessly lifts away stubborn scalp buildup, excess oils, and environmental pollutants without stripping away natural moisture.</p>
-<p>Powered by Provitamin B5 (Panthenol) and advanced anti-frizz shields, it tames static, boosts elasticity, and wraps your hair in a luminous, mirror-like shine.</p>
-<p><strong>Hair Type:</strong> Perfect for daily use on natural or non-color treated hair.</p>
-<p><strong>Scent Experience:</strong> Infused with a premium, long-lasting signature fragrance.</p>
+<p>Reset and revive stressed hair with a salon-grade, deep-cleansing wash. This high-foaming formula lifts away buildup, excess oils, and pollutants without stripping natural moisture. Powered by Provitamin B5, it tames static and boosts elasticity for mirror-like shine.</p>
+<p><strong>Daily Use:</strong> Perfect for natural or non-color treated hair.</p>
+<p><strong>Scent:</strong> Infused with a premium, long-lasting signature fragrance.</p>
 <p><strong>Ingredients:</strong> Water, Sodium C14-16 Olefin Sulfonate, Cocamidopropyl Betaine, Ceteareth-60 Myristyl Glycol, Polysorbate 80, Lauramide DIPA, Polyquaternium-10, Polyquaternium-7, Panthenol, Fragrance, Caprylyl Glycol, Phenoxyethanol, Citric Acid, Tetrasodium Glutamate Diacetate, Blue 1</p>
+<p><strong>Net Content:</strong> 3.38 fl oz (100ml)</p>
 </>
 )
 }
@@ -320,11 +320,11 @@ name: "The Majorities Conditioner",
 imageUrl: "/Amazon hc.jpg", images: ["/Amazon hc.jpg", "/Amazon hc side.png", "/Amazon hc back.jpg"],
 desc: (
 <>
-<p>Rescue and restore chronically dry, brittle, or damaged hair with an intensive moisture therapy treatment. This ultra-rich, rinse-off conditioner melts into parched strands, delivering a powerful infusion of tropical Coconut Oil, liquid gold Argan Oil, and nourishing Olive Oil. It actively mends frayed cuticles, eliminates stubborn knots, and neutralizes static cling.</p>
-<p>Perfect for restoring natural bounce, strength, and resilience, it leaves hair effortlessly detangled, silky-smooth, and deeply repaired from root to tip.</p>
-<p><strong>Hair Benefits:</strong> Ultimate detangling, breakage defense, and extreme cuticle smoothing.</p>
-<p><strong>Ingredient Highlights:</strong> Pure Argan Oil, Coconut Oil, Olive Oil, and Provitamin B5.</p>
+<p>Rescue chronically dry or damaged hair with this intensive moisture therapy. This ultra-rich formula melts into strands with Coconut, Argan, and Olive oils to mend cuticles and eliminate knots, leaving hair silky-smooth and resilient.</p>
+<p><strong>Benefits:</strong> Ultimate detangling, breakage defense, and extreme cuticle smoothing.</p>
+<p><strong>Key Ingredients:</strong> Pure Argan Oil, Coconut Oil, Olive Oil, and Provitamin B5.</p>
 <p><strong>Ingredients:</strong> Water, Stearyl Alcohol, Cetyl Alcohol, Glycine Soja (Soybean) Oil, Brassicamidopropyl Dimethylamine, Polysorbate 80, Cocos Nucifera (Coconut) Oil, Argania Spinosa (Argan) Kernel Oil, Olea Europaea (Olive) Fruit Oil, Panthenol, Fragrance, Benzyl Alcohol, Benzoic Acid, Sorbic Acid, Citric Acid, Tetrasodium Glutamate Diacetate, Sodium Hydroxide, Blue 1</p>
+<p><strong>Net Content:</strong> 3.38 fl oz (100ml)</p>
 </>
 )
 }
@@ -335,11 +335,11 @@ name: "The Majorities Hair Oil",
 imageUrl: "/amazon HO.jpg", images: ["/amazon HO.jpg", "/Amazon HO Side.jpg", "/Amazon HO back.jpg"],
 desc: (
 <>
-<p>Transform dull, parched strands into sleek, high-gloss perfection with this ultra-lightweight botanical elixir. Just a few drops of this luxurious leave-on oil blend work to instantly seal split ends, smooth stubborn flyaways, and coat the hair cuticle in a brilliant, reflective shield.</p>
-<p>Packed with deeply conditioning Soybean, Castor, Safflower, and Sunflower seed oils, it provides heavy-duty nourishment with a weightless finish, while natural Peppermint Oil delivers an invigorating, tingling scalp refresh.</p>
-<p><strong>Performance:</strong> Seals, conditions, and protects without leaving a heavy, greasy buildup. Deeply conditions as an emollient while acting as an occlusive shield to lock in vital moisture.</p>
-<p><strong>Sensory Profile:</strong> Refreshing, cooling, and awakening peppermint aroma backed by natural antioxidants.</p>
+<p>Transform dull strands into high-gloss perfection with this ultra-lightweight botanical elixir. Just a few drops seal split ends and create a reflective shield without weight or greasy buildup, featuring an invigorating peppermint refresh.</p>
+<p><strong>Performance:</strong> Seals, conditions, and protects hair cuticle.</p>
+<p><strong>Sensory:</strong> Refreshing, cooling, and awakening peppermint aroma.</p>
 <p><strong>Ingredients:</strong> Glycine Soja (Soybean) Oil, Ricinus Communis (Castor) Seed Oil, Carthamus Tinctorius (Safflower) Seed Oil, Helianthus Annuus (Sunflower) Seed Oil, Mentha Piperita (Peppermint) Oil, Tocopheryl Acetate</p>
+<p><strong>Net Content:</strong> 3.38 fl oz (100ml)</p>
 </>
 )
 }
@@ -350,11 +350,11 @@ name: "The Majorities Facial Scrub",
 imageUrl: "/Amazon fs.jpg", images: ["/Amazon fs.jpg", "/Amazon fs side.jpg", "/Amazon fs back.jpg"],
 desc: (
 <>
-<p>Unveil your smoothest, most radiant complexion yet with this dual-action facial polish. This creamy, rinse-off scrub combines micro-fine Bambusa Arundinacea (Bamboo) Stem Powder to gently buff away dulling, dead skin cells, while deep-cleansing Salicylic Acid (BHA) dissolves pore-clogging impurities and targets oil buildup.</p>
-<p>Cushioned with melting Jojoba Esters and soothing hydrators, it intensely purifies and refines skin texture without scratching or drying, leaving your face feeling completely renewed, clear, and soft.</p>
-<p><strong>Target Concerns:</strong> Congestion, dullness, blemishes, and uneven skin texture.</p>
-<p><strong>Formula Type:</strong> A conditioning, non-stripping physical and chemical exfoliant.</p>
+<p>A dual-action facial polish that combines micro-fine Bamboo Stem Powder and Salicylic Acid (BHA). This creamy scrub dissolves pore-clogging impurities while Jojoba Esters ensure a gentle, non-stripping exfoliation for a clear complexion.</p>
+<p><strong>Target:</strong> Tackles congestion, dullness, blemishes, and uneven texture.</p>
+<p><strong>Gentle:</strong> Refines texture without harsh scratching or drying.</p>
 <p><strong>Ingredients:</strong> Water, Glycerin, Stearic Acid, Cetyl Alcohol, Glyceryl Stearate, PEG-100 Stearate, Cetearyl Alcohol, Ceteareth-20, Bambusa Arundinacea Stem Powder, Polysorbate 80, Jojoba Esters, Tocopheryl Acetate, Acrylates/C10-30 Alkyl Acrylate Crosspolymer, Salicylic Acid, Fragrance, Caprylyl Glycol, Phenoxyethanol, Citric Acid, Tetrasodium Glutamate Diacetate, Blue 1</p>
+<p><strong>Net Content:</strong> 3.38 fl oz (100ml)</p>
 </>
 )
 }
@@ -366,11 +366,11 @@ imageUrl: "/Amazon FT.jpg",
 images: ["/Amazon FT.jpg", "/Amazon FT side.jpg", "/Amazon FT Back.jpg"],
 desc: (
 <>
-<p>Elevate your daily skincare routine with a clean, revitalizing splash of weightless hydration. This advanced leave-on toner balances oil production, tightens the appearance of pores, and instantly calms the skin.</p>
-<p>Infused with clarifying Hamamelis Virginiana (Witch Hazel) and deep-binding moisture catchers, it sweeps away residual impurities while leaving your complexion perfectly prepped, velvety smooth, and radiantly balanced.</p>
-<p><strong>Skin Feel:</strong> Cool, refreshing, and instantly matte yet hydrated.</p>
-<p><strong>Visual Appeal:</strong> Beautifully tinted, crystal-clear blue formula that pops on the shelf.</p>
+<p>A revitalizing splash of weightless hydration. This advanced toner uses Witch Hazel to balance oil production, tighten pores, and calm skin, leaving a velvety smooth and radiantly balanced matte finish.</p>
+<p><strong>Feel:</strong> Cool, refreshing, and instantly matte yet hydrated.</p>
+<p><strong>Visuals:</strong> Beautifully tinted blue formula for high shelf appeal.</p>
 <p><strong>Ingredients:</strong> Water, Hamamelis Virginiana (Witch Hazel) Water, SD Alcohol 40, Sodium PCA, Phenoxyethanol, Potassium Sorbate, Citric Acid, Blue 1</p>
+<p><strong>Net Content:</strong> 3.38 fl oz (100ml)</p>
 </>
 )
 }
@@ -382,11 +382,11 @@ imageUrl: "/Lotion Front.jpg",
 images: ["/Lotion Front.jpg", "/Lotion side.jpg", "/Lotion Back (3).jpg"],
 desc: (
 <>
-<p>Wrap your skin in a comforting blanket of intense, barrier-repairing moisture. This ultra-nourishing daily body and hand lotion is formulated with a powerhouse blend of Ceramides, Hyaluronic Acid, and Vitamin E to instantly quench dehydrated skin.</p>
-<p>The fast-absorbing, non-greasy formula sinks in deep to lock out environmental dryness and rebuild your skin's natural moisture barrier, leaving hands and body touchably plush, supple, and healthy-looking all day long.</p>
-<p><strong>Application:</strong> A smooth, whipped leave-on lotion crafted for hands and body.</p>
-<p><strong>Key Ingredients to Feature:</strong> Ceramides, Sodium Hyaluronate, Glycerin, and Vitamin E.</p>
+<p>A barrier-repairing daily hydration powerhouse for face and body. Formulated with Ceramides, Hyaluronic Acid, and Vitamin E to instantly quench dehydrated skin. The non-greasy formula sinks in deep to lock out environmental dryness.</p>
+<p><strong>Barrier Repair:</strong> Restores skin's moisture barrier with Ceramides.</p>
+<p><strong>Texture:</strong> Whipped, non-greasy, and fast-absorbing.</p>
 <p><strong>Ingredients:</strong> Water, Caprylic/Capric Triglyceride, Glycerin, Cetearyl Alcohol, Propanediol, Palmitic Acid, Stearic Acid, Dimethicone, Sodium Hyaluronate, Distilled Monoglycerides, Ceteareth-20, Cetyl Esters, Cetyl Alcohol, Isocetyl Alcohol, Ceramide Np, Tocopherol, Carbomer, Fragrance, Caprylyl Glycol, Phenoxyethanol, Sodium Hydroxide, Tetrasodium Glutamate Diacetate</p>
+<p><strong>Net Content:</strong> 3.38 fl oz (100ml)</p>
 </>
 )
 }

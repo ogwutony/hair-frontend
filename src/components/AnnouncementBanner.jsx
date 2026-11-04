@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 export const BANNER_ITEMS = [
   {
     id: 3,
-    text: 'Subscribe & save: any 6 bottles for $54.99 a month.',
+    text: 'Subscribe & save. Any 6 bottles for $54.99 a month',
     tag: 'SHOP NOW',
     cta: 'Shop Now',
     link: '#subscribe',

@@ -150,6 +150,7 @@ export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle }
                     <div className="ms-line-info">
                       <div className="ms-line-name">{item.name}</div>
                       <div className="ms-muted">{l.mode === 'subscription' ? 'Subscribe · delivered every month' : 'One-time'} · {formatCurrency(price)}</div>
+                      {item.preorder && <div className="ms-preorder">Pre-order · Ships {item.preorder.shipsOn}</div>}
                       <div className="ms-qty">
                         <button type="button" aria-label="Remove one" onClick={() => changeQty(l.id, l.mode, -1)}>−</button>
                         <span>{l.qty}</span>

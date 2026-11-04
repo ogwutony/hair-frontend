@@ -33,12 +33,13 @@ function signedInEmail() {
   }
 }
 
-// lines: [{ variantId, quantity, sellingPlanId? }]
+// lines: [{ variantId, quantity, sellingPlanId?, properties? }]
 export function goToShopifyCheckout(lines) {
   if (!lines.length) return;
   const email = signedInEmail();
 
-  if (!lines.some((l) => l.sellingPlanId)) {
+  // The cart permalink can't carry selling plans or line properties; /cart/add can
+  if (!lines.some((l) => l.sellingPlanId || l.properties)) {
     const permalink = lines.map((l) => `${l.variantId}:${l.quantity}`).join(',');
     const fields = [['checkout[shipping_address][country]', 'US']];
     if (email) fields.push(['checkout[email]', email]);
@@ -46,11 +47,12 @@ export function goToShopifyCheckout(lines) {
     return;
   }
 
-  // Subscriptions need /cart/add so each line can carry its selling plan.
+  // Subscriptions and pre-orders need /cart/add so each line can carry its selling plan and properties.
   const fields = [];
   lines.forEach((l, i) => {
     fields.push([`items[${i}][id]`, l.variantId], [`items[${i}][quantity]`, l.quantity]);
     if (l.sellingPlanId) fields.push([`items[${i}][selling_plan]`, l.sellingPlanId]);
+    Object.entries(l.properties || {}).forEach(([key, value]) => fields.push([`items[${i}][properties][${key}]`, value]));
   });
   fields.push(['return_to', email ? `/checkout?checkout[email]=${encodeURIComponent(email)}` : '/checkout']);
   submitForm(`https://${SHOP_DOMAIN}/cart/add`, 'POST', fields);

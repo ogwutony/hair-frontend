@@ -2,7 +2,7 @@
 // Mobile storefront: intro, grid/list toggle, bundles first then single bottles, quick view sheet, FAQ.
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { SHOP_ITEMS, SHOP_ITEM_BY_ID } from '../utils/shopCatalog';
+import { BUNDLE_PREORDER, SHOP_ITEMS, SHOP_ITEM_BY_ID } from '../utils/shopCatalog';
 import { useCart } from '../utils/cart';
 import { formatCurrency } from '../utils/helpers';
 import { Icon } from '../components/MobileHeader';
@@ -89,7 +89,7 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
     <article className="ms-card" key={item.id}>
       <div className="ms-media">
         <img src={item.images[0]} alt={item.name} loading="lazy" />
-        <span className="ms-tag">{item.tag}</span>
+        <span className="ms-tag">{item.preorder ? 'Pre-order' : item.tag}</span>
         <button type="button" className="ms-fab ms-heart" aria-label="Save to wishlist" aria-pressed={wishlist.includes(item.id)} onClick={() => toggleWish(item.id)}>{Icon.heart}</button>
         <button type="button" className="ms-fab ms-eye" aria-label={`Quick view: ${item.name}`} onClick={() => setQuickId(item.id)}>{eye}</button>
       </div>
@@ -99,9 +99,9 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
           <Price item={item} mode={modeOf(item.id)} />
           <span className="ms-free-ship">Free shipping</span>
         </div>
-        <div className="ms-ship">Availability confirmed at checkout</div>
+        {item.preorder && <div className="ms-preorder">Pre-order · Ships {item.preorder.shipsOn}</div>}
         <ModeToggle mode={modeOf(item.id)} onChange={(m) => setMode(item.id, m)} />
-        <button type="button" className="ms-btn ms-add" onClick={() => add(item.id)}>Add to cart</button>
+        <button type="button" className="ms-btn ms-add" onClick={() => add(item.id)}>{item.preorder ? 'Pre-order' : 'Add to cart'}</button>
       </div>
     </article>
   );
@@ -148,7 +148,7 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
         <h2>FAQ</h2>
         <details>
           <summary>When will my order ship?</summary>
-          <p>Shipping availability is confirmed at checkout. Retail orders ship free.</p>
+          <p>Single bottles ship now. {BUNDLE_PREORDER ? `Our 3-bottle and 6-bottle bundles are on pre-order and ship ${BUNDLE_PREORDER.shipsOn}. ` : ''}Retail orders ship free.</p>
         </details>
         <details>
           <summary>How does subscribe and save work?</summary>
@@ -178,7 +178,7 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
               ))}
             </div>
             <h2>{quick.name}</h2>
-            <div className="ms-ship">Availability confirmed at checkout</div>
+            {quick.preorder && <div className="ms-preorder">Pre-order · Ships {quick.preorder.shipsOn}</div>}
             <div className="ms-desc">{quick.summary ? <p>{quick.summary}</p> : quick.desc}</div>
             {quick.includes && <p className="ms-includes"><strong>Includes:</strong> {quick.includes}</p>}
             <button type="button" className="ms-opt" aria-pressed={modeOf(quick.id) === 'one-time'} onClick={() => setMode(quick.id, 'one-time')}>
@@ -189,7 +189,7 @@ export function MobileShop({ onBuildSet, setCount = 0 }) {
               <span>Subscribe and save<small>Delivered every month</small></span>
               <strong>{formatCurrency(quick.pricing.subscription)}</strong>
             </button>
-            <button type="button" className="ms-btn" onClick={() => { add(quick.id); setQuickId(null); }}>Add to cart</button>
+            <button type="button" className="ms-btn" onClick={() => { add(quick.id); setQuickId(null); }}>{quick.preorder ? 'Pre-order' : 'Add to cart'}</button>
           </>
         )}
       </section>

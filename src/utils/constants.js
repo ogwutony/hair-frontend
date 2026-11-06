@@ -8,32 +8,32 @@ export const DEFAULT_SELLING_PLAN_ID = "3011281074";
 export const PRODUCT_VARIANT_MAP = {
 "The Majorities Shampoo": {
 merchandiseId: "47796439744690",
-pricing: { oneTime: 19.99, subscription: 15.99 },
+pricing: { oneTime: 15, subscription: 14 },
 sellingPlanId: DEFAULT_SELLING_PLAN_ID
 },
 "The Majorities Conditioner": {
 merchandiseId: "47796444758194",
-pricing: { oneTime: 19.99, subscription: 15.99 },
+pricing: { oneTime: 15, subscription: 14 },
 sellingPlanId: DEFAULT_SELLING_PLAN_ID
 },
 "The Majorities Hair Oil": {
 merchandiseId: "47796452327602",
-pricing: { oneTime: 19.99, subscription: 15.99 },
+pricing: { oneTime: 15, subscription: 14 },
 sellingPlanId: DEFAULT_SELLING_PLAN_ID
 },
 "The Majorities Facial Scrub": {
 merchandiseId: "47796456816818",
-pricing: { oneTime: 19.99, subscription: 15.99 },
+pricing: { oneTime: 15, subscription: 14 },
 sellingPlanId: DEFAULT_SELLING_PLAN_ID
 },
 "The Majorities Face Toner": {
 merchandiseId: "47796462059698",
-pricing: { oneTime: 19.99, subscription: 15.99 },
+pricing: { oneTime: 15, subscription: 14 },
 sellingPlanId: DEFAULT_SELLING_PLAN_ID
 },
 "The Majorities Lotion": {
 merchandiseId: "47796465369266",
-pricing: { oneTime: 19.99, subscription: 15.99 },
+pricing: { oneTime: 15, subscription: 14 },
 sellingPlanId: DEFAULT_SELLING_PLAN_ID
 }
 };

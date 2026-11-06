@@ -75,7 +75,7 @@ export const SHOP_ITEMS = [
       tag,
       variantId,
       sellingPlanId: '3011281074',
-      pricing: { oneTime: 19.99, subscription: 15.99 },
+      pricing: { oneTime: 15, subscription: 14 },
       images: p.images || [p.imageUrl],
       desc: p.desc,
     };

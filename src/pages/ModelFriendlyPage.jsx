@@ -1,6 +1,6 @@
 // src/pages/ModelFriendlyPage.jsx
 import React from 'react';
-import { PRODUCT_VARIANT_MAP, SHOP_DOMAIN } from '../utils/constants';
+import { PRODUCT_VARIANT_MAP, SHOP_DOMAIN, CUSTOM_SET_SUBSCRIPTION } from '../utils/constants';
 
 export const ModelFriendlyPage = () => {
   const products = Object.keys(PRODUCT_VARIANT_MAP).map(name => {
@@ -16,8 +16,8 @@ export const ModelFriendlyPage = () => {
       name: name,
       category: category,
       pricing: {
-        oneTime: `$${config.pricing.oneTime}.00`,
-        subscription: `$${config.pricing.subscription}.00/month`
+        oneTime: `$${config.pricing.oneTime.toFixed(2)}`,
+        subscription: `$${config.pricing.subscription.toFixed(2)}/month`
       },
       merchandiseId: config.merchandiseId,
       keyIngredients: name.includes("Shampoo") ? ["Provitamin B5 (Panthenol)", "Polyquaternium-10"] : ["Premium Ingredients"],
@@ -30,9 +30,9 @@ export const ModelFriendlyPage = () => {
     shopDomain: SHOP_DOMAIN,
     description: "The Majorities is a community-driven haircare and skincare brand offering a curated set of 6 products spanning hair and face care.",
     purchaseModel: "Custom 6-product set builder. Select one product from each category. Buy as a one-time purchase or subscribe monthly.",
-    totalOneTimePrice: `$${Object.keys(PRODUCT_VARIANT_MAP).length * 7}.00 for full 6-product set`,
-    totalSubscriptionPrice: `$${Object.keys(PRODUCT_VARIANT_MAP).length * 6}.00/month for full 6-product set`,
-    subscriptionSavings: `$${Object.keys(PRODUCT_VARIANT_MAP).length * (7 - 6)}.00/month savings with subscription`
+    totalOneTimePrice: `$${Object.values(PRODUCT_VARIANT_MAP).reduce((sum, product) => sum + product.pricing.oneTime, 0)}.00 for full 6-product set`,
+    totalSubscriptionPrice: `$${CUSTOM_SET_SUBSCRIPTION.setPrice.toFixed(2)}/month for full 6-product set`,
+    subscriptionSavings: `$${(Object.values(PRODUCT_VARIANT_MAP).reduce((sum, product) => sum + product.pricing.oneTime, 0) - CUSTOM_SET_SUBSCRIPTION.setPrice).toFixed(2)}/month savings with subscription`
   };
 
   const routes = [

@@ -107,8 +107,8 @@ style={{ width: '100%', height: '120px', objectFit: 'contain', borderRadius: '10
 
 const helmet = (
 <Helmet>
-<title>The Majorities | Premium Hair Care &amp; Solutions</title>
-<meta name="description" content="The Majorities makes premium multicultural hair care and skincare. Build your custom 6-product set from our shampoos, conditioners, oils, face scrubs, toners and creams." />
+<title>The Majorities | Multicultural Hair Care &amp; Skincare</title>
+<meta name="description" content="Shop multicultural hair care and skincare from The Majorities. Discover shampoos, conditioners, hair oil, facial care, and travel-size routine bundles." />
 <link rel="canonical" href="https://themajorities.com/" />
 </Helmet>
 );
@@ -126,8 +126,8 @@ return (
 <div>
 <button type="button" className="ms-back" onClick={() => { setBuilding(false); window.scrollTo(0, 0); }}>← Back to shop</button>
 <Helmet>
-<title>The Majorities | Premium Hair Care &amp; Solutions</title>
-<meta name="description" content="The Majorities makes premium multicultural hair care and skincare. Build your custom 6-product set from our shampoos, conditioners, oils, face scrubs, toners and creams." />
+<title>The Majorities | Multicultural Hair Care &amp; Skincare</title>
+<meta name="description" content="Shop multicultural hair care and skincare from The Majorities. Discover shampoos, conditioners, hair oil, facial care, and travel-size routine bundles." />
 <link rel="canonical" href="https://themajorities.com/" />
 </Helmet>
 <h1 style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}>The Majorities — Premium Multicultural Hair Care &amp; Skincare</h1>

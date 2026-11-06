@@ -8,7 +8,7 @@ const {
   publicPerspectives, publicRecommendations, authorName, itemDate,
 } = require('./_lib/site');
 
-const DEFAULT_DESC = 'Join The Majorities community. Discover premium, clean-beauty multicultural personal care products, tailored subscriptions, and routine bundles.';
+const DEFAULT_DESC = 'Shop multicultural hair care and skincare from The Majorities. Discover shampoos, conditioners, hair oil, facial care, and travel-size routine bundles.';
 
 // Members-only or utility screens: served normally, but kept out of search
 const NOINDEX = [/^\/login$/, /^\/signup$/, /^\/forgot-password$/, /^\/reset-password\//, /^\/profile$/, /^\/messages$/, /^\/culture$/,
@@ -94,7 +94,7 @@ async function staticPage(route, host) {
 }
 
 const FALLBACK_TITLES = {
-  '/': 'The Majorities | Premium Hair Care & Solutions',
+  '/': 'The Majorities | Multicultural Hair Care & Skincare',
   '/about': 'About | The Majorities', '/contact': 'Contact Us | The Majorities', '/privacy': 'Privacy Policy | The Majorities',
   '/termsofservice': 'Terms of Service | The Majorities', '/returns': 'Return Policy | The Majorities',
   '/recommend': 'Recommend a Product | The Majorities', '/partner': 'Partner With Us | The Majorities',
@@ -116,11 +116,11 @@ function applyHead(shell, page) {
   if (page.ogType) setMeta('property', 'og:type', page.ogType);
   if (page.canonical) {
     const url = `${SITE}${page.canonical === '/' ? '/' : page.canonical}`;
-    html = html.replace(/<link rel="canonical" href="[^"]*"\s*\/?>/i, `<link rel="canonical" href="${esc(url)}" />`);
+    html = html.replace(/<link\b(?=[^>]*\brel="canonical")[^>]*>/i, `<link data-rh="true" rel="canonical" href="${esc(url)}" />`);
     setMeta('property', 'og:url', url);
   }
   if (page.noindex) {
-    html = html.replace(/<link rel="canonical"[^>]*>\s*/i, '');
+    html = html.replace(/<link\b(?=[^>]*\brel="canonical")[^>]*>\s*/i, '');
     html = html.replace('</head>', '<meta name="robots" content="noindex" />\n</head>');
   }
   if (page.extraHead) html = html.replace('</head>', `${page.extraHead}\n</head>`);

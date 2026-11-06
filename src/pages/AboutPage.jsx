@@ -26,7 +26,9 @@ export function AboutPage() {
   return (
     <div style={{ fontFamily: FONT, background: '#fff', color: '#000' }}>
       <Helmet>
-        <title>About — The Majorities</title>
+        <title>About Our Hair Care &amp; Skincare | The Majorities</title>
+        <meta name="description" content="Learn about The Majorities, a Texas-founded multicultural hair care and skincare brand creating everyday shampoos, conditioners, oils, and facial care." />
+        <link rel="canonical" href="https://themajorities.com/about" />
       </Helmet>
 
       {/* Hero */}

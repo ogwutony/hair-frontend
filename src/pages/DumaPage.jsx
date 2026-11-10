@@ -14,6 +14,7 @@ import { AddressLink } from '../components/AddressLink';
 import { EditDumaPostModal } from '../components/EditDumaPostModal';
 import { ImageLightbox, sizedImageUrl } from '../components/ImageLightbox';
 import { useModeration } from '../utils/moderation';
+import { isPersistedDumaId } from '../utils/dumaApi';
 import { EzoicAd, DUMA_AD_PLACEHOLDER_START, DUMA_AD_EVERY_N_POSTS, DUMA_AD_MAX_SLOTS } from '../components/EzoicAd';
 
 // Only index public post content and location tags, never private partner fields.
@@ -45,6 +46,9 @@ const searchSuggestions = (items, query) => {
 };
 
 const EMPTY_LIST = []; // stable default so effects keyed on it don't re-run every render
+
+// Top-level Duma sections. Economics groups the commerce views as sub-sections.
+const ECONOMICS_SUBSECTIONS = ['Recommendations', 'Partners', 'Marketplace'];
 
 // Vote counts under either name: the backend stores yay/nay(/abstain); newer responses also send yes/no
 const voteCount = (item, key) => {
@@ -114,7 +118,8 @@ const [searchQuery, setSearchQuery] = useState('');
 const [searchOpen, setSearchOpen] = useState(false);
 const [activeSuggestion, setActiveSuggestion] = useState(-1);
 const searchRef = useRef(null);
-const [activeSection, setActiveSection] = useState("Culture");
+const [activeSection, setActiveSection] = useState("Culture"); // "Culture" | "Economics"
+const [economicsSection, setEconomicsSection] = useState("Recommendations");
 const [marketplaceListings, setMarketplaceListings] = useState([]);
 const [boostingId, setBoostingId] = useState(null);
 const [socialFeedLoaded, setSocialFeedLoaded] = useState(false);
@@ -140,13 +145,16 @@ window.open(platform === 'instagram' ? 'https://www.instagram.com/' : 'https://w
 useEffect(() => {
 fetch(`${BACKEND_URL}/api/duma`).then(r => r.json()).then(data => {
 if (Array.isArray(data) && data.length > 0) {
-// De-duplicate items by ID so only one unique entry is rendered per submission
+// The server copy is the source of truth (it carries saved comments and votes). Keep a
+// just-submitted local copy only until the server list includes it, and drop local-only
+// placeholders, which can't take comments or votes.
 const uniqueMap = new Map();
-[...data, ...items].forEach(item => {
+items.filter(item => isPersistedDumaId(item._id || item.id)).forEach(item => uniqueMap.set(String(item._id || item.id), item));
+data.forEach(item => {
 const id = item._id || item.id;
 if (id) uniqueMap.set(String(id), item);
 });
-setDumaItems(Array.from(uniqueMap.values()));
+setDumaItems(Array.from(uniqueMap.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)));
 }
 }).catch(err => console.error('Failed to load duma items:', err));
 }, [items]);
@@ -324,6 +332,8 @@ setComments(prev => ({
 ...prev,
 [itemId]: [...(prev[itemId] || item.comments || []), data.comment]
 }));
+// Keep the saved comment on the post itself so it survives a feed refresh
+setDumaItems(prev => prev.map(it => getItemId(it) === getItemId(itemId) ? { ...it, comments: [...(it.comments || []), data.comment] } : it));
 setCommentText(prev => ({ ...prev, [itemId]: '' }));
 setCommentImages(prev => ({ ...prev, [itemId]: [] }));
 } catch (error) {
@@ -355,6 +365,7 @@ const itemComments = (comments[itemId] || item.comments || []).filter(c => !isBl
 const images = commentImages[itemId] || [];
 const text = commentText[itemId] || '';
 const isSubmitting = !!commentSubmitting[itemId];
+const canComment = isPersistedDumaId(itemId);
 
 return (
 <div style={{ borderTop: '2px solid #eee', paddingTop: '12px', marginTop: '14px' }}>
@@ -374,7 +385,9 @@ return (
 <p style={{ fontSize: '10px', color: '#aaa', margin: 0 }}>{comment.createdAt ? new Date(comment.createdAt).toLocaleString() : comment.timestamp}</p>
 </div>
 ))}
-{authToken && userEmail ? (
+{!canComment ? (
+<p style={{ margin: '10px 0 0', fontSize: '12px', color: '#666' }}>Comments open once this post has been saved to The Duma.</p>
+) : authToken && userEmail ? (
 <div>
 <div style={{ display: 'flex', gap: '8px' }}>
 <input type="text" aria-label="Comment text" placeholder="Add a comment..." style={{ flex: 1, minWidth: 0, padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px' }} value={text} disabled={isSubmitting} onChange={event => setCommentText(prev => ({ ...prev, [itemId]: event.target.value }))} />
@@ -395,18 +408,26 @@ return (
 
 // Apply moderation and access rules before generating results or suggestions.
 const visibleItems = dumaItems.filter(item => !isHiddenItem(item));
-const sections = {
+const views = {
 Culture: visibleItems.filter(item => item.section === "Cultural" || item.category === "Culture" || item.type === "Video" || item.type === "Culture"),
 Recommendations: visibleItems.filter(item => item.type === "Product Recommendation" || item.type === "Recommendation"),
 Partners: authToken ? visibleItems.filter(item => item.type === "Partner") : [],
 Marketplace: marketplaceListings.filter(item => !isHiddenItem(item)),
 };
-const suggestions = searchSuggestions(sections[activeSection], searchQuery);
-const culturalItems = sections.Culture.filter(item => matchesSearch(item, searchQuery));
-const recommendationItems = sections.Recommendations.filter(item => matchesSearch(item, searchQuery));
-const partnerItems = sections.Partners.filter(item => matchesSearch(item, searchQuery));
-const marketplaceItems = sections.Marketplace.filter(item => matchesSearch(item, searchQuery));
-const resultCount = sections[activeSection].filter(item => matchesSearch(item, searchQuery)).length;
+// activeView is the list actually on screen: Culture, or the chosen Economics sub-section
+const activeView = activeSection === 'Economics' ? economicsSection : 'Culture';
+const sectionCounts = {
+Culture: views.Culture.length,
+Economics: ECONOMICS_SUBSECTIONS.reduce((total, key) => total + views[key].length, 0),
+};
+const viewLabel = activeSection === 'Economics' ? `Economics › ${economicsSection}` : 'Culture';
+const suggestions = searchSuggestions(views[activeView], searchQuery);
+const culturalItems = views.Culture.filter(item => matchesSearch(item, searchQuery));
+const recommendationItems = views.Recommendations.filter(item => matchesSearch(item, searchQuery));
+const partnerItems = views.Partners.filter(item => matchesSearch(item, searchQuery));
+const marketplaceItems = views.Marketplace.filter(item => matchesSearch(item, searchQuery));
+const resultCount = views[activeView].filter(item => matchesSearch(item, searchQuery)).length;
+const resetSearchUi = () => { setSearchOpen(false); setActiveSuggestion(-1); };
 const chooseSuggestion = (value) => {
 setSearchQuery(value);
 setSearchOpen(false);
@@ -418,7 +439,7 @@ return (
 <div style={{ padding: isMobile ? '25px 16px' : '40px 60px', maxWidth: '1100px', margin: '0 auto', flex: '1 1 auto', minWidth: 0 }}>
 <Helmet>
 <title>The Duma | The Majorities</title>
-<meta name="description" content="The Majorities Duma — explore culture, recommendations, and perspectives from our community." />
+<meta name="description" content="The Majorities Duma — explore culture and economics (recommendations, partners, and the marketplace) from our community." />
 <link rel="canonical" href="https://themajorities.com/duma" />
 </Helmet>
 {socialFeedUrl && (
@@ -444,7 +465,7 @@ setSocialFeedUnavailable(false);
 <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', marginBottom: '30px', gap: isMobile ? '15px' : '0' }}>
 <div>
 <h2 style={{ marginBottom: '6px' }}>The Majorities' Duma</h2>
-<p style={{ color: '#666', fontSize: '14px', margin: 0 }}>Community recommendations, partnerships, and cultural contributions - vote to shape The Majorities.</p>
+<p style={{ color: '#666', fontSize: '14px', margin: 0 }}>Culture and Economics — recommendations, partners, and the marketplace. Vote to shape The Majorities.</p>
 </div>
 {userEmail && rankTitle && <div style={{ width: isMobile ? '100%' : 'auto' }}><CredentialHeader email={userEmail} rankTitle={getRankTitle(rankScore)} rankScore={rankScore} avatarUrl={userAvatar} /></div>}
 </div>
@@ -457,7 +478,7 @@ setSocialFeedUnavailable(false);
 @media(max-width:1100px) { .duma-controls { flex-direction:column; align-items:stretch; } .duma-search { flex:auto; width:100%; } .duma-controls > a { margin-left:0 !important; } }
 `}</style>
 <div className="duma-categories" aria-label="Duma categories">
-{Object.keys(sections).map(section => <button key={section} onClick={() => { setActiveSection(section); setSearchOpen(false); setActiveSuggestion(-1); }} style={{ padding: '10px 12px', backgroundColor: activeSection === section ? '#222' : '#f5f5f5', color: activeSection === section ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', flexShrink: 0 }}>{section} ({sections[section].length})</button>)}
+{Object.keys(sectionCounts).map(section => <button key={section} type="button" aria-pressed={activeSection === section} onClick={() => { setActiveSection(section); resetSearchUi(); }} style={{ padding: '10px 12px', backgroundColor: activeSection === section ? '#222' : '#f5f5f5', color: activeSection === section ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', flexShrink: 0 }}>{section} ({sectionCounts[section]})</button>)}
 </div>
 <div className="duma-search" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setSearchOpen(false); }}>
 <input ref={searchRef} type="search" role="combobox" aria-label="Search Duma posts" aria-autocomplete="list" aria-expanded={searchOpen && suggestions.length > 0} aria-controls="duma-search-suggestions" aria-activedescendant={searchOpen && activeSuggestion >= 0 && suggestions[activeSuggestion] ? `duma-suggestion-${activeSuggestion}` : undefined} placeholder="Search by name, city, ZIP code, or address..." value={searchQuery} onFocus={() => setSearchOpen(true)} onChange={event => { setSearchQuery(event.target.value); setSearchOpen(true); setActiveSuggestion(-1); }} onKeyDown={event => {
@@ -474,9 +495,15 @@ if (event.key === 'Enter') { event.preventDefault(); if (searchOpen && suggestio
 <Link to={authToken ? '/culture' : '/login'} style={{ padding: '8px 14px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', marginLeft: isMobile ? '0' : 'auto', flexShrink: 0, textDecoration: 'none', display: 'flex', alignItems: 'center' }}>{authToken ? '+ Share Your Perspective' : 'Log in to Share'}</Link>
 </div>
 
-{searchQuery.trim() && <div role="status" aria-live="polite" style={{ marginBottom:16, color:'#555' }}>{resultCount ? `${resultCount} matching ${resultCount === 1 ? 'post' : 'posts'} in ${activeSection}.` : 'No matching posts. Try another name, keyword, city, ZIP code, or address.'} <button type="button" onClick={() => { setSearchQuery(''); setSearchOpen(false); searchRef.current?.focus(); }}>Clear search</button></div>}
+{activeSection === 'Economics' && (
+<div className="duma-subsections" aria-label="Economics sections" style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: '20px' }}>
+{ECONOMICS_SUBSECTIONS.map(sub => <button key={sub} type="button" aria-pressed={economicsSection === sub} onClick={() => { setEconomicsSection(sub); resetSearchUi(); }} style={{ padding: '7px 12px', backgroundColor: economicsSection === sub ? '#fff' : '#f5f5f5', color: '#222', border: economicsSection === sub ? '2px solid #222' : '2px solid transparent', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flexShrink: 0 }}>{sub} ({views[sub].length})</button>)}
+</div>
+)}
 
-{activeSection === "Culture" && (
+{searchQuery.trim() && <div role="status" aria-live="polite" style={{ marginBottom:16, color:'#555' }}>{resultCount ? `${resultCount} matching ${resultCount === 1 ? 'post' : 'posts'} in ${viewLabel}.` : 'No matching posts. Try another name, keyword, city, ZIP code, or address.'} <button type="button" onClick={() => { setSearchQuery(''); setSearchOpen(false); searchRef.current?.focus(); }}>Clear search</button></div>}
+
+{activeView === "Culture" && (
 <div>
 {culturalItems.length === 0 ? (
 <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>{searchQuery.trim() ? 'No matching posts. Try another search or clear the search.' : 'No perspectives shared yet. Share yours and contribute to our culture section!'}</div>
@@ -598,7 +625,7 @@ Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCoun
 </div>
 )}
 
-{activeSection === "Recommendations" && (
+{activeView === "Recommendations" && (
 <div>
 {!authToken && <GuestSubmissionPrompt message="Anyone can read the Duma. Log in or register to vote, recommend products, and share your perspective." />}
 {recommendationItems.length === 0 ? (
@@ -660,13 +687,13 @@ Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCoun
 </div>
 )}
 
-{activeSection === "Partners" && !authToken && (
+{activeView === "Partners" && !authToken && (
 <div style={{ padding: '20px 0' }}>
 <GuestSubmissionPrompt message="This section contains proprietary commerce ledger records, partner structures, and product recommendations. Please log in or register to view this data." />
 </div>
 )}
 
-{activeSection === "Partners" && authToken && (
+{activeView === "Partners" && authToken && (
 <div>
 {partnerItems.length === 0 ? (
 <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>{searchQuery.trim() ? 'No matching posts. Try another search or clear the search.' : 'No partner applications yet. Be the first to submit a partnership!'}</div>
@@ -788,7 +815,7 @@ Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCoun
 </div>
 )}
 
-{activeSection === "Marketplace" && (
+{activeView === "Marketplace" && (
 <div>
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
 <h3 style={{ margin: 0 }}>Marketplace</h3>

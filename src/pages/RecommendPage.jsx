@@ -62,15 +62,16 @@ export const RecommendPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, 
       if (formData.video) submitData.append('video', formData.video);
 
       const res = await fetch(`${BACKEND_URL}/api/duma/recommend`, { method: 'POST', headers: { Authorization: `Bearer ${authToken}` }, body: submitData });
-      const data = await res.json();
-      if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); setIsLoading(false); return; }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setErrorMsg(data.error || `Submission failed (${res.status}). Please try again.`); setIsLoading(false); return; }
 
-      addDumaItem({ ...formData, id: Date.now(), type: "Product Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'Comrade', section: "Commerce" });
+      // Use the server's copy (real _id) so votes and comments on it are saved too
+      const savedItem = data.item || {};
+      addDumaItem({ name: formData.name, company: formData.company, reason: formData.whyRecommend, comments: [], ...savedItem, id: savedItem._id || savedItem.id || Date.now(), submittedBy: savedItem.submittedBy || userEmail || "anonymous", submitterRank: savedItem.submitterRank || rankTitle || 'Comrade' });
       if (onAddPoints) onAddPoints(POINTS.RECOMMENDATION);
       setSubmitted(true);
     } catch (err) {
-      addDumaItem({ ...formData, id: Date.now(), type: "Product Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'Comrade', section: "Commerce" });
-      setSubmitted(true);
+      setErrorMsg("We couldn't reach the server, so your recommendation was not saved. Please check your connection and try again.");
     }
     setIsLoading(false);
   };

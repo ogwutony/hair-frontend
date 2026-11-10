@@ -52,25 +52,40 @@ export const RecommendPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, 
 
     setIsLoading(true);
     try {
-      const submitData = new FormData();
-      submitData.append('name', formData.name);
-      submitData.append('company', formData.company);
-      submitData.append('productType', formData.productType);
-      submitData.append('websiteLink', formData.websiteLink);
-      submitData.append('whyRecommend', formData.whyRecommend);
-      if (formData.photo) submitData.append('photo', formData.photo);
-      if (formData.video) submitData.append('video', formData.video);
+      // The backend takes JSON (name, brand, webLink, reason, mediaUrls), so upload any photo/video first
+      const mediaUrls = [];
+      for (const file of [formData.photo, formData.video].filter(Boolean)) {
+        const upload = new FormData();
+        upload.append('file', file);
+        upload.append('type', file.type.startsWith('video/') ? 'video' : 'image');
+        const uploadRes = await fetch(`${BACKEND_URL}/api/media/upload`, { method: 'POST', headers: { Authorization: `Bearer ${authToken}` }, body: upload });
+        const uploadData = await uploadRes.json().catch(() => ({}));
+        const url = uploadData.storageUrl || uploadData.secure_url || uploadData.url;
+        if (!uploadRes.ok || !url) { setErrorMsg(uploadData.error || `Your ${file.type.startsWith('video/') ? 'video' : 'photo'} failed to upload, so the recommendation was not sent. Please try again.`); setIsLoading(false); return; }
+        mediaUrls.push(url);
+      }
 
-      const res = await fetch(`${BACKEND_URL}/api/duma/recommend`, { method: 'POST', headers: { Authorization: `Bearer ${authToken}` }, body: submitData });
-      const data = await res.json();
-      if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); setIsLoading(false); return; }
+      const res = await fetch(`${BACKEND_URL}/api/duma/recommend`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          brand: formData.company.trim(),
+          webLink: formData.websiteLink.trim(),
+          reason: formData.whyRecommend.trim(),
+          mediaUrls
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setErrorMsg(data.error || `Submission failed (${res.status}). Please try again.`); setIsLoading(false); return; }
 
-      addDumaItem({ ...formData, id: Date.now(), type: "Product Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'Comrade', section: "Commerce" });
+      // Use the server's copy (real _id) so votes and comments on it are saved too
+      const savedItem = data.item || {};
+      addDumaItem({ name: formData.name, brand: formData.company, webLink: formData.websiteLink, reason: formData.whyRecommend, mediaUrls, comments: [], ...savedItem, id: savedItem._id || savedItem.id || Date.now(), submittedBy: savedItem.submittedBy || userEmail || "anonymous", submitterRank: savedItem.submitterRank || rankTitle || 'Comrade' });
       if (onAddPoints) onAddPoints(POINTS.RECOMMENDATION);
       setSubmitted(true);
     } catch (err) {
-      addDumaItem({ ...formData, id: Date.now(), type: "Product Recommendation", submittedBy: userEmail || "anonymous", submitterRank: rankTitle || 'Comrade', section: "Commerce" });
-      setSubmitted(true);
+      setErrorMsg("We couldn't reach the server, so your recommendation was not saved. Please check your connection and try again.");
     }
     setIsLoading(false);
   };

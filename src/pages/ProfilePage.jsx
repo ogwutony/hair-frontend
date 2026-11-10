@@ -6,6 +6,7 @@ import { LocationAutocomplete } from '../components/LocationAutocomplete';
 import { RankBadge } from '../components/RankBadge';
 import { SocialInputRow } from '../components/SocialInputRow';
 import { BACKEND_URL, SOCIAL_FIELDS, POINTS } from '../utils/constants';
+import { submitCulturePost } from '../utils/dumaApi';
 import { getNextRankTitle, getPointsToNextRank, getRankProgress, getRankTitle, getRankDescription, markPromptCompleted, incrementDumaPostCount, claimAvatarSlotReward, normalizeMediaVideoUrl } from '../utils/helpers';
 import { RANK_TIERS } from '../utils/constants';
 import { styles } from '../utils/styles';
@@ -477,42 +478,30 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
             headers: { Authorization: `Bearer ${authToken}` },
             body: formData
           });
-          if (uploadRes.ok) {
-            const uploadData = await uploadRes.json();
-            const cloudUrl = uploadData.storageUrl || uploadData.secure_url || uploadData.url;
-            if (cloudUrl) uploadedMediaUrls.push(cloudUrl);
-          }
+          if (!uploadRes.ok) throw new Error(`One of your photos or videos failed to upload (${uploadRes.status}), so the post was not saved. Please try again.`);
+          const uploadData = await uploadRes.json();
+          const cloudUrl = uploadData.storageUrl || uploadData.secure_url || uploadData.url;
+          if (cloudUrl) uploadedMediaUrls.push(cloudUrl);
         }
       }
 
-      if (authToken) {
-        await fetch(`${BACKEND_URL}/api/duma/culture`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-          body: JSON.stringify({
-            prompt: activePrompt ? activePrompt.text : "General Post",
-            response: postDescription,
-            category: "Culture",
-            location: postLocation,
-            mediaUrls: uploadedMediaUrls
-          })
-        });
-      }
+      const savedItem = await submitCulturePost(authToken, {
+        prompt: activePrompt ? activePrompt.text : "General Post",
+        response: postDescription,
+        category: "Culture",
+        location: postLocation,
+        mediaUrls: uploadedMediaUrls
+      });
 
       if (addDumaItem) {
+        // Use the server's copy (real _id) so comments and votes on it are saved too
         addDumaItem({
-          id: Date.now(),
-          type: "Culture",
-          category: "Culture",
-          prompt: activePrompt ? activePrompt.text : "General Post",
-          response: postDescription,
-          mediaUrls: uploadedMediaUrls.length > 0 ? uploadedMediaUrls : filledDumaSlots.map(s => s.url),
-          submittedBy: userEmail,
-          location: postLocation,
           submitterDisplayName: displayName,
-          submitterRank: rankTitle || 'Comrade',
           submitterAvatar: avatarUrl || null,
-          votes: { yes: 0 }
+          votes: { yes: 0, no: 0, abstain: 0 },
+          comments: [],
+          ...savedItem,
+          id: savedItem._id || savedItem.id
         });
       }
 
@@ -526,9 +515,9 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
       setCultureResponse("");
       setSelectedPromptIndex(null);
       navigate("/duma");
-    } catch {
+    } catch (err) {
       setCultureSubmitStatus("error");
-      setCultureErrorMsg("Server error processing your post.");
+      setCultureErrorMsg(err?.message || "Server error processing your post.");
     }
   };
 

@@ -126,7 +126,7 @@ const [socialFeedLoaded, setSocialFeedLoaded] = useState(false);
 const [socialFeedUnavailable, setSocialFeedUnavailable] = useState(false);
 const socialFeedFallbackLocked = useRef(false);
 const socialFeedUrl = process.env.REACT_APP_SOCIAL_FEED_URL;
-const getRecommendationImage = (item) => item.imageUrl || PRODUCT_IMAGE_BY_NAME[item.name] || PRODUCT_IMAGE_BY_NAME[item.product] || null;
+const getRecommendationImage = (item) => item.imageUrl || (Array.isArray(item.mediaUrls) ? item.mediaUrls.find(u => typeof u === 'string' && !(/\.(mp4|mov|webm|m4v)$/i.test(u) || u.includes('/video/upload/'))) : null) || PRODUCT_IMAGE_BY_NAME[item.name] || PRODUCT_IMAGE_BY_NAME[item.product] || null;
 const getItemId = (itemOrId) => String(typeof itemOrId === 'object' ? itemOrId?._id || itemOrId?.id || '' : itemOrId || '');
 
 const isFeaturedContributor = (item) =>

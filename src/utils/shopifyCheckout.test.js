@@ -16,15 +16,15 @@ test('one-time single bottles use the cart permalink', () => {
   expect(submitted().action).toBe('https://c0bqfe-z2.myshopify.com/cart/111:2');
 });
 
-test('a pre-order line goes through /cart/add with its pre-order note', () => {
+test('a subscription line goes through /cart/add with its selling plan', () => {
   goToShopifyCheckout([
     { variantId: '111', quantity: 1 },
-    { variantId: '222', quantity: 1, properties: { 'Pre-order': 'Ships Nov 17, 2026' } },
+    { variantId: '222', quantity: 1, sellingPlanId: '999' },
   ]);
   const { action, method, fields } = submitted();
   expect(action).toBe('https://c0bqfe-z2.myshopify.com/cart/add');
   expect(method).toBe('post');
   expect(fields['items[1][id]']).toBe('222');
-  expect(fields['items[1][properties][Pre-order]']).toBe('Ships Nov 17, 2026');
-  expect(fields['items[0][properties][Pre-order]']).toBeUndefined();
+  expect(fields['items[1][selling_plan]']).toBe('999');
+  expect(fields['items[0][selling_plan]']).toBeUndefined();
 });

@@ -47,7 +47,7 @@ export function goToShopifyCheckout(lines) {
     return;
   }
 
-  // Subscriptions and pre-orders need /cart/add so each line can carry its selling plan and properties.
+  // Subscriptions and lines with properties need /cart/add so each line can carry its selling plan and properties.
   const fields = [];
   lines.forEach((l, i) => {
     fields.push([`items[${i}][id]`, l.variantId], [`items[${i}][quantity]`, l.quantity]);

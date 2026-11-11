@@ -8,9 +8,3 @@ test('retail catalog and custom set singles match Shopify prices', () => {
     if (single) expect(PRODUCT_VARIANT_MAP[item.name].pricing).toEqual(item.pricing);
   });
 });
-
-test('bundles are pre-orders shipping Nov 17, 2026; single bottles are not', () => {
-  const bundles = SHOP_ITEMS.filter(item => item.category === 'bundles');
-  expect(bundles.map(item => item.preorder)).toEqual(bundles.map(() => ({ shipsOn: 'Nov 17, 2026' })));
-  expect(SHOP_ITEMS.filter(item => item.category !== 'bundles' && item.preorder)).toEqual([]);
-});

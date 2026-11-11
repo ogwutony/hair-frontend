@@ -8,19 +8,12 @@ const SIX_BOTTLE = '/6-Bottle Face and Hair Routine Bundle';
 
 const single = (key) => productsData[key][0];
 
-// The bundles are being assembled by ShipBob. Until they are in stock they sell as pre-orders.
-// When ShipBob has them, set this to null and the pre-order labels disappear.
-// The Shopify bundle products must allow selling when out of stock, or checkout will refuse them.
-export const BUNDLE_PREORDER = { shipsOn: 'Nov 17, 2026' };
-const bundlePreorder = BUNDLE_PREORDER ? { preorder: BUNDLE_PREORDER } : {};
-
 export const SHOP_ITEMS = [
   {
     id: 'bundle-6',
     name: 'The Majorities 6-Bottle Face and Hair Routine Bundle',
     category: 'bundles',
     tag: 'Bundle',
-    ...bundlePreorder,
     variantId: '47561457336498',
     sellingPlanId: '3270901938',
     pricing: { oneTime: 65.0, subscription: 54.99 },
@@ -38,7 +31,6 @@ export const SHOP_ITEMS = [
     name: 'The Majorities 3-Bottle Face Routine Bundle',
     category: 'bundles',
     tag: 'Bundle',
-    ...bundlePreorder,
     variantId: '47561456877746',
     sellingPlanId: '3270869170',
     pricing: { oneTime: 39.99, subscription: 29.99 },
@@ -51,7 +43,6 @@ export const SHOP_ITEMS = [
     name: 'The Majorities 3-Bottle Hair Routine Bundle',
     category: 'bundles',
     tag: 'Bundle',
-    ...bundlePreorder,
     variantId: '47561455829170',
     sellingPlanId: '3270869170',
     pricing: { oneTime: 39.99, subscription: 29.99 },

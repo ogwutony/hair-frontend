@@ -97,8 +97,6 @@ export function checkoutCart(lines, subtotal) {
       variantId: item.variantId,
       quantity: l.qty,
       sellingPlanId: l.mode === 'subscription' ? item.sellingPlanId : undefined,
-      // Shows on the Shopify order so pre-orders can be held until they ship
-      properties: item.preorder ? { 'Pre-order': `Ships ${item.preorder.shipsOn}` } : undefined,
     };
   }));
 }

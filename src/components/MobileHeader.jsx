@@ -65,13 +65,19 @@ export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle }
   const closeAll = () => { setMenuOpen(false); setCartOpen(false); setAccountOpen(false); };
   const go = (to) => { closeAll(); navigate(to); };
   const logout = () => { closeAll(); onLogout(); };
-  // Both desktop and mobile use the same community destinations.
+  const goShop = path => { closeAll(); window.location.assign(new URL(path, SHOP_URL).href); };
+  // Keep the store and community destinations in the same order on every screen.
   const navItems = [
-    ['Shop', () => { closeAll(); window.location.assign(SHOP_URL); }],
-    ['Recommend', () => go('/recommend')],
+    ['Home', () => goShop('/')],
+    ['Hair Care', () => goShop('/collections/hair-care')],
+    ['Skin Care', () => goShop('/collections/skin-care')],
+    ['Wholesale', () => goShop('/collections/wholesale')],
+    ['The Duma', () => goShop('/duma')],
     ['Partner', () => go('/partner')],
-    ['The Duma', () => go('/duma')],
-    [`Messages${unreadMessages > 0 ? ` (${unreadMessages})` : ''}`, () => go('/messages')],
+    ...(isLoggedIn ? [
+      ['Recommend', () => go('/recommend')],
+      [`Messages${unreadMessages > 0 ? ` (${unreadMessages})` : ''}`, () => go('/messages')],
+    ] : []),
   ];
 
   return (

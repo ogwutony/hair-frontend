@@ -8,10 +8,11 @@ jest.mock('../utils/cart', () => ({
 }));
 
 for (const signedIn of [false, true]) {
-  test(`community navigation has only five destinations (signed in: ${signedIn})`, () => {
+  test(`member-only navigation follows sign-in state (signed in: ${signedIn})`, () => {
     render(<MemoryRouter><MobileHeader isLoggedIn={signedIn} unreadMessages={0} onLogout={jest.fn()} /></MemoryRouter>);
     const nav = screen.getByRole('navigation', { name: 'Main' });
-    expect(within(nav).getAllByRole('button').map(button => button.textContent)).toEqual(['Shop', 'Recommend', 'Partner', 'The Duma', 'Messages']);
+    const publicItems = ['Home', 'Hair Care', 'Skin Care', 'Wholesale', 'The Duma', 'Partner'];
+    expect(within(nav).getAllByRole('button').map(button => button.textContent)).toEqual(signedIn ? [...publicItems, 'Recommend', 'Messages'] : publicItems);
     if (!signedIn) expect(screen.getByRole('link', { name: 'Account' })).toHaveAttribute('href', '/login');
   });
 }

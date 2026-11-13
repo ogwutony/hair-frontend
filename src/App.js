@@ -39,6 +39,9 @@ import { AdminModerationPage } from './pages/AdminModerationPage';
 import { fetchInbox, countUnreadThreads } from './utils/messages';
 import { TermsGate } from './components/TermsGate';
 import { clearModerationData } from './utils/moderation';
+import { getShopifyConfig, LOGOUT_KEY } from './utils/shopifyAuth';
+import { ShopifySignIn } from './components/ShopifySignIn';
+import { ShopifyCallbackPage } from './pages/ShopifyCallbackPage';
 
 const INITIAL_DUMA_ITEMS = [
   {
@@ -137,6 +140,8 @@ const INITIAL_DUMA_ITEMS = [
 ];
 
 export default function App() {
+  const [shopifyConfig, setShopifyConfig] = useState(null);
+  useEffect(() => { getShopifyConfig().then(setShopifyConfig); }, []);
   // Read the saved session up front so a page refresh doesn't bounce signed-in users to /login
   const storedAuth = (() => {
     try {
@@ -211,10 +216,16 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    const shopifyLogout = sessionStorage.getItem(LOGOUT_KEY);
+    sessionStorage.removeItem(LOGOUT_KEY);
     clearModerationData();
     setisLoggedIn(false); setUserEmail(""); setAuthToken(""); setRankTitle("Comrade"); setRankScore(1); setUserAvatar(""); setWholesaleApproved(false);
     localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); localStorage.removeItem("rankTitle"); localStorage.removeItem("rankScore"); localStorage.removeItem("userAvatar");
     sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); sessionStorage.removeItem("rankTitle"); sessionStorage.removeItem("rankScore"); sessionStorage.removeItem("userAvatar");
+    if (shopifyLogout) {
+      const url = new URL(shopifyLogout);
+      if (url.origin === 'https://shopify.com' && url.pathname === '/authentication/77673398450/logout') window.location.assign(url.href);
+    }
   };
 
   // Memoized: ProfilePage lists this in an effect's deps, so a new function each render refetches the profile
@@ -297,12 +308,13 @@ export default function App() {
         <MobileHeader isLoggedIn={isLoggedIn} onLogout={handleLogout} unreadMessages={unreadMessages} rankTitle={rankTitle} wholesaleApproved={wholesaleApproved} />
         <Routes>
           <Route path="/" element={<LandingPage saveSetToProfile={saveSetToProfile} onAddPoints={addPoints} savedSets={savedSets} />} />
-          <Route path="/login" element={<LoginPage onLogin={handleLoginSuccess} />} />
+          <Route path="/login" element={shopifyConfig === null ? <p role="status">Loading sign-in…</p> : shopifyConfig.enabled ? <ShopifySignIn config={shopifyConfig} /> : <LoginPage onLogin={handleLoginSuccess} />} />
+          <Route path="/auth/shopify/callback" element={<ShopifyCallbackPage onLogin={handleLoginSuccess} />} />
           <Route path="/auth/google/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="google" />} />
           <Route path="/auth/instagram/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="instagram" />} />
           <Route path="/oauth/callback/:provider" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="instagram" />} />
           <Route path="/auth/tiktok/callback" element={<OAuthCallbackPage onLogin={handleLoginSuccess} provider="tiktok" />} />
-          <Route path="/signup" element={<SignupPage onLogin={handleLoginSuccess} />} />
+          <Route path="/signup" element={shopifyConfig === null ? <p role="status">Loading sign-in…</p> : shopifyConfig.enabled ? <ShopifySignIn config={shopifyConfig} /> : <SignupPage onLogin={handleLoginSuccess} />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           <Route path="/recommend" element={<RecommendPage addDumaItem={addDumaItem} onAddPoints={addPoints} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />

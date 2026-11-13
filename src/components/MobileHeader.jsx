@@ -18,11 +18,7 @@ const Icon = {
 export { Icon };
 
 // Messages that rotate in the black promo bar at the top of every page.
-const PROMO_MESSAGES = [
-  'Subscribe & Save Every Time | Free Retail Shipping',
-  'Free Shipping on All Retail Orders',
-  'Build Your Custom 6-Pack & Save',
-];
+const PROMO_MESSAGES = ['Premium hair & skin care in 100ml travel-ready bottles'];
 const PROMO_INTERVAL_MS = 4000;
 
 function PromoBar() {
@@ -48,11 +44,11 @@ function PromoBar() {
   );
 }
 
-// The Wholesale menu item always shows and sends visitors to the wholesale Shopify store.
-const WHOLESALE_URL = 'https://c0bqfe-z2.myshopify.com/collections/wholesale';
+const SHOP_URL = 'https://themajorities.com/';
 
 export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const { lines, count, subtotal, changeQty, wishlist, cartOpen, setCartOpen } = useCart();
   const navigate = useNavigate();
   const anyOpen = menuOpen || cartOpen;
@@ -66,33 +62,17 @@ export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle }
     return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = prevOverflow; };
   }, [anyOpen, setCartOpen]);
 
-  const closeAll = () => { setMenuOpen(false); setCartOpen(false); };
+  const closeAll = () => { setMenuOpen(false); setCartOpen(false); setAccountOpen(false); };
   const go = (to) => { closeAll(); navigate(to); };
   const logout = () => { closeAll(); onLogout(); };
-  const goWholesale = () => { closeAll(); window.location.href = WHOLESALE_URL; };
-
-  // Same items in the mobile drawer and the desktop nav bar
-  const navItems = isLoggedIn
-    ? [
-        ['Home', () => go('/')],
-        ['Recommend', () => go('/recommend')],
-        ['Partner', () => go('/partner')],
-        ['Wholesale', goWholesale],
-        ['The Duma', () => go('/duma')],
-        ['Perspectives', () => go('/perspectives')],
-        ['Profile', () => go('/profile')],
-        [`Messages${unreadMessages > 0 ? ` (${unreadMessages})` : ''}`, () => go('/messages')],
-        ['Logout', logout],
-      ]
-    : [
-        ['Shop', () => go('/')],
-        ['Recommend', () => go('/recommend')],
-        ['Partner', () => go('/partner')],
-        ['Wholesale', goWholesale],
-        ['The Duma', () => go('/duma')],
-        ['Sign Up', () => go('/signup')],
-        ['Login', () => go('/login')],
-      ];
+  // Both desktop and mobile use the same community destinations.
+  const navItems = [
+    ['Shop', () => { closeAll(); window.location.assign(SHOP_URL); }],
+    ['Recommend', () => go('/recommend')],
+    ['Partner', () => go('/partner')],
+    ['The Duma', () => go('/duma')],
+    [`Messages${unreadMessages > 0 ? ` (${unreadMessages})` : ''}`, () => go('/messages')],
+  ];
 
   return (
     <>
@@ -107,7 +87,13 @@ export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle }
           ))}
         </nav>
         <div className="ms-icons">
-          <Link to={isLoggedIn ? '/profile' : '/login'} className="ms-ib" aria-label="Account">{Icon.user}</Link>
+          <div className="ms-account">
+            {isLoggedIn ? <button type="button" className="ms-ib" aria-label="Account" aria-expanded={accountOpen} onClick={() => setAccountOpen(!accountOpen)}>{Icon.user}</button> : <Link to="/login" className="ms-ib" aria-label="Account">{Icon.user}</Link>}
+            {isLoggedIn && accountOpen && <div className="ms-account-menu">
+              <Link to="/profile" onClick={closeAll}>Profile</Link>
+              <button type="button" onClick={logout}>Log out</button>
+            </div>}
+          </div>
           <Link to="/?c=wishlist" className="ms-ib" aria-label="Wishlist">
             {Icon.heart}
             {wishlist.length > 0 && <span className="ms-count">{wishlist.length}</span>}
@@ -129,6 +115,7 @@ export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle }
             <button type="button" key={label} onClick={action}>{label}</button>
           ))}
         </nav>
+        {isLoggedIn && <button type="button" className="ms-btn" onClick={logout}>Log out</button>}
       </aside>
 
       <aside className={`ms-cart${cartOpen ? ' on' : ''}`} aria-label="Cart" aria-hidden={!cartOpen}>

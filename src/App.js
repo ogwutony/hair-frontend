@@ -35,7 +35,6 @@ import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
 import { PerspectiveDetailPage } from './pages/PerspectiveDetailPage';
 import { MessagesPage } from './pages/MessagesPage';
-import { WholesalePage } from './pages/WholesalePage';
 import { AdminModerationPage } from './pages/AdminModerationPage';
 import { fetchInbox, countUnreadThreads } from './utils/messages';
 import { TermsGate } from './components/TermsGate';
@@ -308,7 +307,7 @@ export default function App() {
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           <Route path="/recommend" element={<RecommendPage addDumaItem={addDumaItem} onAddPoints={addPoints} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
           <Route path="/partner" element={<PartnerPage addDumaItem={addDumaItem} onAddPoints={addPoints} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} onWholesaleApproved={() => setWholesaleApproved(true)} />} />
-          <Route path="/wholesale" element={<WholesalePage authToken={authToken} />} />
+          <Route path="/wholesale" element={<Navigate to="/duma" replace />} />
           <Route path="/culture" element={isLoggedIn ? <CultureLabPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
           <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} following={following} onFollowUser={followUser} />} />
           <Route path="/duma/:id" element={<PerspectiveDetailPage authToken={authToken} />} />

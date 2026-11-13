@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useIsMobile } from '../utils/useIsMobile';
 import { Helmet } from 'react-helmet-async';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { CredentialHeader, CredentialExtras } from '../components/CredentialHeader';
 import { GuestSubmissionPrompt } from '../components/GuestSubmissionPrompt';
 import { RankBadge } from '../components/RankBadge';
@@ -14,7 +14,7 @@ import { AddressLink } from '../components/AddressLink';
 import { EditDumaPostModal } from '../components/EditDumaPostModal';
 import { ImageLightbox, sizedImageUrl } from '../components/ImageLightbox';
 import { useModeration } from '../utils/moderation';
-import { isPersistedDumaId } from '../utils/dumaApi';
+import { isPersistedDumaId, fetchDumaFeed } from '../utils/dumaApi';
 import { EzoicAd, DUMA_AD_PLACEHOLDER_START, DUMA_AD_EVERY_N_POSTS, DUMA_AD_MAX_SLOTS } from '../components/EzoicAd';
 
 // Only index public post content and location tags, never private partner fields.
@@ -93,9 +93,17 @@ return (
 );
 };
 
-export const DumaPage = ({ items, authToken, userEmail, rankTitle, rankScore, onAddPoints, userAvatar, following = EMPTY_LIST, onFollowUser }) => {
+export const DumaPage = ({ items = EMPTY_LIST, authToken, userEmail, rankTitle, rankScore, onAddPoints, userAvatar, following = EMPTY_LIST, onFollowUser }) => {
 const isMobile = useIsMobile();
-const [dumaItems, setDumaItems] = useState(items);
+const [queryParams] = useSearchParams();
+const requestedView = queryParams.get('view');
+const [dumaItems, setDumaItems] = useState(() => items.filter(item => isPersistedDumaId(item._id || item.id)));
+const [dumaLoading, setDumaLoading] = useState(true);
+const [dumaError, setDumaError] = useState('');
+const [dumaRetry, setDumaRetry] = useState(0);
+const [marketplaceLoading, setMarketplaceLoading] = useState(true);
+const [marketplaceError, setMarketplaceError] = useState('');
+const [marketplaceRetry, setMarketplaceRetry] = useState(0);
 const [editingItem, setEditingItem] = useState(null);
 const [lightbox, setLightbox] = useState(null); // { photos, index }
 const openLightbox = (mediaList, url) => {
@@ -118,8 +126,8 @@ const [searchQuery, setSearchQuery] = useState('');
 const [searchOpen, setSearchOpen] = useState(false);
 const [activeSuggestion, setActiveSuggestion] = useState(-1);
 const searchRef = useRef(null);
-const [activeSection, setActiveSection] = useState("Culture"); // "Culture" | "Economics"
-const [economicsSection, setEconomicsSection] = useState("Recommendations");
+const [activeSection, setActiveSection] = useState(["recommendations", "partners", "marketplace"].includes(requestedView) ? "Economics" : "Culture");
+const [economicsSection, setEconomicsSection] = useState(ECONOMICS_SUBSECTIONS.find(view => view.toLowerCase() === requestedView) || "Recommendations");
 const [marketplaceListings, setMarketplaceListings] = useState([]);
 const [boostingId, setBoostingId] = useState(null);
 const [socialFeedLoaded, setSocialFeedLoaded] = useState(false);
@@ -143,28 +151,33 @@ window.open(platform === 'instagram' ? 'https://www.instagram.com/' : 'https://w
 };
 
 useEffect(() => {
-fetch(`${BACKEND_URL}/api/duma`).then(r => r.json()).then(data => {
-if (Array.isArray(data) && data.length > 0) {
-// The server copy is the source of truth (it carries saved comments and votes). Keep a
-// just-submitted local copy only until the server list includes it, and drop local-only
-// placeholders, which can't take comments or votes.
-const uniqueMap = new Map();
-items.filter(item => isPersistedDumaId(item._id || item.id)).forEach(item => uniqueMap.set(String(item._id || item.id), item));
-data.forEach(item => {
-const id = item._id || item.id;
-if (id) uniqueMap.set(String(id), item);
-});
-setDumaItems(Array.from(uniqueMap.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)));
-}
-}).catch(err => console.error('Failed to load duma items:', err));
-}, [items]);
+const controller = new AbortController();
+setDumaLoading(true);
+setDumaError('');
+fetchDumaFeed('/api/duma', { authToken, signal: controller.signal }).then(data => {
+if (!controller.signal.aborted) setDumaItems(data);
+}).catch(error => {
+if (controller.signal.aborted) return;
+console.error('Failed to load Duma feed:', error);
+setDumaError(error.message || 'Unable to reach The Duma. Please try again.');
+}).finally(() => { if (!controller.signal.aborted) setDumaLoading(false); });
+return () => controller.abort();
+}, [items, authToken, dumaRetry]);
 
-// Marketplace feed: backend sorts boosted listings (boostedUntil in the future) first, then newest
+// The marketplace has its own public feed and independent loading/error state.
 useEffect(() => {
-fetch(`${BACKEND_URL}/api/marketplace`).then(r => r.json()).then(data => {
-if (Array.isArray(data)) setMarketplaceListings(data);
-}).catch(err => console.error('Failed to load marketplace listings:', err));
-}, []);
+const controller = new AbortController();
+setMarketplaceLoading(true);
+setMarketplaceError('');
+fetchDumaFeed('/api/marketplace', { authToken, signal: controller.signal }).then(data => {
+if (!controller.signal.aborted) setMarketplaceListings(data);
+}).catch(error => {
+if (controller.signal.aborted) return;
+console.error('Failed to load marketplace feed:', error);
+setMarketplaceError(error.message || 'Unable to reach the Marketplace. Please try again.');
+}).finally(() => { if (!controller.signal.aborted) setMarketplaceLoading(false); });
+return () => controller.abort();
+}, [authToken, marketplaceRetry]);
 
 useEffect(() => {
 if (!socialFeedUrl) return undefined;
@@ -420,6 +433,13 @@ const sectionCounts = {
 Culture: views.Culture.length,
 Economics: ECONOMICS_SUBSECTIONS.reduce((total, key) => total + views[key].length, 0),
 };
+const activeLoading = activeView === 'Marketplace' ? marketplaceLoading : dumaLoading;
+const activeError = activeView === 'Marketplace' ? marketplaceError : dumaError;
+const countLabel = view => {
+const loading = view === 'Marketplace' ? marketplaceLoading : view === 'Economics' ? dumaLoading || marketplaceLoading : dumaLoading;
+const error = view === 'Marketplace' ? marketplaceError : view === 'Economics' ? dumaError || marketplaceError : dumaError;
+return loading ? '…' : error ? '—' : (sectionCounts[view] ?? views[view]?.length ?? 0);
+};
 const viewLabel = activeSection === 'Economics' ? `Economics › ${economicsSection}` : 'Culture';
 const suggestions = searchSuggestions(views[activeView], searchQuery);
 const culturalItems = views.Culture.filter(item => matchesSearch(item, searchQuery));
@@ -478,7 +498,7 @@ setSocialFeedUnavailable(false);
 @media(max-width:1100px) { .duma-controls { flex-direction:column; align-items:stretch; } .duma-search { flex:auto; width:100%; } .duma-controls > a { margin-left:0 !important; } }
 `}</style>
 <div className="duma-categories" aria-label="Duma categories">
-{Object.keys(sectionCounts).map(section => <button key={section} type="button" aria-pressed={activeSection === section} onClick={() => { setActiveSection(section); resetSearchUi(); }} style={{ padding: '10px 12px', backgroundColor: activeSection === section ? '#222' : '#f5f5f5', color: activeSection === section ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', flexShrink: 0 }}>{section} ({sectionCounts[section]})</button>)}
+{Object.keys(sectionCounts).map(section => <button key={section} type="button" aria-pressed={activeSection === section} onClick={() => { setActiveSection(section); resetSearchUi(); }} style={{ padding: '10px 12px', backgroundColor: activeSection === section ? '#222' : '#f5f5f5', color: activeSection === section ? '#fff' : '#222', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', flexShrink: 0 }}>{section} ({countLabel(section)})</button>)}
 </div>
 <div className="duma-search" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setSearchOpen(false); }}>
 <input ref={searchRef} type="search" role="combobox" aria-label="Search Duma posts" aria-autocomplete="list" aria-expanded={searchOpen && suggestions.length > 0} aria-controls="duma-search-suggestions" aria-activedescendant={searchOpen && activeSuggestion >= 0 && suggestions[activeSuggestion] ? `duma-suggestion-${activeSuggestion}` : undefined} placeholder="Search by name, city, ZIP code, or address..." value={searchQuery} onFocus={() => setSearchOpen(true)} onChange={event => { setSearchQuery(event.target.value); setSearchOpen(true); setActiveSuggestion(-1); }} onKeyDown={event => {
@@ -497,13 +517,19 @@ if (event.key === 'Enter') { event.preventDefault(); if (searchOpen && suggestio
 
 {activeSection === 'Economics' && (
 <div className="duma-subsections" aria-label="Economics sections" style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: '20px' }}>
-{ECONOMICS_SUBSECTIONS.map(sub => <button key={sub} type="button" aria-pressed={economicsSection === sub} onClick={() => { setEconomicsSection(sub); resetSearchUi(); }} style={{ padding: '7px 12px', backgroundColor: economicsSection === sub ? '#fff' : '#f5f5f5', color: '#222', border: economicsSection === sub ? '2px solid #222' : '2px solid transparent', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flexShrink: 0 }}>{sub} ({views[sub].length})</button>)}
+{ECONOMICS_SUBSECTIONS.map(sub => <button key={sub} type="button" aria-pressed={economicsSection === sub} onClick={() => { setEconomicsSection(sub); resetSearchUi(); }} style={{ padding: '7px 12px', backgroundColor: economicsSection === sub ? '#fff' : '#f5f5f5', color: '#222', border: economicsSection === sub ? '2px solid #222' : '2px solid transparent', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flexShrink: 0 }}>{sub} ({countLabel(sub)})</button>)}
 </div>
 )}
 
-{searchQuery.trim() && <div role="status" aria-live="polite" style={{ marginBottom:16, color:'#555' }}>{resultCount ? `${resultCount} matching ${resultCount === 1 ? 'post' : 'posts'} in ${viewLabel}.` : 'No matching posts. Try another name, keyword, city, ZIP code, or address.'} <button type="button" onClick={() => { setSearchQuery(''); setSearchOpen(false); searchRef.current?.focus(); }}>Clear search</button></div>}
+{activeLoading && <div role="status" aria-live="polite" style={{ padding: '24px', textAlign: 'center' }}><span className="duma-feed-spinner" aria-hidden="true" /> Loading {activeView.toLowerCase()}…</div>}
+{!activeLoading && activeError && <div role="alert" style={{ padding: '20px', border: '1px solid #c33', borderRadius: '8px', marginBottom: '20px' }}>
+<p>We couldn't load {activeView.toLowerCase()}. {activeError}</p>
+<button type="button" onClick={() => activeView === 'Marketplace' ? setMarketplaceRetry(value => value + 1) : setDumaRetry(value => value + 1)}>Try again</button>
+</div>}
+<style>{`.duma-feed-spinner { display:inline-block; width:16px; height:16px; margin-right:6px; border:2px solid #ddd; border-top-color:#222; border-radius:50%; animation:duma-feed-spin .8s linear infinite; vertical-align:middle; } @keyframes duma-feed-spin { to { transform:rotate(360deg); } } @media(prefers-reduced-motion:reduce) { .duma-feed-spinner { animation:none; } }`}</style>
+{!activeLoading && !activeError && searchQuery.trim() && <div role="status" aria-live="polite" style={{ marginBottom:16, color:'#555' }}>{resultCount ? `${resultCount} matching ${resultCount === 1 ? 'post' : 'posts'} in ${viewLabel}.` : 'No matching posts. Try another name, keyword, city, ZIP code, or address.'} <button type="button" onClick={() => { setSearchQuery(''); setSearchOpen(false); searchRef.current?.focus(); }}>Clear search</button></div>}
 
-{activeView === "Culture" && (
+{!activeLoading && !activeError && activeView === "Culture" && (
 <div>
 {culturalItems.length === 0 ? (
 <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>{searchQuery.trim() ? 'No matching posts. Try another search or clear the search.' : 'No perspectives shared yet. Share yours and contribute to our culture section!'}</div>
@@ -625,11 +651,12 @@ Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCoun
 </div>
 )}
 
-{activeView === "Recommendations" && (
+{!activeLoading && !activeError && activeView === "Recommendations" && (
 <div>
+<Link to={authToken ? '/recommend' : '/login'} style={{ ...styles.authButton, width: 'auto', display: 'inline-block', textDecoration: 'none', marginBottom: '16px' }}>{authToken ? 'Recommend a product' : 'Log in to recommend'}</Link>
 {!authToken && <GuestSubmissionPrompt message="Anyone can read the Duma. Log in or register to vote, recommend products, and share your perspective." />}
 {recommendationItems.length === 0 ? (
-<div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>No product recommendations yet. Be the first to recommend a product!</div>
+<div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>{searchQuery.trim() ? 'No matching recommendations. Try another search or clear the search.' : 'No product recommendations yet. Be the first to recommend a product!'}</div>
 ) : (
 recommendationItems.map(item => (
 <div key={item.id || item._id} style={styles.dumaCard}>
@@ -687,13 +714,13 @@ Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCoun
 </div>
 )}
 
-{activeView === "Partners" && !authToken && (
+{!activeLoading && !activeError && activeView === "Partners" && !authToken && (
 <div style={{ padding: '20px 0' }}>
 <GuestSubmissionPrompt message="This section contains proprietary commerce ledger records, partner structures, and product recommendations. Please log in or register to view this data." />
 </div>
 )}
 
-{activeView === "Partners" && authToken && (
+{!activeLoading && !activeError && activeView === "Partners" && authToken && (
 <div>
 {partnerItems.length === 0 ? (
 <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>{searchQuery.trim() ? 'No matching posts. Try another search or clear the search.' : 'No partner applications yet. Be the first to submit a partnership!'}</div>
@@ -815,10 +842,11 @@ Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCoun
 </div>
 )}
 
-{activeView === "Marketplace" && (
+{!activeLoading && !activeError && activeView === "Marketplace" && (
 <div>
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
 <h3 style={{ margin: 0 }}>Marketplace</h3>
+<Link to={authToken ? '/sell' : '/login'} style={{ ...styles.authButton, width: 'auto', textDecoration: 'none' }}>{authToken ? 'List a product or service' : 'Log in to sell'}</Link>
 </div>
 {!authToken && <GuestSubmissionPrompt message="Log in or register to sell in the Marketplace." />}
 {marketplaceItems.length === 0 ? (

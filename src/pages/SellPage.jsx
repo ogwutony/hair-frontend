@@ -75,6 +75,7 @@ export const SellPage = ({ userEmail, rankTitle, rankScore, authToken, userAvata
       });
       const data = await res.json();
       if (!res.ok) { setErrorMsg(data.error || 'Submission failed'); setIsLoading(false); return; }
+      if (!data.item || !/^[a-f0-9]{24}$/i.test(String(data.item._id || data.item.id || ''))) throw new Error('The server did not confirm the listing was saved.');
       if (onAddPoints) onAddPoints(50);
 
       let boosted = false;
@@ -114,7 +115,7 @@ export const SellPage = ({ userEmail, rankTitle, rankScore, authToken, userAvata
           </p>
           {rankTitle && <RankBadge rankTitle={rankTitle} />}
           <div style={{ marginTop: '20px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
-            <Link to="/duma" style={{ ...styles.authButton, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>View the Marketplace</Link>
+            <Link to="/duma?view=marketplace" style={{ ...styles.authButton, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>View the Marketplace</Link>
             <button
               style={{ ...styles.authButton, background: '#f5f5f5', color: '#222' }}
               onClick={() => { setSubmitted(false); setWasBoosted(false); setBoostListing(false); setFormData({ title: '', description: '', price: '', category: LISTING_CATEGORIES[0], externalLink: '', image: null }); }}

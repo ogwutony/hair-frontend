@@ -22,6 +22,7 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { OAuthCallbackPage } from './pages/OAuthCallbackPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { RecommendPage } from './pages/RecommendPage';
+import { SellPage } from './pages/SellPage';
 import { PartnerPage } from './pages/PartnerPage';
 import { DumaPage } from './pages/DumaPage';
 import { PerspectivesPage } from './pages/PerspectivesPage';
@@ -318,6 +319,7 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           <Route path="/recommend" element={<RecommendPage addDumaItem={addDumaItem} onAddPoints={addPoints} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
+          <Route path="/sell" element={<SellPage userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} onAddPoints={addPoints} />} />
           <Route path="/partner" element={<PartnerPage addDumaItem={addDumaItem} onAddPoints={addPoints} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} onWholesaleApproved={() => setWholesaleApproved(true)} />} />
           <Route path="/wholesale" element={<Navigate to="/duma" replace />} />
           <Route path="/culture" element={isLoggedIn ? <CultureLabPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />

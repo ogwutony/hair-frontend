@@ -80,7 +80,8 @@ export const RecommendPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, 
       if (!res.ok) { setErrorMsg(data.error || `Submission failed (${res.status}). Please try again.`); setIsLoading(false); return; }
 
       // Use the server's copy (real _id) so votes and comments on it are saved too
-      const savedItem = data.item || {};
+      const savedItem = data.item;
+      if (!savedItem || !/^[a-f0-9]{24}$/i.test(String(savedItem._id || savedItem.id || ''))) throw new Error('The server did not confirm the recommendation was saved.');
       addDumaItem({ name: formData.name, brand: formData.company, webLink: formData.websiteLink, reason: formData.whyRecommend, mediaUrls, comments: [], ...savedItem, id: savedItem._id || savedItem.id || Date.now(), submittedBy: savedItem.submittedBy || userEmail || "anonymous", submitterRank: savedItem.submitterRank || rankTitle || 'Comrade' });
       if (onAddPoints) onAddPoints(POINTS.RECOMMENDATION);
       setSubmitted(true);
@@ -99,7 +100,7 @@ export const RecommendPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, 
           <p style={{ color: '#666', marginBottom: '20px' }}>Your product recommendation has been sent to The Majorities' Duma Commerce section for community review and voting.</p>
           {rankTitle && <RankBadge rankTitle={rankTitle} />}
           <div style={{ marginTop: '20px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
-            <Link to="/duma" style={{ ...styles.authButton, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>View the Duma</Link>
+            <Link to="/duma?view=recommendations" style={{ ...styles.authButton, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>View the Duma</Link>
             <button style={{ ...styles.authButton, background: '#f5f5f5', color: '#222' }} onClick={() => setSubmitted(false)}>Submit Another</button>
           </div>
         </div>

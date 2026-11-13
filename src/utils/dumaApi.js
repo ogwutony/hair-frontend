@@ -25,3 +25,25 @@ export const submitCulturePost = async (authToken, payload) => {
   if (!item || !isPersistedDumaId(item._id || item.id)) throw new Error('The server did not confirm your post was saved. Please refresh and try again.');
   return item;
 };
+
+// Feed failures must never be treated as a successfully loaded empty category.
+export const fetchDumaFeed = async (path, { authToken, signal } = {}) => {
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  if (signal?.aborted) controller.abort();
+  signal?.addEventListener('abort', abort);
+  const timeout = setTimeout(abort, 15000);
+  try {
+    const response = await fetch(`${BACKEND_URL}${path}`, {
+      signal: controller.signal,
+      headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+    });
+    if (!response.ok) throw new Error(`The feed could not be loaded (${response.status}). Please try again.`);
+    const data = await response.json();
+    if (!Array.isArray(data)) throw new Error('The server returned an invalid feed. Please try again.');
+    return data;
+  } finally {
+    clearTimeout(timeout);
+    signal?.removeEventListener('abort', abort);
+  }
+};

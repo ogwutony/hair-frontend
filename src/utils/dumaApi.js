@@ -1,5 +1,6 @@
 // src/utils/dumaApi.js
 import { BACKEND_URL } from './constants';
+import { fetchWithWakeRetry } from './backendFetch';
 
 // Only posts the server has stored (Mongo ObjectIds) can take comments, votes, edits or deletes.
 export const isPersistedDumaId = (id) => /^[a-f0-9]{24}$/i.test(String(id || ''));
@@ -27,23 +28,13 @@ export const submitCulturePost = async (authToken, payload) => {
 };
 
 // Feed failures must never be treated as a successfully loaded empty category.
-export const fetchDumaFeed = async (path, { authToken, signal } = {}) => {
-  const controller = new AbortController();
-  const abort = () => controller.abort();
-  if (signal?.aborted) controller.abort();
-  signal?.addEventListener('abort', abort);
-  const timeout = setTimeout(abort, 15000);
-  try {
-    const response = await fetch(`${BACKEND_URL}${path}`, {
-      signal: controller.signal,
-      headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
-    });
-    if (!response.ok) throw new Error(`The feed could not be loaded (${response.status}). Please try again.`);
-    const data = await response.json();
-    if (!Array.isArray(data)) throw new Error('The server returned an invalid feed. Please try again.');
-    return data;
-  } finally {
-    clearTimeout(timeout);
-    signal?.removeEventListener('abort', abort);
-  }
+// Cold starts are retried by fetchWithWakeRetry; onSlow() fires if the server is slow to wake.
+export const fetchDumaFeed = async (path, { authToken, signal, onSlow, ...retryOptions } = {}) => {
+  const response = await fetchWithWakeRetry(`${BACKEND_URL}${path}`, {
+    headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+  }, { signal, onSlow, ...retryOptions });
+  if (!response.ok) throw new Error(`The feed could not be loaded (${response.status}). Please try again.`);
+  const data = await response.json().catch(() => null);
+  if (!Array.isArray(data)) throw new Error('The server returned an invalid feed. Please try again.');
+  return data;
 };

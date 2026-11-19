@@ -23,13 +23,15 @@ test('failed feed shows an error and retry loads saved recommendations without c
   let fail = true;
   global.fetch = jest.fn(async url => url.endsWith('/api/marketplace') ? response([]) : fail ? response({}, 500) : response([{ _id: '123456789012345678901234', type: 'Product Recommendation', name: 'Saved recommendation', brand: 'Example', reason: 'Useful', comments: [] }]));
   show();
-  expect(await screen.findByRole('alert')).toHaveTextContent('500');
+  // A 5xx is retried (the server may be waking up) before the error is shown.
+  expect(await screen.findByRole('alert', {}, { timeout: 12000 })).toHaveTextContent('500');
+  expect(global.fetch.mock.calls.filter(([url]) => url.endsWith('/api/duma')).length).toBe(3);
   expect(screen.queryByText(/No product recommendations yet/)).not.toBeInTheDocument();
   fail = false;
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
   expect(await screen.findByRole('heading', { name: 'Saved recommendation by Example' })).toBeInTheDocument();
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-});
+}, 20000);
 
 test('successful empty feed removes stale local entries and shows an honest empty result', async () => {
   global.fetch = jest.fn(async () => response([]));

@@ -7,6 +7,7 @@ import { RankBadge } from '../components/RankBadge';
 import { SocialInputRow } from '../components/SocialInputRow';
 import { BACKEND_URL, SOCIAL_FIELDS, POINTS } from '../utils/constants';
 import { submitCulturePost } from '../utils/dumaApi';
+import { fetchWithWakeRetry } from '../utils/backendFetch';
 import { getNextRankTitle, getPointsToNextRank, getRankProgress, getRankTitle, getRankDescription, markPromptCompleted, incrementDumaPostCount, claimAvatarSlotReward, normalizeMediaVideoUrl } from '../utils/helpers';
 import { RANK_TIERS } from '../utils/constants';
 import { styles } from '../utils/styles';
@@ -19,7 +20,7 @@ import { ContentActions } from '../components/ContentActions';
 // React Router's navigation transition (URL changes, page never swaps).
 const EMPTY_LIST = [];
 
-export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar, tokens, addDumaItem, following = EMPTY_LIST, followers = EMPTY_LIST, onFollowUser, onUnfollowUser, onAccountDeleted }) => {
+export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, authToken, onAddPoints, onAvatarUpdate, userAvatar, tokens, addDumaItem, following = EMPTY_LIST, followers = EMPTY_LIST, onFollowUser, onUnfollowUser, onAccountDeleted, onSessionExpired }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [avatarUrl, setAvatarUrl] = useState(userAvatar || null);
@@ -28,6 +29,14 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
   const [backendRankScore, setBackendRankScore] = useState(rankScore || 1);
   const [backendRankTitle, setBackendRankTitle] = useState(rankTitle || "Comrade");
   const [isFeaturedContributor, setIsFeaturedContributor] = useState(false);
+  // 'loading' | 'slow' | 'ready' | 'error' — the profile must never silently fall back to blank defaults
+  const [profileStatus, setProfileStatus] = useState('loading');
+  const [profileError, setProfileError] = useState('');
+  const [profileRetry, setProfileRetry] = useState(0);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  // App passes a fresh logout function every render; keep it out of the fetch effect's deps.
+  const onSessionExpiredRef = useRef(onSessionExpired);
+  useEffect(() => { onSessionExpiredRef.current = onSessionExpired; }, [onSessionExpired]);
   const [, setAvatarSaveStatus] = useState("idle");
 
   const [displayName, setDisplayName] = useState("");
@@ -95,10 +104,24 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
   }, []);
 
   useEffect(() => {
-    if (!authToken) return;
-    fetch(`${BACKEND_URL}/api/profile`, {
+    if (!authToken) return undefined;
+    const controller = new AbortController();
+    setProfileStatus('loading');
+    setProfileError('');
+    fetchWithWakeRetry(`${BACKEND_URL}/api/profile`, {
       headers: { Authorization: `Bearer ${authToken}` }
-    }).then(r => { if (!r.ok) throw new Error('Failed to fetch profile'); return r.json(); }).then(data => {
+    }, { signal: controller.signal, onSlow: () => setProfileStatus('slow') }).then(async r => {
+      if (r.status === 401) {
+        const err = new Error('Your session has expired. Please log in again.');
+        err.sessionExpired = true;
+        throw err;
+      }
+      if (!r.ok) throw new Error(`Your profile could not be loaded (${r.status}). Please try again.`);
+      const data = await r.json().catch(() => null);
+      if (!data || typeof data !== 'object') throw new Error('The server returned an invalid profile. Please try again.');
+      return data;
+    }).then(data => {
+      if (controller.signal.aborted) return;
       const resolvedScore = data.rank_score || 1;
       setBackendRankScore(resolvedScore);
       setBackendRankTitle(getRankTitle(resolvedScore));
@@ -124,8 +147,20 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
       if (data.socialLinks) setSocialLinks(prev => ({ ...prev, ...data.socialLinks }));
       if (Array.isArray(data.followers) && data.followers.length > 0) setFollowersList(data.followers);
       if (Array.isArray(data.following) && data.following.length > 0) setFollowingList(data.following);
-    }).catch(err => console.error('Failed to load profile:', err));
-  }, [authToken, onAvatarUpdate, userEmail]);
+      setProfileStatus('ready');
+    }).catch(err => {
+      if (controller.signal.aborted) return;
+      console.error('Failed to load profile:', err);
+      if (err.sessionExpired) {
+        setSessionExpired(true);
+        onSessionExpiredRef.current?.();
+        return;
+      }
+      setProfileError(err.message || 'Your profile could not be loaded. Please try again.');
+      setProfileStatus('error');
+    });
+    return () => controller.abort();
+  }, [authToken, onAvatarUpdate, userEmail, profileRetry]);
 
   const handleFollowingToggle = (person) => {
     if (followingList.includes(person)) {
@@ -583,8 +618,52 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
   const percentToNextRank = Math.max(0, 100 - progressPercent);
   const currentRankDescription = getRankDescription(displayRankTitle);
 
+  const pageStyle = { padding: isMobile ? '25px 16px' : '40px 60px', maxWidth: '900px', margin: '0 auto' };
+  const primaryButton = { display: 'inline-block', padding: '12px 24px', background: '#111', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: 600, textDecoration: 'none', cursor: 'pointer' };
+
+  // Signed out (or the session just expired): never show an editable placeholder profile.
+  if (!authToken) {
+    return (
+      <div style={pageStyle}>
+        <h1 style={{ fontSize: '32px', marginBottom: '8px', fontWeight: '700' }}>Your profile</h1>
+        <p role={sessionExpired ? 'alert' : undefined} style={{ color: '#555', marginBottom: '24px' }}>
+          {sessionExpired
+            ? 'Your session has expired. Please log in again to see your profile.'
+            : 'Log in to see your profile, rank and posts.'}
+        </p>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <Link to="/login" style={primaryButton}>Log In</Link>
+          <Link to="/signup" style={{ ...primaryButton, background: '#fff', color: '#111', border: '1px solid #111' }}>Register</Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (profileStatus === 'loading' || profileStatus === 'slow') {
+    return (
+      <div style={pageStyle}>
+        <style>{`.profile-spinner { display:inline-block; width:16px; height:16px; margin-right:6px; border:2px solid #ddd; border-top-color:#222; border-radius:50%; animation:profile-spin .8s linear infinite; vertical-align:middle; } @keyframes profile-spin { to { transform:rotate(360deg); } } @media(prefers-reduced-motion:reduce) { .profile-spinner { animation:none; } }`}</style>
+        <div role="status" aria-live="polite" style={{ padding: '24px', textAlign: 'center' }}>
+          <span className="profile-spinner" aria-hidden="true" /> Loading your profile…
+          {profileStatus === 'slow' && <p style={{ margin: '8px 0 0', color: '#555', fontSize: '14px' }}>The server is waking up — this can take up to a minute after a quiet spell. Thanks for your patience.</p>}
+        </div>
+      </div>
+    );
+  }
+
+  if (profileStatus === 'error') {
+    return (
+      <div style={pageStyle}>
+        <div role="alert" style={{ padding: '20px', border: '1px solid #c33', borderRadius: '8px' }}>
+          <p style={{ marginTop: 0 }}>We couldn't load your profile. {profileError}</p>
+          <button type="button" onClick={() => setProfileRetry(n => n + 1)} style={primaryButton}>Try again</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ padding: isMobile ? '25px 16px' : '40px 60px', maxWidth: '900px', margin: '0 auto' }}>
+    <div style={pageStyle}>
 
       {/* 1. WELCOME & RANK PROGRESS */}
       <div style={{ marginBottom: '40px' }}>

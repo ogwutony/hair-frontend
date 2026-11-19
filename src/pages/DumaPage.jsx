@@ -101,7 +101,9 @@ const [dumaItems, setDumaItems] = useState(() => items.filter(item => isPersiste
 const [dumaLoading, setDumaLoading] = useState(true);
 const [dumaError, setDumaError] = useState('');
 const [dumaRetry, setDumaRetry] = useState(0);
+const [dumaSlow, setDumaSlow] = useState(false);
 const [marketplaceLoading, setMarketplaceLoading] = useState(true);
+const [marketplaceSlow, setMarketplaceSlow] = useState(false);
 const [marketplaceError, setMarketplaceError] = useState('');
 const [marketplaceRetry, setMarketplaceRetry] = useState(0);
 const [editingItem, setEditingItem] = useState(null);
@@ -153,14 +155,15 @@ window.open(platform === 'instagram' ? 'https://www.instagram.com/' : 'https://w
 useEffect(() => {
 const controller = new AbortController();
 setDumaLoading(true);
+setDumaSlow(false);
 setDumaError('');
-fetchDumaFeed('/api/duma', { authToken, signal: controller.signal }).then(data => {
+fetchDumaFeed('/api/duma', { authToken, signal: controller.signal, onSlow: () => setDumaSlow(true) }).then(data => {
 if (!controller.signal.aborted) setDumaItems(data);
 }).catch(error => {
 if (controller.signal.aborted) return;
 console.error('Failed to load Duma feed:', error);
 setDumaError(error.message || 'Unable to reach The Duma. Please try again.');
-}).finally(() => { if (!controller.signal.aborted) setDumaLoading(false); });
+}).finally(() => { if (!controller.signal.aborted) { setDumaLoading(false); setDumaSlow(false); } });
 return () => controller.abort();
 }, [items, authToken, dumaRetry]);
 
@@ -168,14 +171,15 @@ return () => controller.abort();
 useEffect(() => {
 const controller = new AbortController();
 setMarketplaceLoading(true);
+setMarketplaceSlow(false);
 setMarketplaceError('');
-fetchDumaFeed('/api/marketplace', { authToken, signal: controller.signal }).then(data => {
+fetchDumaFeed('/api/marketplace', { authToken, signal: controller.signal, onSlow: () => setMarketplaceSlow(true) }).then(data => {
 if (!controller.signal.aborted) setMarketplaceListings(data);
 }).catch(error => {
 if (controller.signal.aborted) return;
 console.error('Failed to load marketplace feed:', error);
 setMarketplaceError(error.message || 'Unable to reach the Marketplace. Please try again.');
-}).finally(() => { if (!controller.signal.aborted) setMarketplaceLoading(false); });
+}).finally(() => { if (!controller.signal.aborted) { setMarketplaceLoading(false); setMarketplaceSlow(false); } });
 return () => controller.abort();
 }, [authToken, marketplaceRetry]);
 
@@ -435,6 +439,7 @@ Economics: ECONOMICS_SUBSECTIONS.reduce((total, key) => total + views[key].lengt
 };
 const activeLoading = activeView === 'Marketplace' ? marketplaceLoading : dumaLoading;
 const activeError = activeView === 'Marketplace' ? marketplaceError : dumaError;
+const activeSlow = activeView === 'Marketplace' ? marketplaceSlow : dumaSlow;
 const countLabel = view => {
 const loading = view === 'Marketplace' ? marketplaceLoading : view === 'Economics' ? dumaLoading || marketplaceLoading : dumaLoading;
 const error = view === 'Marketplace' ? marketplaceError : view === 'Economics' ? dumaError || marketplaceError : dumaError;
@@ -521,7 +526,7 @@ if (event.key === 'Enter') { event.preventDefault(); if (searchOpen && suggestio
 </div>
 )}
 
-{activeLoading && <div role="status" aria-live="polite" style={{ padding: '24px', textAlign: 'center' }}><span className="duma-feed-spinner" aria-hidden="true" /> Loading {activeView.toLowerCase()}…</div>}
+{activeLoading && <div role="status" aria-live="polite" style={{ padding: '24px', textAlign: 'center' }}><span className="duma-feed-spinner" aria-hidden="true" /> Loading {activeView.toLowerCase()}…{activeSlow && <p style={{ margin: '8px 0 0', color: '#555', fontSize: '14px' }}>The Duma is waking up — this can take up to a minute after a quiet spell. Thanks for your patience.</p>}</div>}
 {!activeLoading && activeError && <div role="alert" style={{ padding: '20px', border: '1px solid #c33', borderRadius: '8px', marginBottom: '20px' }}>
 <p>We couldn't load {activeView.toLowerCase()}. {activeError}</p>
 <button type="button" onClick={() => activeView === 'Marketplace' ? setMarketplaceRetry(value => value + 1) : setDumaRetry(value => value + 1)}>Try again</button>

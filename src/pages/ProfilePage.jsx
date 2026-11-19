@@ -513,7 +513,13 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
             headers: { Authorization: `Bearer ${authToken}` },
             body: formData
           });
-          if (!uploadRes.ok) throw new Error(`One of your photos or videos failed to upload (${uploadRes.status}), so the post was not saved. Please try again.`);
+          if (!uploadRes.ok) {
+            const uploadErr = await uploadRes.json().catch(() => ({}));
+            // MEDIA_UPLOADS_UNAVAILABLE: storage is down for everyone, so say so instead of "try again".
+            throw new Error(uploadErr.code === 'MEDIA_UPLOADS_UNAVAILABLE'
+              ? `${uploadErr.error} Your post was not saved.`
+              : `One of your photos or videos failed to upload (${uploadRes.status}), so the post was not saved. Please try again.`);
+          }
           const uploadData = await uploadRes.json();
           const cloudUrl = uploadData.storageUrl || uploadData.secure_url || uploadData.url;
           if (cloudUrl) uploadedMediaUrls.push(cloudUrl);

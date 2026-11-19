@@ -18,6 +18,30 @@ import { isPersistedDumaId, fetchDumaFeed } from '../utils/dumaApi';
 import { EzoicAd, DUMA_AD_PLACEHOLDER_START, DUMA_AD_EVERY_N_POSTS, DUMA_AD_MAX_SLOTS } from '../components/EzoicAd';
 
 // Only index public post content and location tags, never private partner fields.
+// Video tile for Duma posts: loads nothing until played (a feed can hold 100+ videos) and
+// shows a plain notice instead of a black box when the file can't be delivered.
+function DumaVideo({ src, poster }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <div style={{ padding: '24px 12px', borderRadius: '8px', background: '#f0f0f0', color: '#666', fontSize: '13px' }}>
+        This video is temporarily unavailable.
+      </div>
+    );
+  }
+  return (
+    <video
+      src={src}
+      poster={poster}
+      style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000', objectFit: 'contain' }}
+      controls
+      playsInline
+      preload="none"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 const searchValues = (item) => [
   item.title, item.prompt, item.response, item.reason, item.desc, item.description,
   item.text, item.content, item.name, item.product, item.company, item.brand,
@@ -598,11 +622,9 @@ return (
 {mediaList.map((url, idx) => (
 <div key={idx} style={{ textAlign: 'center' }}>
 {/\.(mp4|mov|webm)$/i.test(url) || url.includes('/video/upload/') ? (
-<video
+<DumaVideo
 src={normalizeMediaVideoUrl(url)}
 poster={url.includes('cloudinary.com') ? sizedImageUrl(url.replace(/\.(mp4|mov|webm|m4v)$/i, '.jpg'), 1080) : undefined}
-style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000', objectFit: 'contain' }}
-controls playsInline preload="metadata"
 />
 ) : (
 <img
@@ -618,7 +640,7 @@ onError={(e) => {
  // Resized copy failed: try the original once, then the placeholder
  if (!e.currentTarget.dataset.triedOriginal) { e.currentTarget.dataset.triedOriginal = '1'; e.currentTarget.src = url; return; }
  e.currentTarget.onerror = null;
- e.currentTarget.src = '/logo192.png';
+ e.currentTarget.style.display = 'none';
  }} />
 )}
 </div>
@@ -687,7 +709,7 @@ alt={item.name || item.product}
 style={{ width: '100%', maxHeight: '280px', objectFit: 'contain', borderRadius: '12px', marginBottom: '12px', background: '#f8f8f8' }}
 onError={(e) => {
 e.currentTarget.onerror = null;
-e.currentTarget.src = '/logo192.png';
+e.currentTarget.style.display = 'none';
 }}
 />
 )}
@@ -749,16 +771,20 @@ partnerItems.map(item => (
 
 <h3 style={{ marginTop: '12px', marginBottom: '12px' }}>{item.desc || item.partnerCategory || item.productType} - {item.company}</h3>
 
+{(item.productType || item.productDescription || item.whyPartner) && (
+<>
 <h4 style={{ marginBottom: '6px', fontSize: '13px', color: '#555', fontWeight: '700' }}>Product Details:</h4>
-<p style={{ color: '#666', fontSize: '13px', marginBottom: '6px', lineHeight: '1.5' }}>
+{item.productType && (<p style={{ color: '#666', fontSize: '13px', marginBottom: '6px', lineHeight: '1.5' }}>
 <strong>Type:</strong> {item.productType}
-</p>
-<p style={{ color: '#222', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>
+</p>)}
+{item.productDescription && (<p style={{ color: '#222', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>
 <strong>Description:</strong> {item.productDescription}
-</p>
-<p style={{ color: '#222', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>
+</p>)}
+{item.whyPartner && (<p style={{ color: '#222', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5' }}>
 <strong>Partnership Rationale:</strong> {item.whyPartner}
-</p>
+</p>)}
+</>
+)}
 
 {(item.hasPhoto || item.hasVideo) && (
 <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: '12px', borderLeft: '4px solid #9b59b6' }}>
@@ -800,11 +826,12 @@ partnerItems.map(item => (
 <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
 <strong>Commission:</strong> The Majorities take 25% | Partner receives 75%
 </p>
-<p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
+{item.tier && (<p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
 <strong>Tier:</strong> {item.tier}
-</p>
+</p>)}
 </div>
 
+{(item.customerRewardAgreed || item.commission25AgreedTo || item.shippingReturnsAgreed || item.ownershipTitleAgreed) && (
 <div style={{ backgroundColor: '#f9f9f9', padding: '12px', borderRadius: '8px', marginBottom: '14px', borderLeft: '4px solid #34495e' }}>
 <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#555' }}>Policy Checkboxes:</h4>
 <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
@@ -820,6 +847,7 @@ partnerItems.map(item => (
 <strong>Ownership & Title Policy:</strong> {item.ownershipTitleAgreed ? 'Agreed' : 'Not specified'}
 </p>
 </div>
+)}
 
 {authToken && (
 <div>

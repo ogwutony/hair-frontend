@@ -17,6 +17,14 @@ for (const signedIn of [false, true]) {
   });
 }
 
+test('Influencer item is unlocked after a creator application', () => {
+  const { rerender } = render(<MemoryRouter><MobileHeader isLoggedIn unreadMessages={0} onLogout={jest.fn()} /></MemoryRouter>);
+  const nav = () => screen.getByRole('navigation', { name: 'Main' });
+  expect(within(nav()).queryByRole('button', { name: 'Influencer' })).not.toBeInTheDocument();
+  rerender(<MemoryRouter><MobileHeader isLoggedIn influencerApplied unreadMessages={0} onLogout={jest.fn()} /></MemoryRouter>);
+  expect(within(nav()).getAllByRole('button').map(b => b.textContent)).toEqual(['Home', 'Hair Care', 'Skin Care', 'Wholesale', 'The Duma', 'Partner', 'Influencer', 'Recommend', 'Messages']);
+});
+
 test('signed-in account icon opens profile and logout actions', () => {
   const onLogout = jest.fn();
   render(<MemoryRouter><MobileHeader isLoggedIn unreadMessages={2} onLogout={onLogout} /></MemoryRouter>);

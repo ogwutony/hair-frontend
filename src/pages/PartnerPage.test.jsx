@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { PartnerPage, MAX_PRODUCTS } from './PartnerPage';
+import { PartnerPage, MAX_PRODUCTS, partnerRedirect, INFLUENCER_PAGE_URL, WHOLESALE_PAGE_URL } from './PartnerPage';
 
 jest.mock('../components/CredentialHeader', () => ({ CredentialHeader: () => null }));
 jest.mock('../components/LocationAutocomplete', () => ({
@@ -90,9 +90,12 @@ test('creator must upload a picture or video before submitting', () => {
   expect(global.fetch).not.toHaveBeenCalled();
 });
 
-test('creator submission sends social accounts, experience and the pitch video', async () => {
+test('creator submission sends social accounts, experience and the pitch video, then goes to the Influencers page', async () => {
+  jest.useFakeTimers();
+  const go = jest.spyOn(partnerRedirect, 'go').mockImplementation(() => {});
+  const onInfluencerApplied = jest.fn();
   global.fetch = jest.fn(async () => ({ ok: true, status: 201, json: async () => ({ item: { _id: 'abc' } }) }));
-  const { container } = show();
+  const { container } = show({ onInfluencerApplied });
   pick('Creator / Influencer Partners');
   type('Full Name', 'Ada');
   type('Business Email', 'ada@example.com');
@@ -105,7 +108,9 @@ test('creator submission sends social accounts, experience and the pitch video',
   const videoInput = container.querySelector('input[type="file"][accept="video/*"]');
   fireEvent.change(videoInput, { target: { files: [file('pitch.mp4', 'video/mp4')] } });
   pick('I agree to a 15% commission rate');
-  ['Customer Reward', '20% commission', 'Shipping & Returns', 'Ownership & Title'].forEach(pick);
+  // Creators are on 15%, so the 20% marketplace commission checkbox is gone
+  expect(screen.queryByLabelText('20% commission', { exact: false })).not.toBeInTheDocument();
+  ['Customer Reward', 'Shipping & Returns', 'Ownership & Title'].forEach(pick);
   fireEvent.click(screen.getByRole('button', { name: 'Submit Partnership Application' }));
 
   await waitFor(() => expect(global.fetch).toHaveBeenCalled());
@@ -121,12 +126,21 @@ test('creator submission sends social accounts, experience and the pitch video',
   expect(body.get('contentTypes')).toBeNull();
   expect(body.get('videoType')).toBe('Direct pitch');
   expect(body.get('video')).toBeInstanceOf(File);
-  expect(await screen.findByText('Partnership Application Submitted!')).toBeInTheDocument();
+  expect(body.get('commission20AgreedTo')).toBeNull();
+  expect(await screen.findByRole('button', { name: 'Submitted ✓' })).toBeDisabled();
+  expect(onInfluencerApplied).toHaveBeenCalledTimes(1);
+  expect(go).not.toHaveBeenCalled();
+  jest.runAllTimers();
+  expect(go).toHaveBeenCalledWith(INFLUENCER_PAGE_URL);
+  jest.useRealTimers();
 });
 
-test('wholesale submission sends payment terms and shipping without products', async () => {
-  global.fetch = jest.fn(async () => ({ ok: true, status: 201, json: async () => ({ item: {} }) }));
-  show();
+test('wholesale submission sends payment terms and shipping without products, then goes to the wholesale page', async () => {
+  jest.useFakeTimers();
+  const go = jest.spyOn(partnerRedirect, 'go').mockImplementation(() => {});
+  const onWholesaleApproved = jest.fn();
+  global.fetch = jest.fn(async () => ({ ok: true, status: 201, json: async () => ({ item: {}, wholesaleApproved: true }) }));
+  show({ onWholesaleApproved });
   type('Full Name', 'Bo');
   type('Business Email', 'bo@shop.com');
   type('Phone Number', '555-0100');
@@ -152,4 +166,10 @@ test('wholesale submission sends payment terms and shipping without products', a
   expect(body.get('paymentSchedule')).toBe('Net 30 payments');
   expect(body.get('shippingPreference')).toBe('Partner handles shipping');
   expect(body.get('products')).toBeNull();
+  expect(body.get('commission20AgreedTo')).toBe('true');
+  expect(await screen.findByRole('button', { name: 'Submitted ✓' })).toBeDisabled();
+  expect(onWholesaleApproved).toHaveBeenCalledTimes(1);
+  jest.runAllTimers();
+  expect(go).toHaveBeenCalledWith(WHOLESALE_PAGE_URL);
+  jest.useRealTimers();
 });

@@ -54,3 +54,22 @@ test('invalid marketplace responses display an error instead of empty listings',
   expect(await screen.findByRole('alert')).toHaveTextContent('invalid feed');
   expect(screen.queryByText(/No listings yet/)).not.toBeInTheDocument();
 });
+
+test('Influencers tab shows creator applications and creator posts to everyone, not other partners', async () => {
+  const feed = [
+    { _id: '111111111111111111111111', type: 'Partner', partnerCategory: 'Creator / Influencer Partners', company: 'Ada Creates', influencer: true, mediaUrls: [], comments: [] },
+    { _id: '222222222222222222222222', type: 'Culture', category: 'Culture', influencer: true, prompt: 'My 3-bottle hair routine', response: 'Wash day with the full set', comments: [] },
+    { _id: '333333333333333333333333', type: 'Partner', partnerCategory: 'Brand & Retail Partners', company: 'Bo Supply', comments: [] },
+    { _id: '444444444444444444444444', type: 'Culture', category: 'Culture', prompt: 'Regular perspective', response: 'Not a creator', comments: [] },
+  ];
+  global.fetch = jest.fn(async url => response(url.endsWith('/api/marketplace') ? [] : feed));
+  show('influencers');
+  expect(await screen.findByRole('heading', { name: 'Ada Creates joined as a Creator / Influencer partner' })).toBeInTheDocument();
+  expect(screen.getByText('Wash day with the full set')).toBeInTheDocument();
+  expect(screen.queryByText(/Bo Supply/)).not.toBeInTheDocument();
+  expect(screen.queryByText('Not a creator')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Influencers (2)' })).toHaveAttribute('aria-pressed', 'true');
+  // Creator posts stay in Culture too
+  fireEvent.click(screen.getByRole('button', { name: /^Culture/ }));
+  expect(await screen.findByText('Wash day with the full set')).toBeInTheDocument();
+});

@@ -1,6 +1,6 @@
 // src/pages/PartnerPage.jsx
 import React, { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { CredentialHeader } from '../components/CredentialHeader';
 import { LocationAutocomplete } from '../components/LocationAutocomplete';
 import { BACKEND_URL, getPartnerApplyPoints, WHOLESALE_PARTNER_CATEGORY, partnerCategoryLabel } from '../utils/constants';
@@ -62,6 +62,16 @@ const MARKETPLACE_AGREEMENTS = [
   { key: 'ownershipTitleAgreed', label: 'I agree to the Ownership & Title Policy *' },
 ];
 
+// Creators are on the 15% referral commission, so the 20% marketplace commission checkbox doesn't apply to them
+const CREATOR_AGREEMENTS = MARKETPLACE_AGREEMENTS.filter(({ key }) => key !== 'commission20AgreedTo');
+
+// Where people land after a successful application (both on the Shopify store)
+export const INFLUENCER_PAGE_URL = 'https://themajorities.com/pages/influencers';
+export const WHOLESALE_PAGE_URL = 'https://themajorities.com/collections/wholesale';
+const REDIRECT_DELAY_MS = 1200; // long enough to see the "Submitted" button
+// Wrapped so tests can stub the full-page navigation
+export const partnerRedirect = { go: (url) => window.location.assign(url) };
+
 const emptyProduct = () => ({ name: '', category: '', description: '', ingredients: '', photos: [], photoPreviews: [] });
 const emptySocials = () => Object.fromEntries(SOCIAL_PLATFORMS.map(p => [p, { url: '', followers: '' }]));
 
@@ -100,8 +110,7 @@ const ChoiceCard = ({ type = 'radio', name, checked, onChange, title, desc }) =>
   </label>
 );
 
-export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, rankScore, authToken, userAvatar, onWholesaleApproved }) => {
-  const navigate = useNavigate();
+export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, rankScore, authToken, userAvatar, onWholesaleApproved, onInfluencerApplied }) => {
   const [searchParams] = useSearchParams();
   const initialCategory = CATEGORY_PARAMS[(searchParams.get('category') || '').toLowerCase()] || WHOLESALE;
 
@@ -170,6 +179,8 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
 
   const [errorMsg, setErrorMsg] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  // Creator and wholesale applications keep the form on screen with a "Submitted" button, then move on
+  const [submittedRedirect, setSubmittedRedirect] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [photoPreviews, setPhotoPreviews] = useState([]);
   const [videoPreview, setVideoPreview] = useState(null);
@@ -258,7 +269,7 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
       if (!formData.creatorPhoto && !formData.videoFile) return "Please upload a picture of yourself or a video.";
       if (formData.videoFile && !formData.videoType) return "Please tell us whether your video is a sample of past work or a direct pitch.";
       if (!formData.commission8Agreed) return `You must agree to the ${COMMISSION_RATE}% referral commission rate.`;
-      if (MARKETPLACE_AGREEMENTS.some(({ key }) => !formData[key])) return "You must agree to all policies and agreements.";
+      if (CREATOR_AGREEMENTS.some(({ key }) => !formData[key])) return "You must agree to all policies and agreements.";
       return null;
     }
 
@@ -326,8 +337,7 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
     fd.append('name', formData.name.trim());
     fd.append('contactEmail', formData.contactEmail.trim());
     fd.append('tier', formData.tier);
-    ['customerRewardAgreed', 'commission20AgreedTo', 'shippingReturnsAgreed', 'ownershipTitleAgreed']
-      .forEach(k => { if (!isReviewRequest) fd.append(k, formData[k]); });
+    if (!isReviewRequest) (isCreator ? CREATOR_AGREEMENTS : MARKETPLACE_AGREEMENTS).forEach(({ key }) => fd.append(key, formData[key]));
 
     if (isCreator) {
       // Creators skip the company section; their name doubles as the public profile name
@@ -461,12 +471,18 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
         hasPhoto: isCreator ? !!formData.creatorPhoto : hasProducts ? productPhotoCount > 0 : formData.photoFiles.length > 0,
         hasVideo: !!formData.videoFile
       });
-      setSubmitted(true);
+      // Wholesale applications unlock wholesale access immediately (the server grants it)
+      if (isWholesale && data.wholesaleApproved && onWholesaleApproved) onWholesaleApproved();
+      // Creator applications unlock the Influencer menu item
+      if (isCreator && onInfluencerApplied) onInfluencerApplied();
 
-      // Wholesale applications unlock wholesale access immediately (the server grants it) — go straight there
-      if (isWholesale && data.wholesaleApproved) {
-        if (onWholesaleApproved) onWholesaleApproved();
-        navigate('/wholesale', { state: { fromApplication: true } });
+      // Creators go to the Influencers page, wholesalers to the wholesale shop; everyone else sees the confirmation
+      const nextUrl = isCreator ? INFLUENCER_PAGE_URL : isWholesale ? WHOLESALE_PAGE_URL : null;
+      if (nextUrl) {
+        setSubmittedRedirect(true);
+        setTimeout(() => partnerRedirect.go(nextUrl), REDIRECT_DELAY_MS);
+      } else {
+        setSubmitted(true);
       }
     } catch (err) {
       setErrorMsg("We couldn't reach the server, so your application was not sent. Please check your connection and try again.");
@@ -513,7 +529,7 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
 
   const agreements = (
     <>
-      {MARKETPLACE_AGREEMENTS.map(({ key, label }) => (
+      {(isCreator ? CREATOR_AGREEMENTS : MARKETPLACE_AGREEMENTS).map(({ key, label }) => (
         <label key={key} style={checkLabel}>
           <input type="checkbox" checked={formData[key]} onChange={e => set(key, e.target.checked)} style={{ marginTop: '3px', width: '18px', height: '18px', flexShrink: 0 }} />
           <span>{label}</span>
@@ -1013,9 +1029,24 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
             </div>
           </div>
         ) : (
-          <button type="submit" disabled={submitting} style={{ ...styles.authButton, marginTop: '20px', padding: '14px', fontSize: '15px', opacity: submitting ? 0.6 : 1, cursor: submitting ? 'wait' : 'pointer' }}>
-            {submitting ? "Submitting..." : isReviewRequest ? "Submit Review Request" : "Submit Partnership Application"}
-          </button>
+          <>
+            <button
+              type="submit"
+              disabled={submitting || submittedRedirect}
+              style={{
+                ...styles.authButton, marginTop: '20px', padding: '14px', fontSize: '15px',
+                ...(submittedRedirect ? { backgroundColor: '#1e7e34' } : {}),
+                opacity: submitting ? 0.6 : 1, cursor: submitting ? 'wait' : submittedRedirect ? 'default' : 'pointer'
+              }}
+            >
+              {submittedRedirect ? "Submitted ✓" : submitting ? "Submitting..." : isReviewRequest ? "Submit Review Request" : "Submit Partnership Application"}
+            </button>
+            {submittedRedirect && (
+              <p role="status" style={{ textAlign: 'center', fontSize: '13px', color: '#555', marginTop: '10px' }}>
+                Application received! Taking you to the {isCreator ? 'Influencers page' : 'wholesale shop'}…
+              </p>
+            )}
+          </>
         )}
       </form>
     </div>

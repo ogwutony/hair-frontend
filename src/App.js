@@ -158,6 +158,8 @@ export default function App() {
   const [unreadMessages, setUnreadMessages] = useState(0);
   // Only drives the header's Wholesale tab; the backend is what actually enforces wholesale access.
   const [wholesaleApproved, setWholesaleApproved] = useState(false);
+  // Shows the header's Influencer item once this account has applied as a creator
+  const [influencerApplied, setInfluencerApplied] = useState(false);
   const [rankTitle, setRankTitle] = useState("Comrade");
   const [rankScore, setRankScore] = useState(1);
   const [tokens, setTokens] = useState(0);
@@ -197,7 +199,12 @@ export default function App() {
     let cancelled = false;
     fetch(`${BACKEND_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${authToken}` } })
       .then(r => r.json())
-      .then(data => { if (!cancelled) setWholesaleApproved(!!data.wholesaleApproved); })
+      .then(data => {
+        if (cancelled) return;
+        setWholesaleApproved(!!data.wholesaleApproved);
+        // OR with the current value: an application made this session counts even if the server is behind
+        if (data.influencerApplied) setInfluencerApplied(true);
+      })
       .catch(() => {});
     return () => { cancelled = true; };
   }, [authToken]);
@@ -220,7 +227,7 @@ export default function App() {
     const shopifyLogout = sessionStorage.getItem(LOGOUT_KEY);
     sessionStorage.removeItem(LOGOUT_KEY);
     clearModerationData();
-    setisLoggedIn(false); setUserEmail(""); setAuthToken(""); setRankTitle("Comrade"); setRankScore(1); setUserAvatar(""); setWholesaleApproved(false);
+    setisLoggedIn(false); setUserEmail(""); setAuthToken(""); setRankTitle("Comrade"); setRankScore(1); setUserAvatar(""); setWholesaleApproved(false); setInfluencerApplied(false);
     localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); localStorage.removeItem("rankTitle"); localStorage.removeItem("rankScore"); localStorage.removeItem("userAvatar");
     sessionStorage.removeItem("authToken"); sessionStorage.removeItem("userEmail"); sessionStorage.removeItem("rankTitle"); sessionStorage.removeItem("rankScore"); sessionStorage.removeItem("userAvatar");
     if (shopifyLogout) {
@@ -306,7 +313,7 @@ export default function App() {
       <ScrollToTop />
       <PixelRouteTracker />
       <div style={styles.pageWrapper} className="ms-page">
-        <MobileHeader isLoggedIn={isLoggedIn} onLogout={handleLogout} unreadMessages={unreadMessages} rankTitle={rankTitle} wholesaleApproved={wholesaleApproved} />
+        <MobileHeader isLoggedIn={isLoggedIn} onLogout={handleLogout} unreadMessages={unreadMessages} rankTitle={rankTitle} wholesaleApproved={wholesaleApproved} influencerApplied={influencerApplied} />
         <Routes>
           <Route path="/" element={<LandingPage saveSetToProfile={saveSetToProfile} onAddPoints={addPoints} savedSets={savedSets} />} />
           <Route path="/login" element={shopifyConfig === null ? <p role="status">Loading sign-in…</p> : shopifyConfig.enabled ? <ShopifySignIn config={shopifyConfig} /> : <LoginPage onLogin={handleLoginSuccess} />} />
@@ -320,7 +327,7 @@ export default function App() {
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           <Route path="/recommend" element={<RecommendPage addDumaItem={addDumaItem} onAddPoints={addPoints} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} />} />
           <Route path="/sell" element={<SellPage userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} onAddPoints={addPoints} />} />
-          <Route path="/partner" element={<PartnerPage addDumaItem={addDumaItem} onAddPoints={addPoints} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} onWholesaleApproved={() => setWholesaleApproved(true)} />} />
+          <Route path="/partner" element={<PartnerPage addDumaItem={addDumaItem} onAddPoints={addPoints} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} userAvatar={userAvatar} onWholesaleApproved={() => setWholesaleApproved(true)} onInfluencerApplied={() => setInfluencerApplied(true)} />} />
           <Route path="/wholesale" element={<Navigate to="/duma" replace />} />
           <Route path="/culture" element={isLoggedIn ? <CultureLabPage addDumaItem={addDumaItem} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} authToken={authToken} onAddPoints={addPoints} userAvatar={userAvatar} /> : <Navigate to="/login" />} />
           <Route path="/duma" element={<DumaPage items={dumaItems} authToken={authToken} userEmail={userEmail} rankTitle={rankTitle} rankScore={rankScore} onAddPoints={addPoints} userAvatar={userAvatar} following={following} onFollowUser={followUser} />} />

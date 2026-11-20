@@ -6,7 +6,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { CredentialHeader, CredentialExtras } from '../components/CredentialHeader';
 import { GuestSubmissionPrompt } from '../components/GuestSubmissionPrompt';
 import { RankBadge } from '../components/RankBadge';
-import { BACKEND_URL, PRODUCT_IMAGE_BY_NAME } from '../utils/constants';
+import { BACKEND_URL, PRODUCT_IMAGE_BY_NAME, partnerCategoryLabel } from '../utils/constants';
 import { getRankTitle, normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
 import { ContentActions } from '../components/ContentActions';
@@ -769,7 +769,7 @@ partnerItems.map(item => (
 </div>
 )}
 
-<h3 style={{ marginTop: '12px', marginBottom: '12px' }}>{item.desc || item.partnerCategory || item.productType} - {item.company}</h3>
+<h3 style={{ marginTop: '12px', marginBottom: '12px' }}>{partnerCategoryLabel(item.desc || item.partnerCategory) || item.productType} - {item.company}</h3>
 
 {(item.productType || item.productDescription || item.whyPartner) && (
 <>

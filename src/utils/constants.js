@@ -290,6 +290,14 @@ export const POINTS = {
 
 export const INFLUENCER_PARTNER_CATEGORY = "Creator / Influencer Partners";
 
+// Partner categories keep their original values (the backend and mobile app key off them);
+// only the label shown to people changes.
+export const WHOLESALE_PARTNER_CATEGORY = "Brand & Retail Partners";
+export const PARTNER_CATEGORY_LABELS = {
+  [WHOLESALE_PARTNER_CATEGORY]: "Wholesale, Distributor, and Retail Partners",
+};
+export const partnerCategoryLabel = (category) => PARTNER_CATEGORY_LABELS[category] || category;
+
 export const getPartnerApplyPoints = (category) =>
   category === INFLUENCER_PARTNER_CATEGORY ? POINTS.INFLUENCER_PARTNER_APPLY : POINTS.PARTNER_APPLY;
 

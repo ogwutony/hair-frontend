@@ -1,6 +1,6 @@
 // src/pages/PartnerPage.jsx
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { CredentialHeader } from '../components/CredentialHeader';
 import { LocationAutocomplete } from '../components/LocationAutocomplete';
 import { BACKEND_URL, getPartnerApplyPoints, WHOLESALE_PARTNER_CATEGORY, partnerCategoryLabel } from '../utils/constants';
@@ -16,7 +16,7 @@ const REVIEW_REQUEST = "Review Request";
 // Order matters: Wholesale first, Creator second
 export const PARTNER_CATEGORIES = [
   { value: WHOLESALE, desc: "Wholesalers, distributors, retailers, and independent brands seeking wholesale pricing, advertising, and sponsored visibility across The Duma and The Majorities Marketplace." },
-  { value: CREATOR, desc: "Share honest routines and product experiences through video content. Earn 8% commission on every referral sale you drive." },
+  { value: CREATOR, desc: "Share honest routines and product experiences through video content. Earn 15% commission on every referral sale you drive, and your followers get 15% off with your code." },
   { value: COMMUNITY, desc: "Local Dallas spots — run clubs, barbershops, salons, and event organizers who bring people together." },
   { value: MARKETPLACE, desc: "Gain verified access to sell directly on The Majorities Marketplace." },
   { value: REVIEW_REQUEST, desc: "Request an official review for your restaurant, bar, event, or product." },
@@ -30,6 +30,15 @@ const PRODUCT_TYPE_OPTIONS = [
   'Shampoos', 'Conditioners', 'Oils', 'Face Scrubs',
   'Toners', 'Creams', 'Body Wash', 'Hair Styling', 'Other'
 ];
+// Menu links can open a specific form, e.g. /partner?category=influencer
+const CATEGORY_PARAMS = {
+  wholesale: WHOLESALE, distributor: WHOLESALE, retail: WHOLESALE,
+  influencer: CREATOR, creator: CREATOR, affiliate: CREATOR,
+  community: COMMUNITY, venue: COMMUNITY,
+  marketplace: MARKETPLACE,
+  review: REVIEW_REQUEST,
+};
+export const COMMISSION_RATE = 15; // creator / affiliate referral commission, %
 export const MAX_PRODUCTS = 10;
 const PHOTOS_PER_PRODUCT = 3;
 
@@ -93,9 +102,11 @@ const ChoiceCard = ({ type = 'radio', name, checked, onChange, title, desc }) =>
 
 export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, rankScore, authToken, userAvatar, onWholesaleApproved }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialCategory = CATEGORY_PARAMS[(searchParams.get('category') || '').toLowerCase()] || WHOLESALE;
 
   const [formData, setFormData] = useState({
-    partnerCategory: WHOLESALE,
+    partnerCategory: initialCategory,
     name: "",
     contactEmail: "",
     phoneNumber: "",
@@ -124,7 +135,9 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
     ownershipTitleAgreed: false,
     // Creator fields
     socialAccounts: emptySocials(),
-    contentTypes: [],
+    city: "",
+    state: "",
+    country: "United States",
     contentPitch: "",
     doneBefore: "",
     experienceDetails: "",
@@ -168,7 +181,8 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
   const isCommunity = category === COMMUNITY;
   const isMarketplace = category === MARKETPLACE;
   const isWholesale = category === WHOLESALE;
-  const hasProducts = isWholesale || isMarketplace;
+  const hasPaymentTerms = isWholesale || isMarketplace;
+  const hasProducts = isMarketplace; // wholesale applications no longer upload products
   const einRequired = !isReviewRequest && !isCreator; // individual creators often have no EIN
   const isPhysicalReviewTarget = PHYSICAL_REVIEW_TARGETS.includes(formData.reviewTargetType);
 
@@ -237,12 +251,13 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
 
     if (isCreator) {
       if (!formData.name.trim() || !formData.contactEmail.trim()) return "Please enter your full name and business email.";
+      if (!formData.city.trim() || !formData.state.trim() || !formData.country.trim()) return "Please enter your city, state, and country.";
       if (filledSocials.length === 0) return "Please add at least one social media profile.";
       if (filledSocials.some(s => !s.followers)) return "Please add a follower count for each social media profile you listed.";
       if (!formData.doneBefore) return "Please tell us whether you've done brand partnerships before.";
       if (!formData.creatorPhoto && !formData.videoFile) return "Please upload a picture of yourself or a video.";
       if (formData.videoFile && !formData.videoType) return "Please tell us whether your video is a sample of past work or a direct pitch.";
-      if (!formData.commission8Agreed) return "You must agree to the 8% referral commission rate.";
+      if (!formData.commission8Agreed) return `You must agree to the ${COMMISSION_RATE}% referral commission rate.`;
       if (MARKETPLACE_AGREEMENTS.some(({ key }) => !formData[key])) return "You must agree to all policies and agreements.";
       return null;
     }
@@ -256,7 +271,7 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
     } else if (!formData.countryOfOrigin || !formData.operatingCountry) {
       return "Please fill in all company information fields.";
     }
-    if (hasProducts && !formData.address.trim()) return "Please provide your business address.";
+    if (hasPaymentTerms && !formData.address.trim()) return "Please provide your business address.";
 
     if (hasProducts) {
       if (filledProducts.length === 0) return "Please add at least one product with photos and a description.";
@@ -264,8 +279,10 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
         const label = p.name.trim() || `Product ${i + 1}`;
         if (!p.name.trim() || !p.description.trim()) return `Please add a name and description for ${label}.`;
         if (p.photos.length === 0) return `Please upload at least one photo of ${label}.`;
-        if (isMarketplace && (!p.category || !p.ingredients.trim())) return `Please add a product type and ingredients for ${label}.`;
+        if (!p.category || !p.ingredients.trim()) return `Please add a product type and ingredients for ${label}.`;
       }
+    }
+    if (hasPaymentTerms) {
       if (formData.paymentMethods.length === 0) return "Please choose at least one payment method (ACH or Credit Card).";
       if (!formData.paymentSchedule) return "Please choose a payment schedule (Pay on order or Net 30).";
       if (!formData.shippingPreference) return "Please tell us who will handle shipping.";
@@ -318,7 +335,12 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
       fd.append('socialAccounts', JSON.stringify(filledSocials));
       fd.append('socialMedia', filledSocials.map(s => `${s.platform}: ${s.url} (${s.followers} followers)`).join('\n'));
       fd.append('websiteOrSocial', filledSocials[0]?.url || '');
-      fd.append('contentTypes', formData.contentTypes.join(', '));
+      fd.append('city', formData.city.trim());
+      fd.append('state', formData.state.trim());
+      fd.append('country', formData.country.trim());
+      fd.append('countryOfOrigin', formData.country.trim());
+      fd.append('operatingCountry', formData.country.trim());
+      fd.append('address', [formData.city, formData.state, formData.country].map(v => v.trim()).filter(Boolean).join(', '));
       fd.append('contentPitch', formData.contentPitch);
       fd.append('doneBefore', formData.doneBefore);
       fd.append('experienceDetails', formData.doneBefore === 'Yes' ? formData.experienceDetails : '');
@@ -345,13 +367,16 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
       fd.append('venueAddress', formData.address.trim());
     }
 
-    if (hasProducts) {
+    if (hasPaymentTerms) {
       fd.append('paymentMethods', formData.paymentMethods.join(', '));
       fd.append('paymentSchedule', formData.paymentSchedule);
       fd.append('shippingPreference', formData.shippingPreference);
+    }
+    if (hasProducts) {
       fd.append('products', JSON.stringify(filledProducts.map((p, i) => ({
         name: p.name.trim(),
-        ...(isMarketplace ? { category: p.category, ingredients: p.ingredients.trim() } : {}),
+        category: p.category,
+        ingredients: p.ingredients.trim(),
         description: p.description.trim(),
         photoFields: p.photos.map((_, j) => `product_photo_${i}_${j}`),
       }))));
@@ -540,6 +565,16 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
           <div className="pp-grid">
             <input aria-label="Full Name" placeholder="Full Name *" autoComplete="name" style={styles.input} value={formData.name} onChange={e => set('name', e.target.value)} />
             <input aria-label="Business Email" placeholder="Business Email *" type="email" autoComplete="email" style={styles.input} value={formData.contactEmail} onChange={e => set('contactEmail', e.target.value)} />
+            {isCreator && (
+              <>
+                <input aria-label="City" placeholder="City *" autoComplete="address-level2" style={styles.input} value={formData.city} onChange={e => set('city', e.target.value)} />
+                <input aria-label="State" placeholder="State *" autoComplete="address-level1" style={styles.input} value={formData.state} onChange={e => set('state', e.target.value)} />
+                <input aria-label="Country" placeholder="Country *" autoComplete="country-name" list="pp-countries" style={styles.input} value={formData.country} onChange={e => set('country', e.target.value)} />
+                <datalist id="pp-countries">
+                  {['United States', 'Canada', 'United Kingdom', 'Nigeria', 'Ghana', 'Jamaica', 'Mexico'].map(c => <option key={c} value={c} />)}
+                </datalist>
+              </>
+            )}
             {!isCreator && (
               <input aria-label="Phone Number" placeholder="Phone Number *" type="tel" autoComplete="tel" style={styles.input} value={formData.phoneNumber} onChange={e => set('phoneNumber', e.target.value)} />
             )}
@@ -689,22 +724,6 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
           </>
         ))}
 
-        {/* ── CREATOR: CONTENT TYPE ────────────────────────────────────────── */}
-        {isCreator && section('CONTENT TYPE', (
-          <>
-            <p style={hint}>What kind of content would you create for The Majorities? (optional — select all that apply)</p>
-            <div className="pp-choices">
-              {[
-                { id: 'Routine Videos', desc: 'Step-by-step hair and grooming routines — wash day, styling, maintenance.' },
-                { id: 'Product Experience Videos', desc: 'Honest first impressions, reviews, before-and-afters, and unboxings.' },
-                { id: 'Commercial Pitches', desc: 'Scripted or ad-style short-form content — reels, spots, and promos.' }
-              ].map(({ id, desc }) => (
-                <ChoiceCard key={id} type="checkbox" checked={formData.contentTypes.includes(id)} onChange={() => toggleInList('contentTypes', id)} title={id} desc={desc} />
-              ))}
-            </div>
-          </>
-        ))}
-
         {/* ── CREATOR: EXPERIENCE & MEDIA ──────────────────────────────────── */}
         {isCreator && section('EXPERIENCE & MEDIA', (
           <>
@@ -768,7 +787,7 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
         ))}
 
         {/* ── PRODUCTS (Wholesale + Marketplace) ───────────────────────────── */}
-        {hasProducts && section(isMarketplace ? 'PRODUCT DETAILS & MEDIA' : 'PRODUCTS & MEDIA', (
+        {hasProducts && section('PRODUCT DETAILS & MEDIA', (
           <>
             <p style={hint}>
               Upload pictures of your products with a description of each. You can add up to {MAX_PRODUCTS} products
@@ -826,7 +845,7 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
         ))}
 
         {/* ── PAYMENT TERMS & SHIPPING (Wholesale + Marketplace) ───────────── */}
-        {hasProducts && section('PAYMENT TERMS & SHIPPING', (
+        {hasPaymentTerms && section('PAYMENT TERMS & SHIPPING', (
           <>
             <label style={{ ...fieldLabel, marginTop: 0 }}>Payment Methods * <span style={{ fontWeight: 400, color: '#666' }}>(select all that apply)</span></label>
             <div className="pp-choices pp-two">
@@ -936,11 +955,11 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
         {isCreator && section('COMMISSION & AGREEMENTS', (
           <>
             <div style={{ backgroundColor: '#f5f5f5', borderRadius: '10px', padding: '14px 16px', marginBottom: '14px', fontSize: '13px', lineHeight: '1.6', color: '#444' }}>
-              <strong>8% Referral Commission</strong> — You earn 8% of every sale made through your unique referral link or code. Commissions are tracked and paid out on a monthly basis. No cap on earnings.
+              <strong>{COMMISSION_RATE}% Referral Commission</strong> — You earn {COMMISSION_RATE}% of every sale made through your unique referral link or code. Commissions are tracked and paid out on a monthly basis. Approved creators also get a unique {COMMISSION_RATE}% off code for their followers. No cap on earnings.
             </div>
             <label style={{ ...checkLabel, marginTop: '4px' }}>
               <input type="checkbox" checked={formData.commission8Agreed} onChange={e => set('commission8Agreed', e.target.checked)} style={{ marginTop: '3px', width: '18px', height: '18px', flexShrink: 0 }} />
-              <span>I agree to an 8% commission rate on all successful referrals *</span>
+              <span>I agree to a {COMMISSION_RATE}% commission rate on all successful referrals *</span>
             </label>
             {agreements}
           </>

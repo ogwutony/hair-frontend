@@ -36,10 +36,18 @@ test('wholesale flow has separate website/social fields, address, payment terms 
   ['ACH', 'Credit Card', 'Pay on order', 'Net 30 payments', 'The Majorities handles shipping', 'We can handle our own shipping']
     .forEach(label => expect(screen.getByLabelText(label)).toBeInTheDocument());
   expect(screen.getByText(/Do you want The Majorities to handle shipping or can you handle shipping/)).toBeInTheDocument();
+  expect(screen.queryByText(/PRODUCTS & MEDIA|PRODUCT DETAILS/)).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Product 1 name')).not.toBeInTheDocument();
 });
 
-test('products can be added up to the limit of 10', () => {
+test('menu links can open the influencer form directly', () => {
+  render(<MemoryRouter initialEntries={['/partner?category=influencer']}><PartnerPage addDumaItem={jest.fn()} authToken="token" /></MemoryRouter>);
+  expect(screen.getByLabelText('Creator / Influencer Partners', { exact: false })).toBeChecked();
+});
+
+test('products can be added up to the limit of 10 (marketplace)', () => {
   show();
+  pick('Marketplace Access');
   for (let i = 1; i < MAX_PRODUCTS; i++) fireEvent.click(screen.getByRole('button', { name: /Add another product/ }));
   expect(screen.getByLabelText(`Product ${MAX_PRODUCTS} name`)).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /Add another product/ })).not.toBeInTheDocument();
@@ -55,6 +63,11 @@ test('creator flow only asks for name and email and drops the company section', 
   expect(screen.queryByLabelText('EIN')).not.toBeInTheDocument();
   expect(screen.queryByText(/COMPANY \/ ENTITY INFORMATION/)).not.toBeInTheDocument();
   expect(screen.getByLabelText('Instagram follower count')).toBeInTheDocument();
+  expect(screen.queryByText(/CONTENT TYPE/)).not.toBeInTheDocument();
+  expect(screen.getByLabelText('City')).toBeInTheDocument();
+  expect(screen.getByLabelText('State')).toBeInTheDocument();
+  expect(screen.getByLabelText('Country')).toHaveValue('United States');
+  expect(screen.getByText(/15% Referral Commission/)).toBeInTheDocument();
   expect(screen.getByLabelText('TikTok link')).toBeInTheDocument();
   expect(screen.getByText('Have you done this before? *')).toBeInTheDocument();
   expect(screen.getByLabelText(/Sample \/ past work/)).toBeInTheDocument();
@@ -67,6 +80,8 @@ test('creator must upload a picture or video before submitting', () => {
   pick('Creator / Influencer Partners');
   type('Full Name', 'Ada');
   type('Business Email', 'ada@example.com');
+  type('City', 'Dallas');
+  type('State', 'TX');
   type('Instagram link', 'https://instagram.com/ada');
   type('Instagram follower count', '12000');
   pick('This would be my first brand partnership');
@@ -81,13 +96,15 @@ test('creator submission sends social accounts, experience and the pitch video',
   pick('Creator / Influencer Partners');
   type('Full Name', 'Ada');
   type('Business Email', 'ada@example.com');
+  type('City', 'Dallas');
+  type('State', 'TX');
   type('TikTok link', 'https://tiktok.com/@ada');
   type('TikTok follower count', '50k');
   pick("I've partnered with brands");
   pick('Record yourself telling us');
   const videoInput = container.querySelector('input[type="file"][accept="video/*"]');
   fireEvent.change(videoInput, { target: { files: [file('pitch.mp4', 'video/mp4')] } });
-  pick('I agree to an 8% commission rate');
+  pick('I agree to a 15% commission rate');
   ['Customer Reward', '20% commission', 'Shipping & Returns', 'Ownership & Title'].forEach(pick);
   fireEvent.click(screen.getByRole('button', { name: 'Submit Partnership Application' }));
 
@@ -98,12 +115,16 @@ test('creator submission sends social accounts, experience and the pitch video',
   expect(body.get('phoneNumber')).toBeNull();
   expect(JSON.parse(body.get('socialAccounts'))).toEqual([{ platform: 'TikTok', url: 'https://tiktok.com/@ada', followers: '50k' }]);
   expect(body.get('doneBefore')).toBe('Yes');
+  expect(body.get('city')).toBe('Dallas');
+  expect(body.get('state')).toBe('TX');
+  expect(body.get('country')).toBe('United States');
+  expect(body.get('contentTypes')).toBeNull();
   expect(body.get('videoType')).toBe('Direct pitch');
   expect(body.get('video')).toBeInstanceOf(File);
   expect(await screen.findByText('Partnership Application Submitted!')).toBeInTheDocument();
 });
 
-test('wholesale submission sends products with photos, payment terms and shipping', async () => {
+test('wholesale submission sends payment terms and shipping without products', async () => {
   global.fetch = jest.fn(async () => ({ ok: true, status: 201, json: async () => ({ item: {} }) }));
   show();
   type('Full Name', 'Bo');
@@ -116,9 +137,6 @@ test('wholesale submission sends products with photos, payment terms and shippin
   type('Operating Country', 'USA');
   fireEvent.change(screen.getByPlaceholderText('https://yourbrand.com'), { target: { value: 'https://bo.com' } });
   pick('Wholesale & Distribution Orders');
-  type('Product 1 name', 'Shea Butter');
-  type('Product 1 description', 'Raw shea');
-  fireEvent.change(screen.getByLabelText('Product 1 photos'), { target: { files: [file('a.jpg', 'image/jpeg'), file('b.jpg', 'image/jpeg')] } });
   pick('ACH');
   pick('Net 30 payments');
   pick('We can handle our own shipping');
@@ -133,8 +151,5 @@ test('wholesale submission sends products with photos, payment terms and shippin
   expect(body.get('paymentMethods')).toBe('ACH');
   expect(body.get('paymentSchedule')).toBe('Net 30 payments');
   expect(body.get('shippingPreference')).toBe('Partner handles shipping');
-  expect(JSON.parse(body.get('products'))).toEqual([
-    { name: 'Shea Butter', description: 'Raw shea', photoFields: ['product_photo_0_0', 'product_photo_0_1'] },
-  ]);
-  expect(body.get('product_photo_0_1')).toBeInstanceOf(File);
+  expect(body.get('products')).toBeNull();
 });

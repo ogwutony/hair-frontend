@@ -490,12 +490,15 @@ onError={(e) => {
 
 // Apply moderation and access rules before generating results or suggestions.
 const visibleItems = dumaItems.filter(item => !isHiddenItem(item));
+// Economics (Recommendations, Partners, Influencers, Marketplace) is members-only: signed-out visitors
+// get a sign-in prompt, and its posts are left out of counts and search suggestions.
+const economicsLocked = !authToken;
 const views = {
 Culture: visibleItems.filter(item => item.section === "Cultural" || item.category === "Culture" || item.type === "Video" || item.type === "Culture"),
-Influencers: visibleItems.filter(isInfluencerItem),
-Recommendations: visibleItems.filter(item => item.type === "Product Recommendation" || item.type === "Recommendation"),
-Partners: authToken ? visibleItems.filter(item => item.type === "Partner") : [],
-Marketplace: marketplaceListings.filter(item => !isHiddenItem(item)),
+Influencers: economicsLocked ? [] : visibleItems.filter(isInfluencerItem),
+Recommendations: economicsLocked ? [] : visibleItems.filter(item => item.type === "Product Recommendation" || item.type === "Recommendation"),
+Partners: economicsLocked ? [] : visibleItems.filter(item => item.type === "Partner"),
+Marketplace: economicsLocked ? [] : marketplaceListings.filter(item => !isHiddenItem(item)),
 };
 // activeView is the list actually on screen: Culture, or the chosen Economics sub-section
 const activeView = activeSection === 'Economics' ? economicsSection : 'Culture';
@@ -508,6 +511,7 @@ const activeLoading = activeView === 'Marketplace' ? marketplaceLoading : dumaLo
 const activeError = activeView === 'Marketplace' ? marketplaceError : dumaError;
 const activeSlow = activeView === 'Marketplace' ? marketplaceSlow : dumaSlow;
 const countLabel = view => {
+if (economicsLocked && (view === 'Economics' || ECONOMICS_SUBSECTIONS.includes(view))) return '🔒';
 const loading = view === 'Marketplace' ? marketplaceLoading : view === 'Economics' ? dumaLoading || marketplaceLoading : dumaLoading;
 const error = view === 'Marketplace' ? marketplaceError : view === 'Economics' ? dumaError || marketplaceError : dumaError;
 return loading ? '…' : error ? '—' : (sectionCounts[view] ?? views[view]?.length ?? 0);
@@ -594,13 +598,23 @@ if (event.key === 'Enter') { event.preventDefault(); if (searchOpen && suggestio
 </div>
 )}
 
-{activeLoading && <div role="status" aria-live="polite" style={{ padding: '24px', textAlign: 'center' }}><span className="duma-feed-spinner" aria-hidden="true" /> Loading {activeView.toLowerCase()}…{activeSlow && <p style={{ margin: '8px 0 0', color: '#555', fontSize: '14px' }}>The Duma is waking up — this can take up to a minute after a quiet spell. Thanks for your patience.</p>}</div>}
-{!activeLoading && activeError && <div role="alert" style={{ padding: '20px', border: '1px solid #c33', borderRadius: '8px', marginBottom: '20px' }}>
+{activeSection === 'Economics' && economicsLocked && (
+<div style={{ ...styles.dumaCard, textAlign: 'center' }}>
+<h3 style={{ marginTop: 0 }}>Sign in to see Economics</h3>
+<p style={{ color: '#555', fontSize: '14px', lineHeight: 1.6 }}>Recommendations, partners, influencers, and the marketplace are for members of The Majorities. Log in or create a free account to view them.</p>
+<div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+<Link to="/login" style={{ ...styles.authButton, width: 'auto', padding: '12px 28px', textDecoration: 'none', display: 'inline-block' }}>Log In</Link>
+<Link to="/signup" style={{ ...styles.authButton, width: 'auto', padding: '12px 28px', textDecoration: 'none', display: 'inline-block', backgroundColor: '#fff', color: '#1a1a1a', border: '1.5px solid #1a1a1a' }}>Create Account</Link>
+</div>
+</div>
+)}
+{!(activeSection === 'Economics' && economicsLocked) && activeLoading && <div role="status" aria-live="polite" style={{ padding: '24px', textAlign: 'center' }}><span className="duma-feed-spinner" aria-hidden="true" /> Loading {activeView.toLowerCase()}…{activeSlow && <p style={{ margin: '8px 0 0', color: '#555', fontSize: '14px' }}>The Duma is waking up — this can take up to a minute after a quiet spell. Thanks for your patience.</p>}</div>}
+{!(activeSection === 'Economics' && economicsLocked) && !activeLoading && activeError && <div role="alert" style={{ padding: '20px', border: '1px solid #c33', borderRadius: '8px', marginBottom: '20px' }}>
 <p>We couldn't load {activeView.toLowerCase()}. {activeError}</p>
 <button type="button" onClick={() => activeView === 'Marketplace' ? setMarketplaceRetry(value => value + 1) : setDumaRetry(value => value + 1)}>Try again</button>
 </div>}
 <style>{`.duma-feed-spinner { display:inline-block; width:16px; height:16px; margin-right:6px; border:2px solid #ddd; border-top-color:#222; border-radius:50%; animation:duma-feed-spin .8s linear infinite; vertical-align:middle; } @keyframes duma-feed-spin { to { transform:rotate(360deg); } } @media(prefers-reduced-motion:reduce) { .duma-feed-spinner { animation:none; } }`}</style>
-{!activeLoading && !activeError && searchQuery.trim() && <div role="status" aria-live="polite" style={{ marginBottom:16, color:'#555' }}>{resultCount ? `${resultCount} matching ${resultCount === 1 ? 'post' : 'posts'} in ${viewLabel}.` : 'No matching posts. Try another name, keyword, city, ZIP code, or address.'} <button type="button" onClick={() => { setSearchQuery(''); setSearchOpen(false); searchRef.current?.focus(); }}>Clear search</button></div>}
+{!(activeSection === 'Economics' && economicsLocked) && !activeLoading && !activeError && searchQuery.trim() && <div role="status" aria-live="polite" style={{ marginBottom:16, color:'#555' }}>{resultCount ? `${resultCount} matching ${resultCount === 1 ? 'post' : 'posts'} in ${viewLabel}.` : 'No matching posts. Try another name, keyword, city, ZIP code, or address.'} <button type="button" onClick={() => { setSearchQuery(''); setSearchOpen(false); searchRef.current?.focus(); }}>Clear search</button></div>}
 
 {!activeLoading && !activeError && activeView === "Culture" && (
 <div>
@@ -687,7 +701,7 @@ Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCoun
 </div>
 )}
 
-{!activeLoading && !activeError && activeView === "Influencers" && (
+{!economicsLocked && !activeLoading && !activeError && activeView === "Influencers" && (
 <div>
 <p style={{ color: '#555', fontSize: '14px', margin: '0 0 16px' }}>
 Creators partnering with The Majorities — their applications, routines, and reviews.{' '}
@@ -728,7 +742,7 @@ return (
 </div>
 )}
 
-{!activeLoading && !activeError && activeView === "Recommendations" && (
+{!economicsLocked && !activeLoading && !activeError && activeView === "Recommendations" && (
 <div>
 <Link to={authToken ? '/recommend' : '/login'} style={{ ...styles.authButton, width: 'auto', display: 'inline-block', textDecoration: 'none', marginBottom: '16px' }}>{authToken ? 'Recommend a product' : 'Log in to recommend'}</Link>
 {!authToken && <GuestSubmissionPrompt message="Anyone can read the Duma. Log in or register to vote, recommend products, and share your perspective." />}
@@ -791,13 +805,7 @@ Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCoun
 </div>
 )}
 
-{!activeLoading && !activeError && activeView === "Partners" && !authToken && (
-<div style={{ padding: '20px 0' }}>
-<GuestSubmissionPrompt message="This section contains proprietary commerce ledger records, partner structures, and product recommendations. Please log in or register to view this data." />
-</div>
-)}
-
-{!activeLoading && !activeError && activeView === "Partners" && authToken && (
+{!economicsLocked && !activeLoading && !activeError && activeView === "Partners" && authToken && (
 <div>
 {partnerItems.length === 0 ? (
 <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>{searchQuery.trim() ? 'No matching posts. Try another search or clear the search.' : 'No partner applications yet. Be the first to submit a partnership!'}</div>
@@ -925,7 +933,7 @@ Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCoun
 </div>
 )}
 
-{!activeLoading && !activeError && activeView === "Marketplace" && (
+{!economicsLocked && !activeLoading && !activeError && activeView === "Marketplace" && (
 <div>
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
 <h3 style={{ margin: 0 }}>Marketplace</h3>

@@ -5,7 +5,7 @@
 // vercel.json rewrites every non-file path here as /api/render?path=/<path>.
 const {
   SITE, escapeHtml: esc, clip, readBuildFile, fetchDuma, itemId, isPublicId,
-  publicPerspectives, publicRecommendations, authorName, itemDate,
+  publicPerspectives, authorName, itemDate,
 } = require('./_lib/site');
 
 const DEFAULT_DESC = 'Shop multicultural hair care and skincare from The Majorities. Discover shampoos, conditioners, hair oil, facial care, and travel-size routine bundles.';
@@ -29,7 +29,8 @@ function perspectiveCard(item) {
 async function dumaPage({ perspectivesOnly }) {
   const items = await fetchDuma();
   const perspectives = publicPerspectives(items).slice(0, 60);
-  const recs = perspectivesOnly ? [] : publicRecommendations(items).slice(0, 30);
+  // Economics (recommendations, partners, influencers, marketplace) is members-only, so only Culture is pre-rendered
+  const recs = [];
   const heading = perspectivesOnly ? 'Perspectives' : "The Majorities' Duma";
   const intro = perspectivesOnly
     ? 'Perspectives on beauty, culture and identity from The Majorities community.'

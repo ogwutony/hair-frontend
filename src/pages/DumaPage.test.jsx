@@ -7,7 +7,7 @@ jest.mock('../utils/useIsMobile', () => ({ useIsMobile: () => false }));
 jest.mock('../utils/moderation', () => ({ useModeration: () => ({ isHiddenItem: () => false, isBlocked: () => false, hidden: [] }) }));
 jest.mock('../components/EzoicAd', () => ({ EzoicAd: () => null }));
 const response = (data, status = 200) => ({ ok: status === 200, status, json: async () => data });
-const show = (view = 'recommendations', props = {}) => render(<HelmetProvider><MemoryRouter initialEntries={[`/duma?view=${view}`]}><DumaPage items={[]} {...props} /></MemoryRouter></HelmetProvider>);
+const show = (view = 'recommendations', props = {}) => render(<HelmetProvider><MemoryRouter initialEntries={[`/duma?view=${view}`]}><DumaPage items={[]} authToken="test-token" {...props} /></MemoryRouter></HelmetProvider>);
 let errorLog;
 beforeEach(() => { errorLog = jest.spyOn(console, 'error').mockImplementation(() => {}); });
 afterEach(() => { errorLog.mockRestore(); jest.restoreAllMocks(); });
@@ -55,7 +55,7 @@ test('invalid marketplace responses display an error instead of empty listings',
   expect(screen.queryByText(/No listings yet/)).not.toBeInTheDocument();
 });
 
-test('Influencers tab shows creator applications and creator posts to everyone, not other partners', async () => {
+test('Influencers tab shows creator applications and creator posts to members, not other partners', async () => {
   const feed = [
     { _id: '111111111111111111111111', type: 'Partner', partnerCategory: 'Creator / Influencer Partners', company: 'Ada Creates', influencer: true, mediaUrls: [], comments: [] },
     { _id: '222222222222222222222222', type: 'Culture', category: 'Culture', influencer: true, prompt: 'My 3-bottle hair routine', response: 'Wash day with the full set', comments: [] },
@@ -75,4 +75,20 @@ test('Influencers tab shows creator applications and creator posts to everyone, 
   // Creator posts stay in Culture too
   fireEvent.click(screen.getByRole('button', { name: /^Culture/ }));
   expect(await screen.findByText('Wash day with the full set')).toBeInTheDocument();
+});
+
+test('signed-out visitors must sign in to see Economics, but can still read Culture', async () => {
+  const feed = [
+    { _id: '555555555555555555555555', type: 'Product Recommendation', name: 'Secret recommendation', brand: 'Example', reason: 'Members only', comments: [] },
+    { _id: '666666666666666666666666', type: 'Culture', category: 'Culture', prompt: 'Open prompt', response: 'Public perspective', comments: [] },
+  ];
+  global.fetch = jest.fn(async url => response(url.endsWith('/api/marketplace') ? [] : feed));
+  show('recommendations', { authToken: undefined });
+  expect(await screen.findByRole('heading', { name: 'Sign in to see Economics' })).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Log In' })).toHaveAttribute('href', '/login');
+  expect(screen.queryByText(/Secret recommendation/)).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /^Economics/ })).toHaveTextContent('Economics (🔒)');
+  fireEvent.click(screen.getByRole('button', { name: /^Culture/ }));
+  expect(await screen.findByText('Public perspective')).toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Sign in to see Economics' })).not.toBeInTheDocument();
 });

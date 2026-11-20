@@ -92,3 +92,17 @@ test('signed-out visitors must sign in to see Economics, but can still read Cult
   expect(await screen.findByText('Public perspective')).toBeInTheDocument();
   expect(screen.queryByRole('heading', { name: 'Sign in to see Economics' })).not.toBeInTheDocument();
 });
+
+test('Culture › Influencers shows creator posts and reviews with their product link, not other culture posts', async () => {
+  const review = { _id: 'aaaaaaaaaaaaaaaaaaaaaaaa', type: 'Culture', category: 'Culture', influencer: true, creatorReview: true, prompt: 'Ada on The Majorities Shampoo - 100ml', response: 'Lovely lather.', productTitle: 'The Majorities Shampoo - 100ml', productUrl: 'https://themajorities.com/products/the-majorities-shampoo', comments: [] };
+  const regular = { _id: 'bbbbbbbbbbbbbbbbbbbbbbbb', type: 'Culture', category: 'Culture', prompt: 'What makes a person beautiful?', response: 'Kindness.', comments: [] };
+  global.fetch = jest.fn(async url => (url.endsWith('/api/duma') ? response([review, regular]) : response([])));
+  show('culture-influencers');
+  expect(await screen.findByRole('heading', { name: 'Ada on The Majorities Shampoo - 100ml' })).toBeInTheDocument();
+  expect(screen.getByText('Creator Review')).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: /View The Majorities Shampoo - 100ml/ })).toHaveAttribute('href', 'https://themajorities.com/products/the-majorities-shampoo');
+  expect(screen.queryByText('Kindness.')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /^All \(/ }));
+  expect(await screen.findByText('Kindness.')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Influencers (1)' })).toHaveAttribute('aria-pressed', 'false');
+});

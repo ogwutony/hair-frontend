@@ -73,6 +73,11 @@ const EMPTY_LIST = []; // stable default so effects keyed on it don't re-run eve
 
 // Top-level Duma sections. Economics groups the commerce views as sub-sections.
 const ECONOMICS_SUBSECTIONS = ['Recommendations', 'Partners', 'Influencers', 'Marketplace'];
+// Culture sub-tabs. Influencers holds creator posts, including product reviews sent from the
+// creator checklist on themajorities.com/pages/influencers (server sets influencer / creatorReview).
+const CULTURE_SUBSECTIONS = ['All', 'Influencers'];
+export const isCultureInfluencerItem = item => !!item.influencer || !!item.creatorReview;
+const CULTURE_INFLUENCERS_VIEW = 'culture-influencers';
 const CREATOR_CATEGORY = 'Creator / Influencer Partners';
 // Influencers tab: creator applications plus anything a creator posts afterwards (tagged by the server)
 export const isInfluencerItem = item => !!item.influencer || (item.type === 'Partner' && item.partnerCategory === CREATOR_CATEGORY);
@@ -156,6 +161,7 @@ const [searchOpen, setSearchOpen] = useState(false);
 const [activeSuggestion, setActiveSuggestion] = useState(-1);
 const searchRef = useRef(null);
 const [activeSection, setActiveSection] = useState(["recommendations", "partners", "influencers", "marketplace"].includes(requestedView) ? "Economics" : "Culture");
+const [cultureSection, setCultureSection] = useState(requestedView === CULTURE_INFLUENCERS_VIEW ? 'Influencers' : 'All');
 const [economicsSection, setEconomicsSection] = useState(ECONOMICS_SUBSECTIONS.find(view => view.toLowerCase() === requestedView) || "Recommendations");
 const [marketplaceListings, setMarketplaceListings] = useState([]);
 const [boostingId, setBoostingId] = useState(null);
@@ -495,13 +501,14 @@ const visibleItems = dumaItems.filter(item => !isHiddenItem(item));
 const economicsLocked = !authToken;
 const views = {
 Culture: visibleItems.filter(item => item.section === "Cultural" || item.category === "Culture" || item.type === "Video" || item.type === "Culture"),
+CultureInfluencers: visibleItems.filter(item => item.type === "Culture" && isCultureInfluencerItem(item)),
 Influencers: economicsLocked ? [] : visibleItems.filter(isInfluencerItem),
 Recommendations: economicsLocked ? [] : visibleItems.filter(item => item.type === "Product Recommendation" || item.type === "Recommendation"),
 Partners: economicsLocked ? [] : visibleItems.filter(item => item.type === "Partner"),
 Marketplace: economicsLocked ? [] : marketplaceListings.filter(item => !isHiddenItem(item)),
 };
 // activeView is the list actually on screen: Culture, or the chosen Economics sub-section
-const activeView = activeSection === 'Economics' ? economicsSection : 'Culture';
+const activeView = activeSection === 'Economics' ? economicsSection : cultureSection === 'Influencers' ? 'CultureInfluencers' : 'Culture';
 const sectionCounts = {
 Culture: views.Culture.length,
 // Creator applications are in both Partners and Influencers, so count each post once
@@ -516,9 +523,10 @@ const loading = view === 'Marketplace' ? marketplaceLoading : view === 'Economic
 const error = view === 'Marketplace' ? marketplaceError : view === 'Economics' ? dumaError || marketplaceError : dumaError;
 return loading ? '…' : error ? '—' : (sectionCounts[view] ?? views[view]?.length ?? 0);
 };
-const viewLabel = activeSection === 'Economics' ? `Economics › ${economicsSection}` : 'Culture';
+const viewLabel = activeSection === 'Economics' ? `Economics › ${economicsSection}` : cultureSection === 'Influencers' ? 'Culture › Influencers' : 'Culture';
+const cultureSubCount = sub => (dumaLoading ? '…' : dumaError ? '—' : (sub === 'Influencers' ? views.CultureInfluencers : views.Culture).length);
 const suggestions = searchSuggestions(views[activeView], searchQuery);
-const culturalItems = views.Culture.filter(item => matchesSearch(item, searchQuery));
+const culturalItems = (cultureSection === 'Influencers' ? views.CultureInfluencers : views.Culture).filter(item => matchesSearch(item, searchQuery));
 const recommendationItems = views.Recommendations.filter(item => matchesSearch(item, searchQuery));
 const partnerItems = views.Partners.filter(item => matchesSearch(item, searchQuery));
 const influencerItems = views.Influencers.filter(item => matchesSearch(item, searchQuery));
@@ -592,6 +600,12 @@ if (event.key === 'Enter') { event.preventDefault(); if (searchOpen && suggestio
 <Link to={authToken ? '/culture' : '/login'} style={{ padding: '8px 14px', backgroundColor: '#222', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', marginLeft: isMobile ? '0' : 'auto', flexShrink: 0, textDecoration: 'none', display: 'flex', alignItems: 'center' }}>{authToken ? '+ Share Your Perspective' : 'Log in to Share'}</Link>
 </div>
 
+{activeSection === 'Culture' && (
+<div className="duma-subsections" aria-label="Culture sections" style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: '20px' }}>
+{CULTURE_SUBSECTIONS.map(sub => <button key={sub} type="button" aria-pressed={cultureSection === sub} onClick={() => { setCultureSection(sub); resetSearchUi(); }} style={{ padding: '7px 12px', backgroundColor: cultureSection === sub ? '#fff' : '#f5f5f5', color: '#222', border: cultureSection === sub ? '2px solid #222' : '2px solid transparent', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flexShrink: 0 }}>{sub} ({cultureSubCount(sub)})</button>)}
+</div>
+)}
+
 {activeSection === 'Economics' && (
 <div className="duma-subsections" aria-label="Economics sections" style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: '20px' }}>
 {ECONOMICS_SUBSECTIONS.map(sub => <button key={sub} type="button" aria-pressed={economicsSection === sub} onClick={() => { setEconomicsSection(sub); resetSearchUi(); }} style={{ padding: '7px 12px', backgroundColor: economicsSection === sub ? '#fff' : '#f5f5f5', color: '#222', border: economicsSection === sub ? '2px solid #222' : '2px solid transparent', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flexShrink: 0 }}>{sub} ({countLabel(sub)})</button>)}
@@ -608,18 +622,24 @@ if (event.key === 'Enter') { event.preventDefault(); if (searchOpen && suggestio
 </div>
 </div>
 )}
-{!(activeSection === 'Economics' && economicsLocked) && activeLoading && <div role="status" aria-live="polite" style={{ padding: '24px', textAlign: 'center' }}><span className="duma-feed-spinner" aria-hidden="true" /> Loading {activeView.toLowerCase()}…{activeSlow && <p style={{ margin: '8px 0 0', color: '#555', fontSize: '14px' }}>The Duma is waking up — this can take up to a minute after a quiet spell. Thanks for your patience.</p>}</div>}
+{!(activeSection === 'Economics' && economicsLocked) && activeLoading && <div role="status" aria-live="polite" style={{ padding: '24px', textAlign: 'center' }}><span className="duma-feed-spinner" aria-hidden="true" /> Loading {activeView === 'CultureInfluencers' ? 'influencer posts' : activeView.toLowerCase()}…{activeSlow && <p style={{ margin: '8px 0 0', color: '#555', fontSize: '14px' }}>The Duma is waking up — this can take up to a minute after a quiet spell. Thanks for your patience.</p>}</div>}
 {!(activeSection === 'Economics' && economicsLocked) && !activeLoading && activeError && <div role="alert" style={{ padding: '20px', border: '1px solid #c33', borderRadius: '8px', marginBottom: '20px' }}>
-<p>We couldn't load {activeView.toLowerCase()}. {activeError}</p>
+<p>We couldn't load {activeView === 'CultureInfluencers' ? 'influencer posts' : activeView.toLowerCase()}. {activeError}</p>
 <button type="button" onClick={() => activeView === 'Marketplace' ? setMarketplaceRetry(value => value + 1) : setDumaRetry(value => value + 1)}>Try again</button>
 </div>}
 <style>{`.duma-feed-spinner { display:inline-block; width:16px; height:16px; margin-right:6px; border:2px solid #ddd; border-top-color:#222; border-radius:50%; animation:duma-feed-spin .8s linear infinite; vertical-align:middle; } @keyframes duma-feed-spin { to { transform:rotate(360deg); } } @media(prefers-reduced-motion:reduce) { .duma-feed-spinner { animation:none; } }`}</style>
 {!(activeSection === 'Economics' && economicsLocked) && !activeLoading && !activeError && searchQuery.trim() && <div role="status" aria-live="polite" style={{ marginBottom:16, color:'#555' }}>{resultCount ? `${resultCount} matching ${resultCount === 1 ? 'post' : 'posts'} in ${viewLabel}.` : 'No matching posts. Try another name, keyword, city, ZIP code, or address.'} <button type="button" onClick={() => { setSearchQuery(''); setSearchOpen(false); searchRef.current?.focus(); }}>Clear search</button></div>}
 
-{!activeLoading && !activeError && activeView === "Culture" && (
+{!activeLoading && !activeError && (activeView === "Culture" || activeView === "CultureInfluencers") && (
 <div>
+{activeView === "CultureInfluencers" && (
+<p style={{ color: '#555', fontSize: '14px', margin: '0 0 16px' }}>
+Posts and product reviews from creators partnering with The Majorities.{' '}
+<Link to="/partner?category=influencer" style={{ color: '#1f4f99', fontWeight: 600 }}>Become a creator →</Link>
+</p>
+)}
 {culturalItems.length === 0 ? (
-<div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>{searchQuery.trim() ? 'No matching posts. Try another search or clear the search.' : 'No perspectives shared yet. Share yours and contribute to our culture section!'}</div>
+<div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>{searchQuery.trim() ? 'No matching posts. Try another search or clear the search.' : activeView === "CultureInfluencers" ? 'No influencer posts yet. Creator reviews will appear here.' : 'No perspectives shared yet. Share yours and contribute to our culture section!'}</div>
 ) : (
 culturalItems.map((item, index) => {
 const itemId = item._id || item.id;
@@ -659,8 +679,18 @@ profileLink={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`}
 </div>
 )}
 
+{item.creatorReview ? (
+<>
+<span style={{ ...styles.typeTag, display: 'inline-block', marginTop: '12px' }}>Creator Review</span>
+<h4 style={{ marginTop: '10px', marginBottom: '8px', color: '#222' }}>{item.prompt}</h4>
+</>
+) : (
 <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
+)}
 <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6', marginBottom: '14px' }}>{item.response || item.reason || item.desc}</p>
+{item.creatorReview && /^https:\/\/themajorities\.com\/products\/[a-z0-9-]+$/.test(item.productUrl || '') && (
+<a href={item.productUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', fontSize: '13px', fontWeight: 600, color: '#1f5a46', marginBottom: '14px', marginRight: '16px' }}>View {item.productTitle || 'the product'} →</a>
+)}
 {/^[a-f0-9]{24}$/i.test(String(itemId || '')) && (
 <Link to={`/duma/${itemId}`} style={{ display: 'inline-block', fontSize: '12px', fontWeight: 600, color: '#1f4f99', marginBottom: '14px' }}>Read full perspective →</Link>
 )}

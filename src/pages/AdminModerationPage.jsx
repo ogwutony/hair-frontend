@@ -4,10 +4,12 @@
 //   POST /api/admin/reports/:id/resolve   { action }
 //   POST /api/admin/duma/:id/hide | /unhide
 //   POST /api/admin/users/ban | /unban   { email, reason }
+// Also hosts the creator program tools (components/CreatorAdminPanel.jsx).
 // Apple Guideline 1.2: act on every report within 24 hours — remove the content and eject the user.
 import React, { useCallback, useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { BACKEND_URL } from '../utils/constants';
+import { CreatorAdminPanel } from '../components/CreatorAdminPanel';
 
 const card = { background: '#fff', border: '1px solid #eee', borderRadius: '16px', padding: '20px', marginBottom: '14px' };
 const btn = { border: '1px solid #222', background: '#fff', color: '#222', borderRadius: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' };
@@ -104,6 +106,8 @@ export const AdminModerationPage = ({ authToken }) => {
       <Helmet><title>Moderation | The Majorities</title><meta name="robots" content="noindex" /></Helmet>
       <h2 style={{ marginBottom: '6px' }}>Moderation</h2>
       <p style={{ color: '#666', fontSize: '14px', marginTop: 0 }}>Review reported posts, comments, messages and users within 24 hours. Posts and comments reported by 3 different people are hidden automatically.</p>
+      <CreatorAdminPanel authToken={authToken} />
+
       <div style={{ ...card, display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
         <strong style={{ fontSize: '13px' }}>Eject a user:</strong>
         <input type="email" placeholder="user@email.com" value={banEmail} onChange={(e) => setBanEmail(e.target.value)} style={{ flex: '1 1 200px', padding: '8px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '13px' }} />

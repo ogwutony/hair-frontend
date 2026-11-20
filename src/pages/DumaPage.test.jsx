@@ -68,7 +68,10 @@ test('Influencers tab shows creator applications and creator posts to everyone, 
   expect(screen.getByText('Wash day with the full set')).toBeInTheDocument();
   expect(screen.queryByText(/Bo Supply/)).not.toBeInTheDocument();
   expect(screen.queryByText('Not a creator')).not.toBeInTheDocument();
+  // Influencers is an Economics sub-section next to Recommendations, Partners and Marketplace
+  expect(screen.getByRole('button', { name: /^Economics/ })).toHaveAttribute('aria-pressed', 'true');
   expect(screen.getByRole('button', { name: 'Influencers (2)' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByLabelText('Economics sections')).toHaveTextContent(/Recommendations.*Partners.*Influencers.*Marketplace/);
   // Creator posts stay in Culture too
   fireEvent.click(screen.getByRole('button', { name: /^Culture/ }));
   expect(await screen.findByText('Wash day with the full set')).toBeInTheDocument();

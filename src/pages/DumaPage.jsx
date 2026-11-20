@@ -72,7 +72,7 @@ const searchSuggestions = (items, query) => {
 const EMPTY_LIST = []; // stable default so effects keyed on it don't re-run every render
 
 // Top-level Duma sections. Economics groups the commerce views as sub-sections.
-const ECONOMICS_SUBSECTIONS = ['Recommendations', 'Partners', 'Marketplace'];
+const ECONOMICS_SUBSECTIONS = ['Recommendations', 'Partners', 'Influencers', 'Marketplace'];
 const CREATOR_CATEGORY = 'Creator / Influencer Partners';
 // Influencers tab: creator applications plus anything a creator posts afterwards (tagged by the server)
 export const isInfluencerItem = item => !!item.influencer || (item.type === 'Partner' && item.partnerCategory === CREATOR_CATEGORY);
@@ -155,7 +155,7 @@ const [searchQuery, setSearchQuery] = useState('');
 const [searchOpen, setSearchOpen] = useState(false);
 const [activeSuggestion, setActiveSuggestion] = useState(-1);
 const searchRef = useRef(null);
-const [activeSection, setActiveSection] = useState(["recommendations", "partners", "marketplace"].includes(requestedView) ? "Economics" : requestedView === "influencers" ? "Influencers" : "Culture");
+const [activeSection, setActiveSection] = useState(["recommendations", "partners", "influencers", "marketplace"].includes(requestedView) ? "Economics" : "Culture");
 const [economicsSection, setEconomicsSection] = useState(ECONOMICS_SUBSECTIONS.find(view => view.toLowerCase() === requestedView) || "Recommendations");
 const [marketplaceListings, setMarketplaceListings] = useState([]);
 const [boostingId, setBoostingId] = useState(null);
@@ -498,11 +498,11 @@ Partners: authToken ? visibleItems.filter(item => item.type === "Partner") : [],
 Marketplace: marketplaceListings.filter(item => !isHiddenItem(item)),
 };
 // activeView is the list actually on screen: Culture, or the chosen Economics sub-section
-const activeView = activeSection === 'Economics' ? economicsSection : activeSection;
+const activeView = activeSection === 'Economics' ? economicsSection : 'Culture';
 const sectionCounts = {
 Culture: views.Culture.length,
-Influencers: views.Influencers.length,
-Economics: ECONOMICS_SUBSECTIONS.reduce((total, key) => total + views[key].length, 0),
+// Creator applications are in both Partners and Influencers, so count each post once
+Economics: new Set(ECONOMICS_SUBSECTIONS.flatMap(key => views[key].map(item => item._id || item.id))).size,
 };
 const activeLoading = activeView === 'Marketplace' ? marketplaceLoading : dumaLoading;
 const activeError = activeView === 'Marketplace' ? marketplaceError : dumaError;
@@ -512,7 +512,7 @@ const loading = view === 'Marketplace' ? marketplaceLoading : view === 'Economic
 const error = view === 'Marketplace' ? marketplaceError : view === 'Economics' ? dumaError || marketplaceError : dumaError;
 return loading ? '…' : error ? '—' : (sectionCounts[view] ?? views[view]?.length ?? 0);
 };
-const viewLabel = activeSection === 'Economics' ? `Economics › ${economicsSection}` : activeSection;
+const viewLabel = activeSection === 'Economics' ? `Economics › ${economicsSection}` : 'Culture';
 const suggestions = searchSuggestions(views[activeView], searchQuery);
 const culturalItems = views.Culture.filter(item => matchesSearch(item, searchQuery));
 const recommendationItems = views.Recommendations.filter(item => matchesSearch(item, searchQuery));

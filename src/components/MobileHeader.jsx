@@ -46,7 +46,7 @@ function PromoBar() {
 
 const SHOP_URL = 'https://themajorities.com/';
 
-export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle }) {
+export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle, influencerApplied = false }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const { lines, count, subtotal, changeQty, wishlist, cartOpen, setCartOpen } = useCart();
@@ -74,6 +74,8 @@ export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle }
     ['Wholesale', () => goShop('/collections/wholesale')],
     ['The Duma', () => goShop('/duma')],
     ['Partner', () => go('/partner')],
+    // Unlocked by submitting a Creator / Influencer application
+    ...(isLoggedIn && influencerApplied ? [['Influencer', () => goShop('/pages/influencers')]] : []),
     ...(isLoggedIn ? [
       ['Recommend', () => go('/recommend')],
       [`Messages${unreadMessages > 0 ? ` (${unreadMessages})` : ''}`, () => go('/messages')],

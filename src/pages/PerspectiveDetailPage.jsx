@@ -9,6 +9,7 @@ import { GuestSubmissionPrompt } from '../components/GuestSubmissionPrompt';
 import { AddressLink } from '../components/AddressLink';
 import { BACKEND_URL } from '../utils/constants';
 import { getRankTitle, normalizeMediaVideoUrl } from '../utils/helpers';
+import { isVideoMediaUrl, stripFocus } from '../utils/mediaFocus';
 import { styles } from '../utils/styles';
 
 const clip = (text, max) => {
@@ -90,10 +91,10 @@ export const PerspectiveDetailPage = ({ authToken }) => {
       {media.length > 0 && (
         <div style={{ display: 'grid', gap: '10px', margin: '24px 0' }}>
           {media.map((url, idx) => {
-            const isVideo = /\.(mp4|mov|hevc|webm)$/i.test(url) || url.includes('/video/upload/');
+            const isVideo = isVideoMediaUrl(url) || /\.hevc$/i.test(stripFocus(url));
             return isVideo
               ? <video key={idx} src={normalizeMediaVideoUrl(url)} controls playsInline preload="metadata" style={{ width: '100%', borderRadius: '12px', background: '#000' }} />
-              : <img key={idx} src={url} alt={`${clip(title, 60)} — attachment ${idx + 1}`} style={{ width: '100%', borderRadius: '12px' }} />;
+              : <img key={idx} src={stripFocus(url)} alt={`${clip(title, 60)} — attachment ${idx + 1}`} style={{ width: '100%', borderRadius: '12px' }} />;
           })}
         </div>
       )}

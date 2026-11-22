@@ -4,7 +4,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { DumaPage } from './DumaPage';
 
 jest.mock('../utils/useIsMobile', () => ({ useIsMobile: () => false }));
-jest.mock('../utils/moderation', () => ({ useModeration: () => ({ isHiddenItem: () => false, isBlocked: () => false, hidden: [] }) }));
+jest.mock('../utils/moderation', () => ({ ...jest.requireActual('../utils/moderation'), useModeration: () => ({ isHiddenItem: () => false, isBlocked: () => false, hidden: [] }) }));
 jest.mock('../components/EzoicAd', () => ({ EzoicAd: () => null }));
 const response = (data, status = 200) => ({ ok: status === 200, status, json: async () => data });
 const show = (view = 'recommendations', props = {}) => render(<HelmetProvider><MemoryRouter initialEntries={[`/duma?view=${view}`]}><DumaPage items={[]} authToken="test-token" {...props} /></MemoryRouter></HelmetProvider>);
@@ -129,4 +129,28 @@ test('Culture › Influencers keeps creator applications members-only, like the 
   show('culture-influencers', { authToken: null });
   expect(await screen.findByText(/No creators yet/)).toBeInTheDocument();
   expect(screen.queryByText(/Nakisha joined/)).not.toBeInTheDocument();
+});
+
+test('feed photos stay centred on the focus point their author chose', async () => {
+  const post = { _id: 'ffffffffffffffffffffffff', type: 'Culture', category: 'Culture', prompt: 'P', response: 'R', mediaUrls: ['https://res.cloudinary.com/demo/image/upload/v1/user_media/pitch.jpg#focus=30,10'], comments: [] };
+  global.fetch = jest.fn(async url => (url.endsWith('/api/duma') ? response([post]) : response([])));
+  show('culture');
+  const img = await screen.findByAltText('Attachment 1');
+  expect(img.style.objectPosition).toBe('30% 10%');
+  expect(img.getAttribute('src')).not.toContain('#focus');
+});
+
+test('the "Become a creator" invite shows to non-affiliates only', async () => {
+  const application = { _id: '999999999999999999999999', type: 'Partner', partnerCategory: 'Creator / Influencer Partners', company: 'Ada', submittedBy: 'ada@example.com', mediaUrls: [], comments: [] };
+  global.fetch = jest.fn(async url => (url.endsWith('/api/duma') ? response([application]) : response([])));
+  const view = show('influencers', { userEmail: 'someone@example.com' });
+  expect(await screen.findByText(/We need new affiliates\./)).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Become a creator →' })).toBeInTheDocument();
+  view.unmount();
+
+  // Ada already applied, so she isn't invited again
+  show('influencers', { userEmail: 'Ada@example.com' });
+  expect(await screen.findByRole('heading', { name: 'Ada joined as a Creator / Influencer partner' })).toBeInTheDocument();
+  expect(screen.queryByText(/We need new affiliates/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Become a creator →' })).not.toBeInTheDocument();
 });

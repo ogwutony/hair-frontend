@@ -16,6 +16,7 @@ import { ImageLightbox, sizedImageUrl } from '../components/ImageLightbox';
 import { useModeration } from '../utils/moderation';
 import { isPersistedDumaId, fetchDumaFeed } from '../utils/dumaApi';
 import { EzoicAd, DUMA_AD_PLACEHOLDER_START, DUMA_AD_EVERY_N_POSTS, DUMA_AD_MAX_SLOTS } from '../components/EzoicAd';
+import { focusPosition, isVideoMediaUrl, stripFocus } from '../utils/mediaFocus';
 
 // Only index public post content and location tags, never private partner fields.
 // Video tile for Duma posts: loads nothing until played (a feed can hold 100+ videos) and
@@ -80,6 +81,8 @@ const ECONOMICS_SUBSECTIONS = ['Recommendations', 'Partners', 'Influencers', 'Ma
 const CULTURE_SUBSECTIONS = ['All', 'Influencers'];
 const CULTURE_INFLUENCERS_VIEW = 'culture-influencers';
 const CREATOR_CATEGORY = 'Creator / Influencer Partners';
+// Invite above the Influencers lists. Hidden from people who are already affiliates.
+export const BECOME_CREATOR_TEXT = 'Creators partnering with The Majorities — We need new affiliates.';
 export const isCreatorApplication = item => item.type === 'Partner' && item.partnerCategory === CREATOR_CATEGORY;
 export const isCultureInfluencerItem = item => isCreatorApplication(item) || (item.type === 'Culture' && !!item.creatorReview);
 // Influencers tab: creator applications plus anything a creator posts afterwards (tagged by the server)
@@ -128,7 +131,7 @@ return (
 );
 };
 
-export const DumaPage = ({ items = EMPTY_LIST, authToken, userEmail, rankTitle, rankScore, onAddPoints, userAvatar, following = EMPTY_LIST, onFollowUser }) => {
+export const DumaPage = ({ items = EMPTY_LIST, authToken, userEmail, rankTitle, rankScore, onAddPoints, userAvatar, following = EMPTY_LIST, onFollowUser, influencerApplied = false }) => {
 const isMobile = useIsMobile();
 const [queryParams] = useSearchParams();
 const requestedView = queryParams.get('view');
@@ -144,8 +147,8 @@ const [marketplaceRetry, setMarketplaceRetry] = useState(0);
 const [editingItem, setEditingItem] = useState(null);
 const [lightbox, setLightbox] = useState(null); // { photos, index }
 const openLightbox = (mediaList, url) => {
-const photos = mediaList.filter(u => !(/\.(mp4|mov|webm)$/i.test(u) || u.includes('/video/upload/')));
-setLightbox({ photos, index: Math.max(0, photos.indexOf(url)) });
+const photos = mediaList.filter(u => !isVideoMediaUrl(u));
+setLightbox({ photos: photos.map(stripFocus), index: Math.max(0, photos.indexOf(url)) });
 };
 const handlePostEdited = (updated) => {
 const id = getItemId(updated) || getItemId(editingItem);
@@ -172,7 +175,7 @@ const [socialFeedLoaded, setSocialFeedLoaded] = useState(false);
 const [socialFeedUnavailable, setSocialFeedUnavailable] = useState(false);
 const socialFeedFallbackLocked = useRef(false);
 const socialFeedUrl = process.env.REACT_APP_SOCIAL_FEED_URL;
-const getRecommendationImage = (item) => item.imageUrl || (Array.isArray(item.mediaUrls) ? item.mediaUrls.find(u => typeof u === 'string' && !(/\.(mp4|mov|webm|m4v)$/i.test(u) || u.includes('/video/upload/'))) : null) || PRODUCT_IMAGE_BY_NAME[item.name] || PRODUCT_IMAGE_BY_NAME[item.product] || null;
+const getRecommendationImage = (item) => item.imageUrl || (Array.isArray(item.mediaUrls) ? stripFocus(item.mediaUrls.find(u => typeof u === 'string' && !isVideoMediaUrl(u))) : null) || PRODUCT_IMAGE_BY_NAME[item.name] || PRODUCT_IMAGE_BY_NAME[item.product] || null;
 const getItemId = (itemOrId) => String(typeof itemOrId === 'object' ? itemOrId?._id || itemOrId?.id || '' : itemOrId || '');
 
 const isFeaturedContributor = (item) =>
@@ -469,10 +472,10 @@ return (
 <div style={{ display: 'grid', gridTemplateColumns: mediaList.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', margin: '15px 0', background: '#fafafa', padding: '10px', borderRadius: '12px', border: '1px solid #eee' }}>
 {mediaList.map((url, idx) => (
 <div key={idx} style={{ textAlign: 'center' }}>
-{/\.(mp4|mov|webm)$/i.test(url) || url.includes('/video/upload/') ? (
+{isVideoMediaUrl(url) ? (
 <DumaVideo
 src={normalizeMediaVideoUrl(url)}
-poster={url.includes('cloudinary.com') ? sizedImageUrl(url.replace(/\.(mp4|mov|webm|m4v)$/i, '.jpg'), 1080) : undefined}
+poster={url.includes('cloudinary.com') ? sizedImageUrl(stripFocus(url).replace(/\.(mp4|mov|webm|m4v)$/i, '.jpg'), 1080) : undefined}
 />
 ) : (
 <img
@@ -483,10 +486,11 @@ tabIndex={0}
 loading="lazy"
 onDoubleClick={() => openLightbox(mediaList, url)}
 onKeyDown={(e) => { if (e.key === 'Enter') openLightbox(mediaList, url); }}
-style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover', cursor: 'zoom-in' }}
+// The author's chosen focus point stays in view when the photo is cropped
+style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover', objectPosition: focusPosition(url), cursor: 'zoom-in' }}
 onError={(e) => {
  // Resized copy failed: try the original once, then the placeholder
- if (!e.currentTarget.dataset.triedOriginal) { e.currentTarget.dataset.triedOriginal = '1'; e.currentTarget.src = url; return; }
+ if (!e.currentTarget.dataset.triedOriginal) { e.currentTarget.dataset.triedOriginal = '1'; e.currentTarget.src = stripFocus(url); return; }
  e.currentTarget.onerror = null;
  e.currentTarget.style.display = 'none';
  }} />
@@ -499,6 +503,9 @@ onError={(e) => {
 
 // Apply moderation and access rules before generating results or suggestions.
 const visibleItems = dumaItems.filter(item => !isHiddenItem(item));
+// Already an affiliate: the account says it applied as a creator, or this person's creator application is in the feed
+const sameEmail = (a, b) => !!a && !!b && String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+const isAffiliate = influencerApplied || (!!userEmail && dumaItems.some(item => isCreatorApplication(item) && sameEmail(item.submittedBy, userEmail)));
 // Economics (Recommendations, Partners, Influencers, Marketplace) is members-only: signed-out visitors
 // get a sign-in prompt, and its posts are left out of counts and search suggestions.
 const economicsLocked = !authToken;
@@ -636,9 +643,9 @@ if (event.key === 'Enter') { event.preventDefault(); if (searchOpen && suggestio
 
 {!activeLoading && !activeError && (activeView === "Culture" || activeView === "CultureInfluencers") && (
 <div>
-{activeView === "CultureInfluencers" && (
+{activeView === "CultureInfluencers" && !isAffiliate && (
 <p style={{ color: '#555', fontSize: '14px', margin: '0 0 16px' }}>
-Creators partnering with The Majorities: their applications and product reviews.{' '}
+{BECOME_CREATOR_TEXT}{' '}
 <Link to="/partner?category=influencer" style={{ color: '#1f4f99', fontWeight: 600 }}>Become a creator →</Link>
 </p>
 )}
@@ -742,10 +749,12 @@ Yes: {voteCount(item, 'yes')} | No: {voteCount(item, 'no')} | Abstain: {voteCoun
 
 {!economicsLocked && !activeLoading && !activeError && activeView === "Influencers" && (
 <div>
+{!isAffiliate && (
 <p style={{ color: '#555', fontSize: '14px', margin: '0 0 16px' }}>
-Creators partnering with The Majorities — their applications, routines, and reviews.{' '}
+{BECOME_CREATOR_TEXT}{' '}
 <Link to="/partner?category=influencer" style={{ color: '#1f4f99', fontWeight: 600 }}>Become a creator →</Link>
 </p>
+)}
 {influencerItems.length === 0 ? (
 <div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>{searchQuery.trim() ? 'No matching posts. Try another search or clear the search.' : 'No influencer posts yet. Apply as a creator to be the first!'}</div>
 ) : (
@@ -760,7 +769,7 @@ return (
 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '8px' }}>
 <RankBadge rankTitle={verifiedRank} />
 <CredentialExtras rankScore={item.rankScore || null} socialLinks={item.submitterSocialLinks || null} />
-<ContentActions variant="menu" contentId={String(itemId || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} onDelete={() => handleDeletePost(itemId)} showMessage onAddUser={item.submittedBy && !following.includes(item.submittedBy) ? onFollowUser : undefined} />
+<ContentActions variant="menu" contentId={String(itemId || '')} contentType="duma" authorEmail={item.submittedBy} authorName={item.submitterDisplayName} authToken={authToken} userEmail={userEmail} onEdit={() => setEditingItem(item)} onDelete={() => handleDeletePost(itemId)} showMessage onAddUser={item.submittedBy && !following.includes(item.submittedBy) ? onFollowUser : undefined} />
 </div>
 </div>
 {item.submittedBy && <CredentialHeader email={item.submittedBy} displayName={item.submitterDisplayName || null} rankTitle={verifiedRank} rankScore={null} avatarUrl={item.submitterAvatar || null} socialLinks={null} showRank={false} profileLink={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`} />}

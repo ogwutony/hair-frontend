@@ -9,6 +9,8 @@ import { BACKEND_URL, POINTS } from '../utils/constants';
 import { submitCulturePost } from '../utils/dumaApi';
 import { markPromptCompleted, incrementDumaPostCount, safeSocialUrl, normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
+import { FocusPicker, focusButtonStyle } from '../components/FocusPicker';
+import { focusPosition, withFocus } from '../utils/mediaFocus';
 
 export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, onAddPoints, userAvatar }) => {
   const navigate = useNavigate();
@@ -40,6 +42,7 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
   const [dumaSlots, setDumaSlots] = useState(Array(6).fill(null));
   const [selectedPromptIndex, setSelectedPromptIndex] = useState(null);
   const [postSubmitStatus, setCultureSubmitStatus] = useState("idle");
+  const [focusSlot, setFocusSlot] = useState(null); // index of the photo whose focus is being chosen
 
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/duma`)
@@ -129,7 +132,8 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
           if (!uploadRes.ok) throw new Error(`One of your photos or videos failed to upload (${uploadRes.status}), so the post was not saved. Please try again.`);
           const uploadData = await uploadRes.json();
           const cloudUrl = uploadData.storageUrl || uploadData.secure_url || uploadData.url;
-          if (cloudUrl) uploadedMediaUrls.push(cloudUrl);
+          // Keep the author's chosen focus point with the photo (see utils/mediaFocus)
+          if (cloudUrl) uploadedMediaUrls.push(slot.type === 'image' ? withFocus(cloudUrl, slot.focus) : cloudUrl);
         }
       }
       const savedItem = await submitCulturePost(authToken, {
@@ -201,7 +205,10 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
               {slot ? (
                 <>
                   {slot.type === 'image' ? (
-                    <img src={slot.url} alt={`Post media ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <>
+                      <img src={slot.url} alt={`Post media ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: focusPosition(slot.focus) }} />
+                      <button type="button" style={focusButtonStyle} aria-label={`Set focus for photo ${idx + 1}`} onClick={() => setFocusSlot(idx)}>Focus</button>
+                    </>
                   ) : (
                     <video src={slot.url} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   )}
@@ -217,6 +224,9 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
             </div>
           ))}
         </div>
+        {dumaSlots.some((slot) => slot?.type === 'image') && (
+          <p style={{ margin: '0 0 8px', fontSize: '11px', color: '#666' }}>Tap <strong>Focus</strong> on a photo to choose the part that stays in view when it's cropped.</p>
+        )}
         <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginTop: '20px', marginBottom: '8px' }}>Location (Optional)</label>
         <LocationAutocomplete value={postLocation} onChange={setPostLocation} placeholder="Tag a location..." style={{ padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '16px' }} />
         <h3 style={{ marginTop: '24px', marginBottom: '12px' }}>Your Response</h3>
@@ -233,6 +243,17 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
           {postSubmitStatus === "uploading" ? "Publishing..." : `Submit to the Duma (+${POINTS.DUMA_POST} points)`}
         </button>
       </form>
+      {focusSlot !== null && dumaSlots[focusSlot] && (
+        <FocusPicker
+          src={dumaSlots[focusSlot].url}
+          value={dumaSlots[focusSlot].focus}
+          onClose={() => setFocusSlot(null)}
+          onSave={(focus) => {
+            setDumaSlots((prev) => prev.map((slot, i) => (i === focusSlot && slot ? { ...slot, focus } : slot)));
+            setFocusSlot(null);
+          }}
+        />
+      )}
       <section style={{ marginTop: '50px' }}>
         <h2 style={{ fontSize: '20px', marginBottom: '8px', fontWeight: '600' }}>Community Social Links</h2>
         <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Connect with other members of The Majorities.</p>

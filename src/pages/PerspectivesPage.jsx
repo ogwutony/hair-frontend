@@ -7,6 +7,7 @@ import { MediaModal } from '../components/MediaModal';
 import { RankBadge } from '../components/RankBadge';
 import { BACKEND_URL, POINTS } from '../utils/constants';
 import { normalizeMediaVideoUrl } from '../utils/helpers';
+import { focusPosition, isVideoMediaUrl, stripFocus } from '../utils/mediaFocus';
 import { styles } from '../utils/styles';
 import { ContentActions } from '../components/ContentActions';
 import { AddressLink } from '../components/AddressLink';
@@ -380,18 +381,18 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
                 return (
                   <div style={{ display: 'grid', gridTemplateColumns: mediaList.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', margin: '15px 0', background: '#fafafa', padding: '10px', borderRadius: '12px', border: '1px solid #eee' }}>
                     {mediaList.map((url, idx) => {
-                      const isVideo = /\.(mp4|mov|hevc|webm)$/i.test(url) || url.includes('/video/upload/');
+                      const isVideo = isVideoMediaUrl(url) || /\.hevc$/i.test(stripFocus(url));
                       return (
                         <div key={idx} style={{ textAlign: 'center', cursor: 'pointer' }} onClick={() => setActiveMedia({ url: normalizeMediaVideoUrl(url), type: isVideo ? 'video' : 'image' })}>
                           {isVideo ? (
                             <video
                               src={normalizeMediaVideoUrl(url)}
-                              poster={url.includes('cloudinary.com') ? url.replace(/\.(mp4|mov|webm|hevc|m4v)$/i, '.jpg') : undefined}
+                              poster={url.includes('cloudinary.com') ? stripFocus(url).replace(/\.(mp4|mov|webm|hevc|m4v)$/i, '.jpg') : undefined}
                               style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', backgroundColor: '#000', objectFit: 'contain' }}
                               playsInline preload="metadata"
                             />
                           ) : (
-                            <img src={url} alt={`Attachment ${idx + 1}`} style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover' }} />
+                            <img src={stripFocus(url)} alt={`Attachment ${idx + 1}`} style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover', objectPosition: focusPosition(url) }} />
                           )}
                         </div>
                       );

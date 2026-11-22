@@ -3,6 +3,7 @@
 
 import { RANK_TIERS, PRODUCT_VARIANT_MAP, LORD_POST_MILESTONE, CUSTOM_SET_SUBSCRIPTION } from './constants';
 import { goToShopifyCheckout } from './shopifyCheckout';
+import { stripFocus } from './mediaFocus';
 
 // --- Rank System ---
 
@@ -208,8 +209,9 @@ export const safeSocialUrl = (raw) => {
   return `https://${raw}`;
 };
 
-export const normalizeMediaVideoUrl = (url) => {
-  if (!url) return url;
+export const normalizeMediaVideoUrl = (rawUrl) => {
+  if (!rawUrl) return rawUrl;
+  const url = stripFocus(rawUrl); // drop a photo focus fragment (#focus=x,y) before rewriting
   let normalized = url;
   try {
     const parsed = new URL(url);

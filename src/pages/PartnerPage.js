@@ -62,8 +62,14 @@ const MARKETPLACE_AGREEMENTS = [
   { key: 'ownershipTitleAgreed', label: 'I agree to the Ownership & Title Policy *' },
 ];
 
-// Creators are on the 15% referral commission, so the 20% marketplace commission checkbox doesn't apply to them
-const CREATOR_AGREEMENTS = MARKETPLACE_AGREEMENTS.filter(({ key }) => key !== 'commission20AgreedTo');
+// Creators are on the 15% referral commission, so the 20% marketplace commission checkbox doesn't apply to them.
+// Content permission and partnership disclosure are agreed to here, once, instead of on the
+// Influencers checklist page (themajorities.com/pages/influencers).
+const CREATOR_AGREEMENTS = [
+  ...MARKETPLACE_AGREEMENTS.filter(({ key }) => key !== 'commission20AgreedTo'),
+  { key: 'contentPermissionAgreed', label: 'I own my content and give The Majorities permission to feature it in The Duma and on its channels. *' },
+  { key: 'partnershipDisclosureAgreed', label: 'I will disclose my partnership in every post (for example #ad or #TheMajoritiesPartner). *' },
+];
 
 // Where people land after a successful application (both on the Shopify store)
 export const INFLUENCER_PAGE_URL = 'https://themajorities.com/pages/influencers';
@@ -153,6 +159,8 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
     creatorPhoto: null,
     videoType: "",
     commission8Agreed: false,
+    contentPermissionAgreed: false,
+    partnershipDisclosureAgreed: false,
     // Community fields
     eventDetails: "",
     majoritiesRole: "",

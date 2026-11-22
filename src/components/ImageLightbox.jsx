@@ -2,9 +2,11 @@
 // Full-screen view of a post's photos. Opens on double-click (or Enter) on a Duma photo.
 // Arrow keys / buttons move between photos, Escape or the backdrop closes.
 import React, { useEffect, useRef } from 'react';
+import { stripFocus } from '../utils/mediaFocus';
 
 /** Smaller Cloudinary copy for on-page display (originals are ~1MB). Non-Cloudinary URLs are left alone. */
-export const sizedImageUrl = (url, width) => {
+export const sizedImageUrl = (rawUrl, width) => {
+  const url = stripFocus(rawUrl); // the focus point is display-only, never part of the file address
   const m = typeof url === 'string' && url.match(/^(https?:\/\/res\.cloudinary\.com\/[^/]+\/(?:image|video)\/upload\/)(v\d+\/.*)$/);
   return m ? `${m[1]}c_limit,w_${width},q_auto,f_auto/${m[2]}` : url;
 };
@@ -52,7 +54,7 @@ export function ImageLightbox({ photos, index, onIndexChange, onClose }) {
         src={sizedImageUrl(photos[index], 2000)}
         alt={`Attachment ${index + 1} of ${photos.length}`}
         style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: '6px' }}
-        onError={(e) => { if (e.currentTarget.src !== photos[index]) e.currentTarget.src = photos[index]; }}
+        onError={(e) => { const original = stripFocus(photos[index]); if (e.currentTarget.src !== original) e.currentTarget.src = original; }}
       />
       <button ref={closeRef} type="button" aria-label="Close photo" onClick={onClose}
         style={{ position: 'absolute', top: '12px', right: '12px', width: '40px', height: '40px', borderRadius: '50%', border: 0, background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '20px', cursor: 'pointer' }}>

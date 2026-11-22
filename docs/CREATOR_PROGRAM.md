@@ -8,13 +8,22 @@ How the creator checklist on `themajorities.com/pages/influencers` works, and ho
 |---|---|
 | Checklist page | Shopify theme **Horizon**: `templates/page.influencers.json`, `sections/creator-checklist.liquid`, `assets/creator-checklist.js`, `assets/creator-checklist.css` |
 | Submissions, points, codes | `hair-backend`: `lib/creatorProgram.js` (rules, tested) and the `/api/creator/*` routes in `server.js` |
-| Where posts appear | This app: The Duma › Culture › **Influencers** (`/duma?view=culture-influencers`) |
+| Where posts appear | This app: The Duma › Culture › **Affiliate posts** (`/duma?view=culture-affiliate-posts`). Creator applications are under Culture › **Affiliates** (`/duma?view=culture-affiliates`) |
 | Admin tools | This app: `/admin/moderation` › **Creator program** |
 
 The page calls the backend directly (`https://hair-backend-1.onrender.com/api/creator`, set in the
 section's **Creator service address** setting). The backend already allows `themajorities.com`
 in CORS. No Shopify app or App Proxy is needed: a request is trusted only when it carries a valid
 creator code **and** the email of the community account that code belongs to.
+
+## On the checklist page
+
+- The creator must be **logged in** to the store. Their email comes from that account (it is the same
+  email as their community account), so the page never asks for a name or email.
+- **Step 1 · Confirm your Affiliate code** (the "creator code" below, renamed on the page). Once confirmed,
+  the code is remembered in that browser, so "Your points" loads straight away on the next visit.
+- Content permission and partnership disclosure are agreed to on the creator application
+  (Partner page › Commission & Agreements), not on the checklist.
 
 ## Points
 

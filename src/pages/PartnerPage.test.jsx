@@ -111,10 +111,18 @@ test('creator submission sends social accounts, experience and the pitch video, 
   // Creators are on 15%, so the 20% marketplace commission checkbox is gone
   expect(screen.queryByLabelText('20% commission', { exact: false })).not.toBeInTheDocument();
   ['Customer Reward', 'Shipping & Returns', 'Ownership & Title'].forEach(pick);
+  // Content permission and disclosure are agreed to here, not on the Influencers checklist page
+  fireEvent.click(screen.getByRole('button', { name: 'Submit Partnership Application' }));
+  expect(await screen.findByText('You must agree to all policies and agreements.')).toBeInTheDocument();
+  expect(global.fetch).not.toHaveBeenCalled();
+  pick('I own my content and give The Majorities permission');
+  pick('I will disclose my partnership in every post');
   fireEvent.click(screen.getByRole('button', { name: 'Submit Partnership Application' }));
 
   await waitFor(() => expect(global.fetch).toHaveBeenCalled());
   const body = global.fetch.mock.calls[0][1].body;
+  expect(body.get('contentPermissionAgreed')).toBe('true');
+  expect(body.get('partnershipDisclosureAgreed')).toBe('true');
   expect(body.get('partnerCategory')).toBe('Creator / Influencer Partners');
   expect(body.get('company')).toBe('Ada');
   expect(body.get('phoneNumber')).toBeNull();

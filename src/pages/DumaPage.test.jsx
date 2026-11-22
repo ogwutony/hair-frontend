@@ -106,3 +106,27 @@ test('Culture › Influencers shows creator posts and reviews with their product
   expect(await screen.findByText('Kindness.')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Influencers (1)' })).toHaveAttribute('aria-pressed', 'false');
 });
+
+test('Culture › Influencers shows the creator application with its submitted photo, not every post the creator makes', async () => {
+  const application = { _id: 'cccccccccccccccccccccccc', type: 'Partner', partnerCategory: 'Creator / Influencer Partners', desc: 'Creator / Influencer Partners', company: 'Nakisha', influencer: true, mediaUrls: ['https://res.cloudinary.com/demo/image/upload/v1/user_media/pitch.jpg'], comments: [] };
+  // The server tags every post by a creator `influencer`; an everyday post must stay in All only
+  const everyday = { _id: 'dddddddddddddddddddddddd', type: 'Culture', category: 'Culture', influencer: true, prompt: "What's a fun local spot?", response: 'Mavericks Dance Hall is the best.', comments: [] };
+  global.fetch = jest.fn(async url => (url.endsWith('/api/duma') ? response([application, everyday]) : response([])));
+  show('culture-influencers');
+  expect(await screen.findByRole('heading', { name: 'Nakisha joined as a Creator / Influencer partner' })).toBeInTheDocument();
+  expect(screen.getByText('New Creator')).toBeInTheDocument();
+  expect(screen.getByAltText('Attachment 1').getAttribute('src')).toContain('pitch.jpg');
+  expect(screen.queryByText('Mavericks Dance Hall is the best.')).not.toBeInTheDocument();
+  expect(screen.queryByText('Creator / Influencer Partners')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Influencers (1)' })).toHaveAttribute('aria-pressed', 'true');
+  fireEvent.click(screen.getByRole('button', { name: /^All \(/ }));
+  expect(await screen.findByText('Mavericks Dance Hall is the best.')).toBeInTheDocument();
+});
+
+test('Culture › Influencers keeps creator applications members-only, like the rest of Economics', async () => {
+  const application = { _id: 'eeeeeeeeeeeeeeeeeeeeeeee', type: 'Partner', partnerCategory: 'Creator / Influencer Partners', company: 'Nakisha', mediaUrls: [], comments: [] };
+  global.fetch = jest.fn(async url => (url.endsWith('/api/duma') ? response([application]) : response([])));
+  show('culture-influencers', { authToken: null });
+  expect(await screen.findByText(/No creators yet/)).toBeInTheDocument();
+  expect(screen.queryByText(/Nakisha joined/)).not.toBeInTheDocument();
+});

@@ -73,12 +73,15 @@ const EMPTY_LIST = []; // stable default so effects keyed on it don't re-run eve
 
 // Top-level Duma sections. Economics groups the commerce views as sub-sections.
 const ECONOMICS_SUBSECTIONS = ['Recommendations', 'Partners', 'Influencers', 'Marketplace'];
-// Culture sub-tabs. Influencers holds creator posts, including product reviews sent from the
-// creator checklist on themajorities.com/pages/influencers (server sets influencer / creatorReview).
+// Culture sub-tabs. Influencers shows each creator's application (with the photo or video they
+// submitted when applying) plus product reviews sent from the creator checklist on
+// themajorities.com/pages/influencers. A creator's everyday Culture posts stay in All only:
+// the server tags all of them `influencer`, so that flag alone isn't used here.
 const CULTURE_SUBSECTIONS = ['All', 'Influencers'];
-export const isCultureInfluencerItem = item => !!item.influencer || !!item.creatorReview;
 const CULTURE_INFLUENCERS_VIEW = 'culture-influencers';
 const CREATOR_CATEGORY = 'Creator / Influencer Partners';
+export const isCreatorApplication = item => item.type === 'Partner' && item.partnerCategory === CREATOR_CATEGORY;
+export const isCultureInfluencerItem = item => isCreatorApplication(item) || (item.type === 'Culture' && !!item.creatorReview);
 // Influencers tab: creator applications plus anything a creator posts afterwards (tagged by the server)
 export const isInfluencerItem = item => !!item.influencer || (item.type === 'Partner' && item.partnerCategory === CREATOR_CATEGORY);
 
@@ -501,7 +504,8 @@ const visibleItems = dumaItems.filter(item => !isHiddenItem(item));
 const economicsLocked = !authToken;
 const views = {
 Culture: visibleItems.filter(item => item.section === "Cultural" || item.category === "Culture" || item.type === "Video" || item.type === "Culture"),
-CultureInfluencers: visibleItems.filter(item => item.type === "Culture" && isCultureInfluencerItem(item)),
+// Creator applications are Partner posts, which are members-only like the rest of Economics
+CultureInfluencers: visibleItems.filter(item => isCultureInfluencerItem(item) && !(economicsLocked && isCreatorApplication(item))),
 Influencers: economicsLocked ? [] : visibleItems.filter(isInfluencerItem),
 Recommendations: economicsLocked ? [] : visibleItems.filter(item => item.type === "Product Recommendation" || item.type === "Recommendation"),
 Partners: economicsLocked ? [] : visibleItems.filter(item => item.type === "Partner"),
@@ -634,12 +638,12 @@ if (event.key === 'Enter') { event.preventDefault(); if (searchOpen && suggestio
 <div>
 {activeView === "CultureInfluencers" && (
 <p style={{ color: '#555', fontSize: '14px', margin: '0 0 16px' }}>
-Posts and product reviews from creators partnering with The Majorities.{' '}
+Creators partnering with The Majorities: their applications and product reviews.{' '}
 <Link to="/partner?category=influencer" style={{ color: '#1f4f99', fontWeight: 600 }}>Become a creator →</Link>
 </p>
 )}
 {culturalItems.length === 0 ? (
-<div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>{searchQuery.trim() ? 'No matching posts. Try another search or clear the search.' : activeView === "CultureInfluencers" ? 'No influencer posts yet. Creator reviews will appear here.' : 'No perspectives shared yet. Share yours and contribute to our culture section!'}</div>
+<div style={{ ...styles.dumaCard, textAlign: 'center', color: '#888' }}>{searchQuery.trim() ? 'No matching posts. Try another search or clear the search.' : activeView === "CultureInfluencers" ? 'No creators yet. New creator applications and reviews will appear here.' : 'No perspectives shared yet. Share yours and contribute to our culture section!'}</div>
 ) : (
 culturalItems.map((item, index) => {
 const itemId = item._id || item.id;
@@ -679,7 +683,12 @@ profileLink={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`}
 </div>
 )}
 
-{item.creatorReview ? (
+{isCreatorApplication(item) ? (
+<>
+<span style={{ ...styles.typeTag, display: 'inline-block', marginTop: '12px' }}>New Creator</span>
+<h4 style={{ marginTop: '10px', marginBottom: '8px', color: '#222' }}>{item.company || item.submitterDisplayName || 'A new creator'} joined as a Creator / Influencer partner</h4>
+</>
+) : item.creatorReview ? (
 <>
 <span style={{ ...styles.typeTag, display: 'inline-block', marginTop: '12px' }}>Creator Review</span>
 <h4 style={{ marginTop: '10px', marginBottom: '8px', color: '#222' }}>{item.prompt}</h4>
@@ -687,7 +696,7 @@ profileLink={`/perspectives?person=${encodeURIComponent(item.submittedBy)}`}
 ) : (
 <h4 style={{ marginTop: '12px', marginBottom: '8px', color: '#555' }}>Prompt: "{item.prompt || 'What makes a person beautiful?'}"</h4>
 )}
-<p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6', marginBottom: '14px' }}>{item.response || item.reason || item.desc}</p>
+{!isCreatorApplication(item) && <p style={{ color: '#222', fontSize: '14px', lineHeight: '1.6', marginBottom: '14px' }}>{item.response || item.reason || item.desc}</p>}
 {item.creatorReview && /^https:\/\/themajorities\.com\/products\/[a-z0-9-]+$/.test(item.productUrl || '') && (
 <a href={item.productUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', fontSize: '13px', fontWeight: 600, color: '#1f5a46', marginBottom: '14px', marginRight: '16px' }}>View {item.productTitle || 'the product'} →</a>
 )}

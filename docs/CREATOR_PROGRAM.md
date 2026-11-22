@@ -16,6 +16,15 @@ section's **Creator service address** setting). The backend already allows `them
 in CORS. No Shopify app or App Proxy is needed: a request is trusted only when it carries a valid
 creator code **and** the email of the community account that code belongs to.
 
+## On the checklist page
+
+- The creator must be **logged in** to the store. Their email comes from that account (it is the same
+  email as their community account), so the page never asks for a name or email.
+- **Step 1 · Confirm your Affiliate code** (the "creator code" below, renamed on the page). Once confirmed,
+  the code is remembered in that browser, so "Your points" loads straight away on the next visit.
+- Content permission and partnership disclosure are agreed to on the creator application
+  (Partner page › Commission & Agreements), not on the checklist.
+
 ## Points
 
 | Action | Points |

@@ -7,7 +7,7 @@ import { LocationAutocomplete } from '../components/LocationAutocomplete';
 import { RankBadge } from '../components/RankBadge';
 import { BACKEND_URL, POINTS } from '../utils/constants';
 import { submitCulturePost } from '../utils/dumaApi';
-import { markPromptCompleted, incrementDumaPostCount, safeSocialUrl } from '../utils/helpers';
+import { markPromptCompleted, incrementDumaPostCount, safeSocialUrl, normalizeMediaVideoUrl } from '../utils/helpers';
 import { styles } from '../utils/styles';
 
 export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, authToken, onAddPoints, userAvatar }) => {
@@ -244,7 +244,12 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
               <div key={member.email} style={{ ...styles.dumaCard, padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   {member.avatar ? (
-                    <img src={member.avatar} alt="avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                    // Some members use a video as their avatar; <img> can't show those
+                    /\.(mp4|mov|webm|m4v)$/i.test(member.avatar) || member.avatar.includes('/video/upload/') ? (
+                      <video src={normalizeMediaVideoUrl(member.avatar)} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} autoPlay loop muted playsInline />
+                    ) : (
+                      <img src={member.avatar} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                    )
                   ) : (
                     <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>👤</div>
                   )}

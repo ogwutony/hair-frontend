@@ -552,6 +552,28 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
     </div>
   );
 
+  const signInPrompt = (
+    <div style={{ padding: '24px 16px', border: '1.5px solid #e0e0e0', borderRadius: '12px', textAlign: 'center', backgroundColor: '#fafafa' }}>
+      <h4 style={{ marginBottom: '8px', fontSize: '16px' }}>Ready to Apply?</h4>
+      <p style={{ marginBottom: '20px', color: '#666', fontSize: '14px' }}>You must have a registered account to submit a partnership application.</p>
+      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+        <Link to="/login" style={{ ...styles.authButton, textDecoration: 'none', display: 'inline-block', padding: '12px 28px', width: 'auto' }}>
+          Log In
+        </Link>
+        <Link
+          to="/signup"
+          style={{
+            ...styles.authButton,
+            textDecoration: 'none', display: 'inline-block', padding: '12px 28px', width: 'auto',
+            backgroundColor: '#fff', color: '#1a1a1a', border: '1.5px solid #1a1a1a'
+          }}
+        >
+          Create Account
+        </Link>
+      </div>
+    </div>
+  );
+
   return (
     <div className="pp-page">
       <style>{RESPONSIVE_CSS}</style>
@@ -563,6 +585,8 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
           <CredentialHeader email={userEmail} rankTitle={rankTitle} rankScore={rankScore} avatarUrl={userAvatar} />
         </div>
       )}
+
+      {!authToken && <div style={{ marginBottom: '20px' }}>{signInPrompt}</div>}
 
       {errorMsg && <div role="alert" style={styles.errorMsg}>{errorMsg}</div>}
 
@@ -1017,25 +1041,7 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
 
         {/* ── SUBMISSION ─────────────────────────────────────────────────── */}
         {!authToken ? (
-          <div style={{ marginTop: '30px', padding: '24px 16px', border: '1.5px solid #e0e0e0', borderRadius: '12px', textAlign: 'center', backgroundColor: '#fafafa' }}>
-            <h4 style={{ marginBottom: '8px', fontSize: '16px' }}>Ready to Apply?</h4>
-            <p style={{ marginBottom: '20px', color: '#666', fontSize: '14px' }}>You must have a registered account to submit a partnership application.</p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link to="/login" style={{ ...styles.authButton, textDecoration: 'none', display: 'inline-block', padding: '12px 28px', width: 'auto' }}>
-                Log In
-              </Link>
-              <Link
-                to="/signup"
-                style={{
-                  ...styles.authButton,
-                  textDecoration: 'none', display: 'inline-block', padding: '12px 28px', width: 'auto',
-                  backgroundColor: '#fff', color: '#1a1a1a', border: '1.5px solid #1a1a1a'
-                }}
-              >
-                Create Account
-              </Link>
-            </div>
-          </div>
+          null
         ) : (
           <>
             <button

@@ -14,8 +14,9 @@ export function ShopifyCallbackPage({ onLogin }) {
     // Clear the single-use code from the visible URL and referrer immediately.
     window.history.replaceState({}, '', window.location.pathname);
     finishShopifySignIn(search).then(data => {
-      onLogin(data.email, data.token, false, data.rank_title, data.rank_score);
-      navigate('/duma', { replace: true });
+      // Remembered across tabs and visits, so members only sign in once
+      onLogin(data.email, data.token, true, data.rank_title, data.rank_score);
+      navigate(data.returnTo || '/duma', { replace: true });
     }).catch(e => setError(e.message));
   }, [navigate, onLogin]);
   return <main style={styles.authContainer}><div style={styles.authCard}>

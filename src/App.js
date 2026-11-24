@@ -40,7 +40,7 @@ import { AdminModerationPage } from './pages/AdminModerationPage';
 import { fetchInbox, countUnreadThreads } from './utils/messages';
 import { TermsGate } from './components/TermsGate';
 import { clearModerationData } from './utils/moderation';
-import { getShopifyConfig, LOGOUT_KEY } from './utils/shopifyAuth';
+import { getShopifyConfig, LOGOUT_KEY, startShopifySignIn, forgetStoreSignIn } from './utils/shopifyAuth';
 import { ShopifySignIn } from './components/ShopifySignIn';
 import { ShopifyCallbackPage } from './pages/ShopifyCallbackPage';
 
@@ -143,6 +143,22 @@ const INITIAL_DUMA_ITEMS = [
 export default function App() {
   const [shopifyConfig, setShopifyConfig] = useState(null);
   useEffect(() => { getShopifyConfig().then(setShopifyConfig); }, []);
+  // Arriving from the store already signed in (the store adds ?sso=1 to its links for signed-in
+  // customers): sign in here through the same Shopify login, then come back to this page.
+  useEffect(() => {
+    if (!shopifyConfig?.enabled) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('sso') !== '1') return;
+    params.delete('sso');
+    const here = window.location.pathname + (params.toString() ? `?${params}` : '') + window.location.hash;
+    let token = '';
+    try { token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || ''; } catch { /* private mode */ }
+    let tried = false;
+    try { tried = sessionStorage.getItem('ssoTried') === '1'; sessionStorage.setItem('ssoTried', '1'); } catch { tried = true; }
+    window.history.replaceState(window.history.state, '', here);
+    if (token || tried) return;
+    startShopifySignIn(shopifyConfig, here).catch(() => {});
+  }, [shopifyConfig]);
   // Read the saved session up front so a page refresh doesn't bounce signed-in users to /login
   const storedAuth = (() => {
     try {
@@ -224,8 +240,9 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    const shopifyLogout = sessionStorage.getItem(LOGOUT_KEY);
-    sessionStorage.removeItem(LOGOUT_KEY);
+    const shopifyLogout = localStorage.getItem(LOGOUT_KEY) || sessionStorage.getItem(LOGOUT_KEY);
+    localStorage.removeItem(LOGOUT_KEY); sessionStorage.removeItem(LOGOUT_KEY);
+    forgetStoreSignIn();
     clearModerationData();
     setisLoggedIn(false); setUserEmail(""); setAuthToken(""); setRankTitle("Comrade"); setRankScore(1); setUserAvatar(""); setWholesaleApproved(false); setInfluencerApplied(false);
     localStorage.removeItem("authToken"); localStorage.removeItem("userEmail"); localStorage.removeItem("rankTitle"); localStorage.removeItem("rankScore"); localStorage.removeItem("userAvatar");

@@ -6,6 +6,7 @@ import { useCart, checkoutCart } from '../utils/cart';
 import { SHOP_ITEM_BY_ID } from '../utils/shopCatalog';
 import { formatCurrency } from '../utils/helpers';
 import { RankBadge } from './RankBadge';
+import { storeUrl } from '../utils/shopifyAuth';
 import '../mobileShop.css';
 
 const Icon = {
@@ -44,8 +45,6 @@ function PromoBar() {
   );
 }
 
-const SHOP_URL = 'https://themajorities.com/';
-
 export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle, influencerApplied = false }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -65,7 +64,8 @@ export function MobileHeader({ isLoggedIn, onLogout, unreadMessages, rankTitle, 
   const closeAll = () => { setMenuOpen(false); setCartOpen(false); setAccountOpen(false); };
   const go = (to) => { closeAll(); navigate(to); };
   const logout = () => { closeAll(); onLogout(); };
-  const goShop = path => { closeAll(); window.location.assign(new URL(path, SHOP_URL).href); };
+  // Signed-in members are signed in to the store on their first visit there, so they never log in twice
+  const goShop = path => { closeAll(); window.location.assign(storeUrl(path, isLoggedIn)); };
   // Keep the store and community destinations in the same order on every screen.
   const navItems = [
     ['Home', () => goShop('/')],

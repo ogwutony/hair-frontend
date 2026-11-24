@@ -1041,7 +1041,7 @@ export const PartnerPage = ({ addDumaItem, onAddPoints, userEmail, rankTitle, ra
 
         {/* ── SUBMISSION ─────────────────────────────────────────────────── */}
         {!authToken ? (
-          <div style={{ marginTop: '30px' }}>{signInPrompt}</div>
+          null
         ) : (
           <>
             <button

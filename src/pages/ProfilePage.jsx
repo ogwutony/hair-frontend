@@ -966,7 +966,7 @@ export const ProfilePage = ({ userEmail, savedSets = [], rankTitle, rankScore, a
           </div>
 
           <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginTop: '20px', marginBottom: '8px' }}>Location (Optional)</label>
-          <LocationAutocomplete value={postLocation} onChange={setPostLocation} placeholder="Tag a location for this post..." style={{ padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '16px' }} />
+          <LocationAutocomplete allowCurrentLocation value={postLocation} onChange={setPostLocation} placeholder="Tag a location for this post..." style={{ padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '16px' }} />
 
           <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginTop: '16px', marginBottom: '8px' }}>Write a description *</label>
           <textarea

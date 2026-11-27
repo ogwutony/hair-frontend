@@ -71,8 +71,27 @@ test('signed-out visitors must sign in to see Economics, but can still read Cult
   expect(screen.queryByRole('heading', { name: 'Sign in to see Economics' })).not.toBeInTheDocument();
 });
 
-test('feed photos stay centred on the focus point their author chose', async () => {
-  const post = { _id: 'ffffffffffffffffffffffff', type: 'Culture', category: 'Culture', prompt: 'P', response: 'R', mediaUrls: ['https://res.cloudinary.com/demo/image/upload/v1/user_media/pitch.jpg#focus=30,10'], comments: [] };
+test('a single feed photo is shown whole, not cropped', async () => {
+  const post = { _id: 'eeeeeeeeeeeeeeeeeeeeeeee', type: 'Culture', category: 'Culture', prompt: 'P', response: 'R', mediaUrls: ['https://res.cloudinary.com/demo/image/upload/v1/user_media/tall.jpg'], comments: [] };
+  global.fetch = jest.fn(async url => (url.endsWith('/api/duma') ? response([post]) : response([])));
+  show('culture');
+  const img = await screen.findByAltText('Attachment 1');
+  expect(img.style.objectFit).toBe('contain');
+  expect(img.style.height).toBe('auto');
+  expect(img.style.maxHeight).toBe('600px');
+});
+
+test('cropped grid photos without a focus point keep their top in view', async () => {
+  const post = { _id: 'dddddddddddddddddddddddd', type: 'Culture', category: 'Culture', prompt: 'P', response: 'R', mediaUrls: ['https://res.cloudinary.com/demo/image/upload/v1/user_media/a.jpg', 'https://res.cloudinary.com/demo/image/upload/v1/user_media/b.jpg'], comments: [] };
+  global.fetch = jest.fn(async url => (url.endsWith('/api/duma') ? response([post]) : response([])));
+  show('culture');
+  const img = await screen.findByAltText('Attachment 1');
+  expect(img.style.objectFit).toBe('cover');
+  expect(img.style.objectPosition).toBe('50% 0%');
+});
+
+test('cropped grid photos stay centred on the focus point their author chose', async () => {
+  const post = { _id: 'ffffffffffffffffffffffff', type: 'Culture', category: 'Culture', prompt: 'P', response: 'R', mediaUrls: ['https://res.cloudinary.com/demo/image/upload/v1/user_media/pitch.jpg#focus=30,10', 'https://res.cloudinary.com/demo/image/upload/v1/user_media/b.jpg'], comments: [] };
   global.fetch = jest.fn(async url => (url.endsWith('/api/duma') ? response([post]) : response([])));
   show('culture');
   const img = await screen.findByAltText('Attachment 1');

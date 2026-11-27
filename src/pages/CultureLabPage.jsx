@@ -1,5 +1,5 @@
 // src/pages/CultureLabPage.jsx
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useIsMobile } from '../utils/useIsMobile';
 import { useNavigate } from 'react-router-dom';
 import { CredentialHeader } from '../components/CredentialHeader';
@@ -228,7 +228,7 @@ export const CultureLabPage = ({ addDumaItem, userEmail, rankTitle, rankScore, a
           <p style={{ margin: '0 0 8px', fontSize: '11px', color: '#666' }}>Tap <strong>Focus</strong> on a photo to choose the part that stays in view when it's cropped.</p>
         )}
         <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginTop: '20px', marginBottom: '8px' }}>Location (Optional)</label>
-        <LocationAutocomplete value={postLocation} onChange={setPostLocation} placeholder="Tag a location..." style={{ padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '16px' }} />
+        <LocationAutocomplete allowCurrentLocation value={postLocation} onChange={setPostLocation} placeholder="Tag a location..." style={{ padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '16px' }} />
         <h3 style={{ marginTop: '24px', marginBottom: '12px' }}>Your Response</h3>
         <textarea required placeholder="Type your response here..." style={{ ...styles.input, height: '140px' }} value={response} onChange={(e) => setResponse(e.target.value)} />
         <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginTop: '16px', marginBottom: '8px' }}>ANSWER PROMPTS FOR POINTS</label>

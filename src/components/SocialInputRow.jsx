@@ -1,5 +1,5 @@
 // src/components/SocialInputRow.jsx
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
 export const SocialInputRow = ({ socialKey, label, placeholder, initialValue, onSave, onChangeGlobal, saveStatus }) => {
   const [localVal, setLocalVal] = React.useState(initialValue || "");

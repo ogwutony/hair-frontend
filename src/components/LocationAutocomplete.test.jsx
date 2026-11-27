@@ -108,17 +108,70 @@ test('falls back to the classic Places widget when the new API is not enabled on
   expect(addListener).toHaveBeenCalledWith('place_changed', expect.any(Function));
 });
 
-test('works as a plain text field when no API key is configured', async () => {
+const jsonResponse = (body, ok = true) => ({ ok, status: ok ? 200 : 502, json: async () => body });
+
+test('without an API key, suggestions come from the OpenStreetMap proxy', async () => {
   process.env.REACT_APP_GOOGLE_MAPS_API_KEY = '';
+  global.fetch = jest.fn().mockResolvedValue(jsonResponse({
+    results: [{ id: 'n1', main: 'Klyde Warren Park', secondary: 'Dallas, Texas, United States', label: 'Klyde Warren Park, Dallas, Texas, United States' }],
+  }));
   const fetchAutocompleteSuggestions = jest.fn();
   const LocationAutocomplete = setup({ AutocompleteSuggestion: { fetchAutocompleteSuggestions } });
   render(<Harness LocationAutocomplete={LocationAutocomplete} />);
   const input = screen.getByPlaceholderText('Tag a location...');
+  await act(async () => {});
+
+  await typeAndWait(input, 'Klyde');
+  await act(async () => { jest.advanceTimersByTime(200); });
+  expect(global.fetch).toHaveBeenCalledWith('/api/geocode?q=Klyde', expect.anything());
+  const option = await screen.findByRole('option', { name: /Klyde Warren Park/ });
+  await act(async () => { fireEvent.mouseDown(option); });
+  expect(input.value).toBe('Klyde Warren Park, Dallas, Texas, United States');
+  expect(fetchAutocompleteSuggestions).not.toHaveBeenCalled();
+  delete global.fetch;
+});
+
+test('stays a plain text field when no key is set and the proxy is down', async () => {
+  process.env.REACT_APP_GOOGLE_MAPS_API_KEY = '';
+  global.fetch = jest.fn().mockResolvedValue(jsonResponse({ results: [] }, false));
+  const LocationAutocomplete = setup({ AutocompleteSuggestion: { fetchAutocompleteSuggestions: jest.fn() } });
+  render(<Harness LocationAutocomplete={LocationAutocomplete} />);
+  const input = screen.getByPlaceholderText('Tag a location...');
+  await act(async () => {});
 
   await typeAndWait(input, 'My backyard');
+  await act(async () => { jest.advanceTimersByTime(200); });
   expect(input.value).toBe('My backyard');
   expect(input.disabled).toBe(false);
-  expect(fetchAutocompleteSuggestions).not.toHaveBeenCalled();
+  expect(screen.queryByRole('listbox')).toBeNull();
+  delete global.fetch;
+});
+
+describe('use my current location', () => {
+  const realGeo = navigator.geolocation;
+  const mockGeo = (impl) => Object.defineProperty(navigator, 'geolocation', { value: { getCurrentPosition: jest.fn(impl) }, configurable: true });
+  afterEach(() => { Object.defineProperty(navigator, 'geolocation', { value: realGeo, configurable: true }); delete global.fetch; });
+
+  test('fills the field with the reverse-geocoded place', async () => {
+    process.env.REACT_APP_GOOGLE_MAPS_API_KEY = '';
+    global.fetch = jest.fn().mockResolvedValue(jsonResponse({ results: [{ id: 'r', main: 'Deep Ellum', secondary: 'Dallas, Texas, United States', label: 'Deep Ellum, Dallas, Texas, United States' }] }));
+    mockGeo((ok) => ok({ coords: { latitude: 32.78, longitude: -96.78 } }));
+    const LocationAutocomplete = setup({});
+    const Wrapped = (props) => <LocationAutocomplete allowCurrentLocation {...props} />;
+    render(<Harness LocationAutocomplete={Wrapped} />);
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /use my current location/i })); });
+    await waitFor(() => expect(screen.getByPlaceholderText('Tag a location...').value).toBe('Deep Ellum, Dallas, Texas, United States'));
+    expect(global.fetch).toHaveBeenCalledWith('/api/geocode?lat=32.78&lon=-96.78', expect.anything());
+  });
+
+  test('explains a denied permission', async () => {
+    mockGeo((ok, fail) => fail({ code: 1, message: 'denied' }));
+    const LocationAutocomplete = setup({});
+    const Wrapped = (props) => <LocationAutocomplete allowCurrentLocation {...props} />;
+    render(<Harness LocationAutocomplete={Wrapped} />);
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /use my current location/i })); });
+    expect(screen.getByRole('status')).toHaveTextContent(/permission was denied/i);
+  });
 });
 
 test('re-enables the field if Google rejects the key', async () => {

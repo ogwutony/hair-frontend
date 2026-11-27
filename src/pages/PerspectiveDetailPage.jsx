@@ -10,7 +10,6 @@ import { AddressLink } from '../components/AddressLink';
 import { BACKEND_URL } from '../utils/constants';
 import { getRankTitle, normalizeMediaVideoUrl } from '../utils/helpers';
 import { isVideoMediaUrl, stripFocus } from '../utils/mediaFocus';
-import { styles } from '../utils/styles';
 
 const clip = (text, max) => {
   const t = String(text || '').replace(/\s+/g, ' ').trim();

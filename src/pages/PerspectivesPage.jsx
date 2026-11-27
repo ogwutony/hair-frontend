@@ -7,7 +7,7 @@ import { MediaModal } from '../components/MediaModal';
 import { RankBadge } from '../components/RankBadge';
 import { BACKEND_URL, POINTS } from '../utils/constants';
 import { normalizeMediaVideoUrl } from '../utils/helpers';
-import { focusPosition, isVideoMediaUrl, stripFocus } from '../utils/mediaFocus';
+import { focusPosition, getFocus, isVideoMediaUrl, stripFocus } from '../utils/mediaFocus';
 import { styles } from '../utils/styles';
 import { ContentActions } from '../components/ContentActions';
 import { AddressLink } from '../components/AddressLink';
@@ -392,7 +392,9 @@ export const PerspectivesPage = ({ items, authToken, userEmail, rankTitle, rankS
                               playsInline preload="metadata"
                             />
                           ) : (
-                            <img src={stripFocus(url)} alt={`Attachment ${idx + 1}`} style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover', objectPosition: focusPosition(url) }} />
+                            <img src={stripFocus(url)} alt={`Attachment ${idx + 1}`} style={mediaList.length === 1
+                              ? { display: 'block', width: '100%', height: 'auto', maxHeight: '600px', objectFit: 'contain', objectPosition: focusPosition(url), borderRadius: '8px' }
+                              : { display: 'block', width: '100%', height: '200px', objectFit: 'cover', objectPosition: getFocus(url) ? focusPosition(url) : '50% 0%', borderRadius: '8px' }} />
                           )}
                         </div>
                       );

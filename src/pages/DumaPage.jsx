@@ -16,7 +16,7 @@ import { ImageLightbox, sizedImageUrl } from '../components/ImageLightbox';
 import { useModeration } from '../utils/moderation';
 import { isPersistedDumaId, fetchDumaFeed } from '../utils/dumaApi';
 import { EzoicAd, DUMA_AD_PLACEHOLDER_START, DUMA_AD_EVERY_N_POSTS, DUMA_AD_MAX_SLOTS } from '../components/EzoicAd';
-import { focusPosition, isVideoMediaUrl, stripFocus } from '../utils/mediaFocus';
+import { focusPosition, getFocus, isVideoMediaUrl, stripFocus } from '../utils/mediaFocus';
 
 // Only index public post content and location tags, never private partner fields.
 // Video tile for Duma posts: loads nothing until played (a feed can hold 100+ videos) and
@@ -520,8 +520,12 @@ tabIndex={0}
 loading="lazy"
 onDoubleClick={() => openLightbox(mediaList, url)}
 onKeyDown={(e) => { if (e.key === 'Enter') openLightbox(mediaList, url); }}
-// The author's chosen focus point stays in view when the photo is cropped
-style={{ width: '100%', maxHeight: mediaList.length === 1 ? '400px' : '200px', borderRadius: '8px', objectFit: 'cover', objectPosition: focusPosition(url), cursor: 'zoom-in' }}
+// A single photo is shown whole (scaled down, never cropped). In a multi-photo grid the
+// tiles share one height and are cropped: the author's focus point stays in view, and
+// photos without one are anchored to the top so heads and faces aren't cut off.
+style={mediaList.length === 1
+ ? { display: 'block', width: '100%', height: 'auto', maxHeight: '600px', objectFit: 'contain', objectPosition: focusPosition(url), borderRadius: '8px', cursor: 'zoom-in' }
+ : { display: 'block', width: '100%', height: '200px', objectFit: 'cover', objectPosition: getFocus(url) ? focusPosition(url) : '50% 0%', borderRadius: '8px', cursor: 'zoom-in' }}
 onError={(e) => {
  // Resized copy failed: try the original once, then the placeholder
  if (!e.currentTarget.dataset.triedOriginal) { e.currentTarget.dataset.triedOriginal = '1'; e.currentTarget.src = stripFocus(url); return; }
